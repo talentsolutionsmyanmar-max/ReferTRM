@@ -1,6 +1,5 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  output: "standalone",
   typescript: {
     ignoreBuildErrors: true,
   },
@@ -13,6 +12,11 @@ const nextConfig = {
         hostname: '**',
       },
     ],
+  },
+  experimental: {
+    serverActions: {
+      bodySizeLimit: '2mb',
+    },
   },
 };
 
