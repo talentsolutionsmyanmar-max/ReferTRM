@@ -2,68 +2,84 @@
 
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Crown, Star, Sparkles, Lock, Check } from 'lucide-react';
+import { 
+  Crown, Star, Sparkles, Lock, Check, 
+  Sprout, BookOpen, Search, Briefcase, 
+  Monitor, GraduationCap, Palette, Target, 
+  Gem, Trophy, Rocket, Zap, Flame, Heart
+} from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 
-// Myanmar-style Chibi Avatar System
-interface AvatarOption {
+// Design System: NO emojis - use Lucide icons and initials only
+type IconName = 'Sprout' | 'BookOpen' | 'Search' | 'Briefcase' | 'Monitor' | 
+  'GraduationCap' | 'Palette' | 'Star' | 'Crown' | 'Target' | 
+  'Gem' | 'Trophy' | 'Rocket' | 'Zap' | 'Flame' | 'Heart';
+
+const iconMap: Record<IconName, typeof Sprout> = {
+  Sprout, BookOpen, Search, Briefcase, Monitor, 
+  GraduationCap, Palette, Star, Crown, Target, 
+  Gem, Trophy, Rocket, Zap, Flame, Heart,
+};
+
+// Avatar Style System - Design System compliant (NO emojis)
+interface AvatarStyle {
   id: string;
   name: string;
   nameMm: string;
-  emoji: string;
-  style: string;
+  icon: IconName;
+  gradient: string; // Tailwind gradient classes
   tier: 'bronze' | 'silver' | 'gold' | 'diamond' | 'legendary';
   cost: number;
   unlocked: boolean;
 }
 
-const avatarOptions: AvatarOption[] = [
+const avatarStyles: AvatarStyle[] = [
   // Bronze Tier (Free - Starter)
-  { id: 'starter-1', name: 'Beginner', nameMm: 'စတင်သူ', emoji: '🌱', style: 'Nature', tier: 'bronze', cost: 0, unlocked: true },
-  { id: 'starter-2', name: 'Learner', nameMm: 'သင်ယူသူ', emoji: '📚', style: 'Academic', tier: 'bronze', cost: 0, unlocked: true },
-  { id: 'starter-3', name: 'Explorer', nameMm: 'စူးစမ်းသူ', emoji: '🔍', style: 'Curious', tier: 'bronze', cost: 0, unlocked: true },
+  { id: 'starter-1', name: 'Beginner', nameMm: 'စတင်သူ', icon: 'Sprout', gradient: 'from-green-500 to-emerald-600', tier: 'bronze', cost: 0, unlocked: true },
+  { id: 'starter-2', name: 'Learner', nameMm: 'သင်ယူသူ', icon: 'BookOpen', gradient: 'from-blue-500 to-indigo-600', tier: 'bronze', cost: 0, unlocked: true },
+  { id: 'starter-3', name: 'Explorer', nameMm: 'စူးစမ်းသူ', icon: 'Search', gradient: 'from-purple-500 to-violet-600', tier: 'bronze', cost: 0, unlocked: true },
 
   // Silver Tier (5,000 pts)
-  { id: 'pro-1', name: 'Professional', nameMm: 'ပရော်ဖက်ရှင်နယ်', emoji: '💼', style: 'Business', tier: 'silver', cost: 5000, unlocked: false },
-  { id: 'pro-2', name: 'Tech Star', nameMm: 'နည်းပညာကျွမ်းကျင်', emoji: '💻', style: 'Tech', tier: 'silver', cost: 5000, unlocked: false },
-  { id: 'pro-3', name: 'Scholar', nameMm: 'ပညာရှင်', emoji: '🎓', style: 'Academic', tier: 'silver', cost: 5000, unlocked: false },
-  { id: 'pro-4', name: 'Creative', nameMm: 'ဖန်တီးသူ', emoji: '🎨', style: 'Arts', tier: 'silver', cost: 5000, unlocked: false },
+  { id: 'pro-1', name: 'Professional', nameMm: 'ပရော်ဖက်ရှင်နယ်', icon: 'Briefcase', gradient: 'from-slate-400 to-slate-600', tier: 'silver', cost: 5000, unlocked: false },
+  { id: 'pro-2', name: 'Tech Star', nameMm: 'နည်းပညာကျွမ်းကျင်', icon: 'Monitor', gradient: 'from-cyan-500 to-blue-600', tier: 'silver', cost: 5000, unlocked: false },
+  { id: 'pro-3', name: 'Scholar', nameMm: 'ပညာရှင်', icon: 'GraduationCap', gradient: 'from-indigo-500 to-purple-600', tier: 'silver', cost: 5000, unlocked: false },
+  { id: 'pro-4', name: 'Creative', nameMm: 'ဖန်တီးသူ', icon: 'Palette', gradient: 'from-pink-500 to-rose-600', tier: 'silver', cost: 5000, unlocked: false },
 
   // Gold Tier (10,000 pts)
-  { id: 'expert-1', name: 'Expert', nameMm: 'ကျွမ်းကျင်သူ', emoji: '⭐', style: 'Elite', tier: 'gold', cost: 10000, unlocked: false },
-  { id: 'expert-2', name: 'Leader', nameMm: 'ခေါင်းဆောင်', emoji: '👑', style: 'Command', tier: 'gold', cost: 10000, unlocked: false },
-  { id: 'expert-3', name: 'Mentor', nameMm: 'နည်းပြ', emoji: '🎯', style: 'Guide', tier: 'gold', cost: 10000, unlocked: false },
+  { id: 'expert-1', name: 'Expert', nameMm: 'ကျွမ်းကျင်သူ', icon: 'Star', gradient: 'from-yellow-400 to-amber-500', tier: 'gold', cost: 10000, unlocked: false },
+  { id: 'expert-2', name: 'Leader', nameMm: 'ခေါင်းဆောင်', icon: 'Crown', gradient: 'from-amber-400 to-orange-500', tier: 'gold', cost: 10000, unlocked: false },
+  { id: 'expert-3', name: 'Mentor', nameMm: 'နည်းပြ', icon: 'Target', gradient: 'from-orange-400 to-red-500', tier: 'gold', cost: 10000, unlocked: false },
 
   // Diamond Tier (25,000 pts)
-  { id: 'master-1', name: 'Master', nameMm: 'မာစတာ', emoji: '💎', style: 'Prestige', tier: 'diamond', cost: 25000, unlocked: false },
-  { id: 'master-2', name: 'Champion', nameMm: 'ချန်ပီယံ', emoji: '🏆', style: 'Victory', tier: 'diamond', cost: 25000, unlocked: false },
-  { id: 'master-3', name: 'Innovator', nameMm: 'ဆန်းသစ်တီထွင်သူ', emoji: '🚀', style: 'Visionary', tier: 'diamond', cost: 25000, unlocked: false },
+  { id: 'master-1', name: 'Master', nameMm: 'မာစတာ', icon: 'Gem', gradient: 'from-cyan-300 to-blue-400', tier: 'diamond', cost: 25000, unlocked: false },
+  { id: 'master-2', name: 'Champion', nameMm: 'ချန်ပီယံ', icon: 'Trophy', gradient: 'from-teal-400 to-cyan-500', tier: 'diamond', cost: 25000, unlocked: false },
+  { id: 'master-3', name: 'Innovator', nameMm: 'ဆန်းသစ်တီထွင်သူ', icon: 'Rocket', gradient: 'from-blue-400 to-indigo-500', tier: 'diamond', cost: 25000, unlocked: false },
 
   // Legendary Tier (50,000 pts)
-  { id: 'legend-1', name: 'Legend', nameMm: 'ထူးချွန်သူ', emoji: '🌟', style: 'Mythic', tier: 'legendary', cost: 50000, unlocked: false },
-  { id: 'legend-2', name: 'Unicorn', nameMm: 'ယူနီကorn', emoji: '🦄', style: 'Rare', tier: 'legendary', cost: 50000, unlocked: false },
-  { id: 'legend-3', name: 'Phoenix', nameMm: 'ဇာဂနာ', emoji: '🔥', style: 'Rebirth', tier: 'legendary', cost: 50000, unlocked: false },
+  { id: 'legend-1', name: 'Legend', nameMm: 'ထူးချွန်သူ', icon: 'Zap', gradient: 'from-purple-500 to-pink-500', tier: 'legendary', cost: 50000, unlocked: false },
+  { id: 'legend-2', name: 'Phoenix', nameMm: 'ဇာဂနာ', icon: 'Flame', gradient: 'from-orange-500 to-red-600', tier: 'legendary', cost: 50000, unlocked: false },
+  { id: 'legend-3', name: 'Beloved', nameMm: 'ချစ်ခြင်း', icon: 'Heart', gradient: 'from-rose-500 to-pink-600', tier: 'legendary', cost: 50000, unlocked: false },
 ];
 
-// Avatar Accessories
+// Avatar Accessories - Design System compliant (NO emojis)
 interface Accessory {
   id: string;
   name: string;
   nameMm: string;
-  emoji: string;
+  icon: IconName;
   cost: number;
   slot: 'head' | 'body' | 'background';
 }
 
 const accessories: Accessory[] = [
-  { id: 'acc-1', name: 'Crown', nameMm: 'သရဖူ', emoji: '👑', cost: 5000, slot: 'head' },
-  { id: 'acc-2', name: 'Graduation Cap', nameMm: 'ဘွဲ့ဆောင်သီး', emoji: '🎓', cost: 3000, slot: 'head' },
-  { id: 'acc-3', name: 'Fire Aura', nameMm: 'မီးနောက်ခံ', emoji: '🔥', cost: 8000, slot: 'background' },
-  { id: 'acc-4', name: 'Sparkles', nameMm: 'တလက်လက်', emoji: '✨', cost: 2000, slot: 'background' },
-  { id: 'acc-5', name: 'Briefcase', nameMm: 'လုပ်ငန်းအိတ်', emoji: '💼', cost: 4000, slot: 'body' },
+  { id: 'acc-1', name: 'Crown', nameMm: 'သရဖူ', icon: 'Crown', cost: 5000, slot: 'head' },
+  { id: 'acc-2', name: 'Graduation', nameMm: 'ဘွဲ့ဆောင်သီး', icon: 'GraduationCap', cost: 3000, slot: 'head' },
+  { id: 'acc-3', name: 'Fire Aura', nameMm: 'မီးနောက်ခံ', icon: 'Flame', cost: 8000, slot: 'background' },
+  { id: 'acc-4', name: 'Sparkles', nameMm: 'တလက်လက်', icon: 'Sparkles', cost: 2000, slot: 'background' },
+  { id: 'acc-5', name: 'Briefcase', nameMm: 'လုပ်ငန်းအိတ်', icon: 'Briefcase', cost: 4000, slot: 'body' },
 ];
 
-// Tier colors
+// Tier colors - Design System compliant
 const tierColors: Record<string, { bg: string; border: string; text: string; glow: string }> = {
   bronze: { bg: 'from-amber-700 to-amber-900', border: 'border-amber-600', text: 'text-amber-400', glow: 'shadow-amber-500/30' },
   silver: { bg: 'from-slate-400 to-slate-600', border: 'border-slate-400', text: 'text-slate-300', glow: 'shadow-slate-400/30' },
@@ -82,18 +98,35 @@ const tierLabels: Record<string, { en: string; mm: string }> = {
 
 interface AvatarSystemProps {
   currentPoints?: number;
-  onAvatarSelect?: (avatar: AvatarOption) => void;
+  userName?: string;
+  onAvatarSelect?: (avatar: AvatarStyle) => void;
 }
 
-export default function AvatarSystem({ currentPoints = 7500, onAvatarSelect }: AvatarSystemProps) {
-  const [selectedAvatar, setSelectedAvatar] = useState<AvatarOption | null>(null);
+export default function AvatarSystem({ currentPoints = 7500, userName = 'User', onAvatarSelect }: AvatarSystemProps) {
+  const [selectedAvatar, setSelectedAvatar] = useState<AvatarStyle | null>(null);
   const [selectedTab, setSelectedTab] = useState<'avatars' | 'accessories'>('avatars');
+  
+  // Get initials for avatar display (Design System: gender-neutral initials only)
+  const getInitials = (name: string) => {
+    const parts = name.trim().split(' ');
+    if (parts.length >= 2) {
+      return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+    }
+    return name.substring(0, 2).toUpperCase();
+  };
+  
+  const userInitials = getInitials(userName);
 
-  const handleAvatarClick = (avatar: AvatarOption) => {
+  const handleAvatarClick = (avatar: AvatarStyle) => {
     if (avatar.unlocked || avatar.cost <= currentPoints) {
       setSelectedAvatar(avatar);
       onAvatarSelect?.(avatar);
     }
+  };
+
+  const IconComponent = ({ name, className }: { name: IconName; className?: string }) => {
+    const Icon = iconMap[name];
+    return <Icon className={className} />;
   };
 
   return (
@@ -113,7 +146,7 @@ export default function AvatarSystem({ currentPoints = 7500, onAvatarSelect }: A
         </div>
       </div>
 
-      {/* Preview Area */}
+      {/* Preview Area - Design System: Initials only */}
       <div className="glass-card p-6">
         <div className="flex flex-col md:flex-row items-center gap-6">
           {/* Avatar Preview */}
@@ -124,12 +157,16 @@ export default function AvatarSystem({ currentPoints = 7500, onAvatarSelect }: A
                 initial={{ scale: 0.8, opacity: 0 }}
                 animate={{ scale: 1, opacity: 1 }}
                 className={`w-32 h-32 rounded-full bg-gradient-to-br ${
-                  selectedAvatar ? tierColors[selectedAvatar.tier].bg : 'from-teal-500 to-cyan-500'
-                } flex items-center justify-center text-6xl shadow-xl ${
+                  selectedAvatar ? selectedAvatar.gradient : 'from-teal-500 to-cyan-500'
+                } flex items-center justify-center shadow-xl ${
                   selectedAvatar ? tierColors[selectedAvatar.tier].glow : 'shadow-teal-500/30'
                 }`}
               >
-                {selectedAvatar?.emoji || '🧑'}
+                {selectedAvatar ? (
+                  <IconComponent name={selectedAvatar.icon} className="w-16 h-16 text-white" />
+                ) : (
+                  <span className="text-4xl font-bold text-white">{userInitials}</span>
+                )}
               </motion.div>
               
               {/* Tier Badge */}
@@ -148,16 +185,16 @@ export default function AvatarSystem({ currentPoints = 7500, onAvatarSelect }: A
           {/* Selected Avatar Info */}
           <div className="flex-1 text-center md:text-left">
             <h3 className="text-xl font-bold text-white mb-1">
-              {selectedAvatar?.name || 'Choose Your Avatar'}
+              {selectedAvatar?.name || 'Choose Your Style'}
             </h3>
             <p className="text-slate-400 burmese-text text-sm mb-3">
-              {selectedAvatar?.nameMm || 'သင့် Avatar ကို ရွေးချယ်ပါ'}
+              {selectedAvatar?.nameMm || 'သင့် Avatar စတိုင်ကို ရွေးချယ်ပါ'}
             </p>
             {selectedAvatar && (
               <div className="flex flex-wrap items-center gap-2 justify-center md:justify-start">
                 <Badge className={`${tierColors[selectedAvatar.tier].text} bg-white/5 border-current`}>
                   <Crown className="h-3 w-3 mr-1" />
-                  {selectedAvatar.style}
+                  {selectedAvatar.tier}
                 </Badge>
                 <Badge className="bg-amber-500/20 text-amber-400 border-amber-500/30">
                   <Star className="h-3 w-3 mr-1" />
@@ -177,7 +214,7 @@ export default function AvatarSystem({ currentPoints = 7500, onAvatarSelect }: A
             selectedTab === 'avatars' ? 'btn-primary' : 'bg-slate-800 text-slate-400 hover:text-white'
           }`}
         >
-          Avatars
+          Avatar Styles
         </button>
         <button
           onClick={() => setSelectedTab('accessories')}
@@ -200,7 +237,7 @@ export default function AvatarSystem({ currentPoints = 7500, onAvatarSelect }: A
             className="space-y-6"
           >
             {Object.keys(tierLabels).map((tier) => {
-              const tierAvatars = avatarOptions.filter((a) => a.tier === tier);
+              const tierAvatars = avatarStyles.filter((a) => a.tier === tier);
               const colors = tierColors[tier];
               
               return (
@@ -229,13 +266,15 @@ export default function AvatarSystem({ currentPoints = 7500, onAvatarSelect }: A
                           disabled={!canUnlock && !avatar.unlocked}
                           className={`relative p-3 rounded-xl transition-all touch-target haptic ${
                             isSelected
-                              ? `bg-gradient-to-br ${colors.bg} ${colors.border} border-2 shadow-lg ${colors.glow}`
+                              ? `bg-gradient-to-br ${avatar.gradient} ${colors.border} border-2 shadow-lg ${colors.glow}`
                               : canUnlock || avatar.unlocked
                               ? 'bg-slate-800 hover:bg-slate-700 border border-slate-700'
                               : 'bg-slate-900 opacity-50 cursor-not-allowed border border-slate-800'
                           }`}
                         >
-                          <div className="text-3xl mb-2">{avatar.emoji}</div>
+                          <div className="flex items-center justify-center mb-2">
+                            <IconComponent name={avatar.icon} className={`w-8 h-8 ${isSelected ? 'text-white' : 'text-slate-300'}`} />
+                          </div>
                           <div className="text-xs text-white font-medium truncate">{avatar.name}</div>
                           <div className="text-[10px] text-slate-500 truncate burmese-text">{avatar.nameMm}</div>
                           
@@ -277,7 +316,9 @@ export default function AvatarSystem({ currentPoints = 7500, onAvatarSelect }: A
                   whileTap={{ scale: 0.95 }}
                   className="p-4 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-center touch-target haptic"
                 >
-                  <div className="text-3xl mb-2">{acc.emoji}</div>
+                  <div className="flex items-center justify-center mb-2">
+                    <IconComponent name={acc.icon} className="w-10 h-10 text-teal-400" />
+                  </div>
                   <div className="text-sm text-white font-medium">{acc.name}</div>
                   <div className="text-xs text-slate-500 burmese-text">{acc.nameMm}</div>
                   <div className="mt-2 text-amber-400 text-xs font-bold">{acc.cost.toLocaleString()} pts</div>

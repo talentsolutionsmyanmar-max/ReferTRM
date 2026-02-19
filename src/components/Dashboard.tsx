@@ -15,14 +15,17 @@ import {
   TrendingUp,
   Users,
   BookOpen,
-  Zap
+  Zap,
+  Briefcase
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
+import { getInitials } from '@/lib/utils';
 
 // Mock user data - in production, this would come from Firebase/API
+// Design System: No emojis - use initials only
 const mockUser = {
   name: 'Thiri Aung',
   nameMm: 'သီရိအောင်',
@@ -34,7 +37,7 @@ const mockUser = {
   nextLevelAt: 1000,
   totalReferrals: 3,
   totalEarned: 125000,
-  avatar: '👩‍💼',
+  initials: 'TA', // Gender-neutral initials (Design System)
   zodiac: '♌ Leo',
   traits: ['Leadership', 'Creative', 'Persistent'],
   completedModules: 8,
@@ -56,6 +59,7 @@ export default function Dashboard() {
 
   const levelProgress = (mockUser.experience / mockUser.nextLevelAt) * 100;
   const nextStreakMilestone = streakMilestones.find(m => m > mockUser.streak) || 100;
+  const userInitials = getInitials(mockUser.name);
 
   return (
     <section id="dashboard" className="py-8 px-4">
@@ -67,10 +71,10 @@ export default function Dashboard() {
           className="glass-card p-6 mb-6"
         >
           <div className="flex flex-col md:flex-row items-center gap-6">
-            {/* Avatar */}
+            {/* Avatar - Design System: Gender-neutral initials only */}
             <div className="relative">
-              <div className="w-24 h-24 rounded-2xl bg-gradient-to-r from-teal-500 to-cyan-500 flex items-center justify-center text-5xl">
-                {mockUser.avatar}
+              <div className="w-24 h-24 rounded-2xl bg-gradient-to-r from-teal-500 to-cyan-500 flex items-center justify-center">
+                <span className="text-3xl font-bold text-white">{userInitials}</span>
               </div>
               <div className="absolute -bottom-2 -right-2 bg-amber-500 rounded-full px-2 py-1 text-xs font-bold text-slate-900">
                 Lv.{mockUser.level === 'Amateur' ? 1 : mockUser.level === 'Professional' ? 2 : mockUser.level === 'Expert' ? 3 : 4}
@@ -80,7 +84,7 @@ export default function Dashboard() {
             {/* User Info */}
             <div className="flex-1 text-center md:text-left">
               <h2 className="text-2xl font-bold text-white mb-1">
-                Welcome back, {mockUser.name}! 👋
+                Welcome back, {mockUser.name}!
               </h2>
               <p className="text-slate-400 burmese-text mb-2">
                 နောက်တစ်ကြိမ် ကြိုဆိုပါသည်၊ {mockUser.nameMm}!
@@ -160,7 +164,8 @@ export default function Dashboard() {
                 <div className="text-2xl font-bold text-orange-400">{mockUser.streak}</div>
                 <div className="text-xs text-slate-400">Day Streak</div>
                 <div className="text-xs text-slate-500 mt-2">
-                  Next: {nextStreakMilestone} days 🔥
+                  <Target className="inline h-3 w-3 text-orange-400 mr-1" />
+                  Next: {nextStreakMilestone} days
                 </div>
               </CardContent>
             </Card>
@@ -239,7 +244,8 @@ export default function Dashboard() {
             ))}
           </div>
           <p className="text-slate-400 text-sm mt-4">
-            🎯 {nextStreakMilestone - mockUser.streak} more days to unlock +{(nextStreakMilestone / 2) * 5} bonus points!
+            <Target className="inline h-4 w-4 text-teal-400 mr-1" />
+            {nextStreakMilestone - mockUser.streak} more days to unlock +{(nextStreakMilestone / 2) * 5} bonus points!
           </p>
         </motion.div>
 

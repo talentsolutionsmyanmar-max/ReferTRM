@@ -165,6 +165,16 @@ function saveUserToStorage(user: User | null) {
   }
 }
 
+// Get initials from name (Design System: gender-neutral avatars with initials only)
+function getInitials(name: string | null): string {
+  if (!name) return 'GU';
+  const parts = name.trim().split(' ');
+  if (parts.length >= 2) {
+    return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+  }
+  return name.substring(0, 2).toUpperCase();
+}
+
 function createGuestUser(): User {
   return {
     uid: 'guest_' + Date.now(),
@@ -178,7 +188,7 @@ function createGuestUser(): User {
     maxStreak: 1,
     completedModules: [],
     level: 'Amateur',
-    avatar: '🧑',
+    avatar: '', // No emoji - use initials from name
     avatarType: 'neutral',
     avatarUrl: null,
     referralCode: generateReferralCode(),

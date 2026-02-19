@@ -188,7 +188,7 @@ export async function createUserProfile(uid: string, data: Partial<UserProfile> 
     name: data.name || null,
     avatar_url: data.avatar_url || null,
     avatar_type: data.avatar_type || 'neutral',
-    avatar: data.avatar || '🧑',
+    avatar: data.avatar || '', // No emoji - use initials from name
     points: data.points || 50,
     total_points_earned: data.total_points_earned || 50,
     streak: data.streak || 1,

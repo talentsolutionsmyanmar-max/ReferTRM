@@ -17,12 +17,15 @@ import {
   Briefcase,
   Check,
   Building2,
+  Sprout,
+  Target,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import { useAuth } from '@/contexts/AuthContext';
+import { getInitials } from '@/lib/utils';
 
 const quickActions = [
   { icon: BookOpen, label: 'Continue Learning', href: '/dashboard/academy', color: 'from-purple-500 to-pink-500' },
@@ -38,11 +41,12 @@ const levelColors: Record<string, string> = {
   Master: 'text-amber-400',
 };
 
-const levelIcons: Record<string, string> = {
-  Amateur: '🌱',
-  Professional: '💼',
-  Expert: '⭐',
-  Master: '👑',
+// Design System: Use Lucide icons instead of emojis
+const levelIconComponents: Record<string, typeof Sprout> = {
+  Amateur: Sprout,
+  Professional: Briefcase,
+  Expert: Star,
+  Master: Crown,
 };
 
 const STREAK_MILESTONES = [
@@ -64,6 +68,8 @@ export default function DashboardPage() {
   const level = user?.level || 'Amateur';
   const displayName = user?.displayName || user?.name || 'Demo User';
   const referralCode = user?.referralCode || 'REFXXXXX';
+  const userInitials = getInitials(displayName);
+  const LevelIcon = levelIconComponents[level] || Sprout;
 
   const nextMilestone = STREAK_MILESTONES.find(m => m.days > streak) || STREAK_MILESTONES[STREAK_MILESTONES.length - 1];
   const nextBonus = STREAK_MILESTONES.find(m => m.days > streak)?.bonus || 75;
@@ -86,10 +92,10 @@ export default function DashboardPage() {
       >
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
           <div className="flex items-center gap-5">
-            {/* Avatar */}
+            {/* Avatar - Design System: Gender-neutral initials only */}
             <Link href="/dashboard/settings" className="relative group">
-              <div className="w-20 h-20 rounded-2xl overflow-hidden border-2 border-teal-500/50 shadow-lg shadow-teal-500/25 group-hover:border-teal-400 transition-colors bg-gradient-to-br from-teal-500 to-cyan-500 flex items-center justify-center text-4xl">
-                🧑
+              <div className="w-20 h-20 rounded-2xl overflow-hidden border-2 border-teal-500/50 shadow-lg shadow-teal-500/25 group-hover:border-teal-400 transition-colors bg-gradient-to-br from-teal-500 to-cyan-500 flex items-center justify-center">
+                <span className="text-2xl font-bold text-white">{userInitials}</span>
               </div>
               <div className="absolute -bottom-2 -right-2 bg-amber-500 rounded-lg px-2 py-1 text-xs font-bold text-slate-900 shadow">
                 Lv.{level === 'Amateur' ? 1 : level === 'Professional' ? 2 : level === 'Expert' ? 3 : 4}
@@ -99,15 +105,15 @@ export default function DashboardPage() {
             {/* User Info */}
             <div>
               <h1 className="text-2xl font-bold text-foreground mb-1">
-                Welcome back, {displayName}! 👋
+                Welcome back, {displayName}!
               </h1>
               <p className="text-muted-foreground mb-3">
                 ကောင်းသောနေ့လေးပါ
               </p>
               <div className="flex flex-wrap items-center gap-2">
                 <Badge className={`${levelColors[level]} bg-white/5 border-current`}>
-                  <Crown className="h-3 w-3 mr-1" />
-                  {level} {levelIcons[level]}
+                  <LevelIcon className="h-3 w-3 mr-1" />
+                  {level}
                 </Badge>
                 <Badge className="bg-orange-500/20 text-orange-400 border-orange-500/30">
                   <Flame className="h-3 w-3 mr-1" />
@@ -242,7 +248,8 @@ export default function DashboardPage() {
                   })}
                 </div>
                 <p className="text-muted-foreground text-sm mt-4">
-                  🎯 <span className="text-teal-400">{nextMilestone.days - streak} more days</span> to unlock +{nextBonus} bonus points!
+                  <Target className="h-4 w-4 inline text-teal-400 mr-1" />
+                  <span className="text-teal-400">{nextMilestone.days - streak} more days</span> to unlock +{nextBonus} bonus points!
                 </p>
               </CardContent>
             </Card>

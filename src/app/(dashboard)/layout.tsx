@@ -36,6 +36,7 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
+import { getInitials } from '@/lib/utils';
 
 // Navigation items
 const mainNav = [
@@ -115,6 +116,7 @@ export default function DashboardLayout({
   }
 
   const displayName = user.displayName || user.name || 'Demo User';
+  const userInitials = getInitials(displayName);
 
   return (
     <div className="min-h-screen bg-background">
@@ -160,14 +162,14 @@ export default function DashboardLayout({
             </p>
           </div>
 
-          {/* User Info */}
+          {/* User Info - Design System: Gender-neutral initials only */}
           <div className="p-4 border-b border-border">
             <div className="flex items-center gap-3">
-              <div className="w-12 h-12 rounded-xl overflow-hidden border-2 border-teal-500/50 bg-teal-500/20 flex items-center justify-center">
+              <div className="w-12 h-12 rounded-xl overflow-hidden border-2 border-teal-500/50 bg-gradient-to-br from-teal-500 to-cyan-500 flex items-center justify-center">
                 {user.avatarUrl ? (
                   <img src={user.avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
                 ) : (
-                  <span className="text-2xl">{user.avatar || '🧑'}</span>
+                  <span className="text-lg font-bold text-white">{userInitials}</span>
                 )}
               </div>
               <div className="flex-1">
@@ -338,11 +340,11 @@ export default function DashboardLayout({
                   onClick={() => setUserMenuOpen(!userMenuOpen)}
                   className="flex items-center gap-3 p-2 rounded-xl hover:bg-secondary transition-colors"
                 >
-                  <div className="w-10 h-10 rounded-xl overflow-hidden border-2 border-teal-500/50 bg-teal-500/20 flex items-center justify-center">
+                  <div className="w-10 h-10 rounded-xl overflow-hidden border-2 border-teal-500/50 bg-gradient-to-br from-teal-500 to-cyan-500 flex items-center justify-center">
                     {user.avatarUrl ? (
                       <img src={user.avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
                     ) : (
-                      <span className="text-lg">{user.avatar || '🧑'}</span>
+                      <span className="text-sm font-bold text-white">{userInitials}</span>
                     )}
                   </div>
                   <div className="hidden md:block text-left">
