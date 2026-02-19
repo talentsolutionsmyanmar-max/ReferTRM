@@ -54,6 +54,13 @@ export default function RegisterPage() {
     e.preventDefault();
     setError('');
 
+    // Check if Supabase is configured
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    if (!supabaseUrl) {
+      setError('Server configuration error. Please contact support.');
+      return;
+    }
+
     if (step === 1) {
       if (formData.password !== formData.confirmPassword) {
         setError('Passwords do not match');
@@ -87,14 +94,19 @@ export default function RegisterPage() {
           return;
         }
         
-        if (errorMessage.includes('email-already-in-use')) {
+        // Handle specific errors
+        if (errorMessage.includes('Load failed') || errorMessage.includes('Failed to fetch')) {
+          setError('Unable to connect to server. Please check your internet connection and try again.');
+        } else if (errorMessage.includes('email-already-in-use') || errorMessage.includes('already registered')) {
           setError('This email is already registered. Please login instead.');
         } else if (errorMessage.includes('invalid-email')) {
           setError('Please enter a valid email address.');
         } else if (errorMessage.includes('weak-password')) {
           setError('Password is too weak. Please use a stronger password.');
-        } else if (errorMessage.includes('network')) {
+        } else if (errorMessage.includes('network') || errorMessage.includes('Network')) {
           setError('Network error. Please check your connection.');
+        } else if (errorMessage.includes('Supabase is not configured')) {
+          setError('Server is not configured properly. Please contact support.');
         } else {
           setError(errorMessage);
         }
