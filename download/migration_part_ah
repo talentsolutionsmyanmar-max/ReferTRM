@@ -1,0 +1,1347 @@
+        'Avoiding escapism in difficult situations',
+        'Building structure and organization',
+      ],
+      idealCareers: [
+        'Arts & Entertainment',
+        'Music & Performance',
+        'Psychology & Counseling',
+        'Healthcare & Healing',
+        'Non-profit & Charity',
+        'Writing & Poetry',
+        'Photography & Film',
+        'Spiritual Services',
+      ],
+      workStyle: 'Thrives in creative, compassionate environments. Values emotional connection and artistic expression. Struggles with rigid structures and high-pressure competition.',
+      leadershipStyle: 'Compassionate and intuitive. Leads through empathy. May need to develop more structure and boundary-setting.',
+    },
+    softSkills: {
+      natural: ['Creativity', 'Empathy', 'Intuition', 'Compassion'],
+      toDevelop: ['Boundary Setting', 'Decision Making', 'Organization', 'Grounding'],
+    },
+    recommendedCourses: ['Creative Writing', 'Emotional Intelligence', 'Time Management', 'Assertiveness'],
+    monthlyHoroscope: {
+      career: 'Creative projects flourish. Trust your intuition in professional decisions. A compassionate act at work leads to unexpected rewards.',
+      love: 'Deep emotional connections strengthen. Express your feelings through art or poetry. Single Pisces may find love through creative pursuits.',
+      health: 'Feet and immune system need attention. Ground yourself through nature and routine.',
+      lucky: { number: '7', color: 'Sea Green', day: 'Thursday' },
+    },
+    famousPeople: ['Albert Einstein', 'Rihanna', 'Steve Jobs', 'Justin Bieber'],
+    compatibility: { best: ['Cancer', 'Scorpio', 'Taurus'], good: ['Capricorn', 'Virgo'], challenging: ['Gemini', 'Sagittarius'] },
+  },
+];
+
+// Helper functions
+export const getZodiacByDate = (month: number, day: number): ZodiacSign => {
+  const zodiacDates = [
+    { sign: 'capricorn', start: [1, 1], end: [1, 19] },
+    { sign: 'aquarius', start: [1, 20], end: [2, 18] },
+    { sign: 'pisces', start: [2, 19], end: [3, 20] },
+    { sign: 'aries', start: [3, 21], end: [4, 19] },
+    { sign: 'taurus', start: [4, 20], end: [5, 20] },
+    { sign: 'gemini', start: [5, 21], end: [6, 20] },
+    { sign: 'cancer', start: [6, 21], end: [7, 22] },
+    { sign: 'leo', start: [7, 23], end: [8, 22] },
+    { sign: 'virgo', start: [8, 23], end: [9, 22] },
+    { sign: 'libra', start: [9, 23], end: [10, 22] },
+    { sign: 'scorpio', start: [10, 23], end: [11, 21] },
+    { sign: 'sagittarius', start: [11, 22], end: [12, 21] },
+    { sign: 'capricorn', start: [12, 22], end: [12, 31] },
+  ];
+
+  for (const z of zodiacDates) {
+    const [startMonth, startDay] = z.start;
+    const [endMonth, endDay] = z.end;
+    
+    if (month === startMonth && day >= startDay) {
+      return zodiacSigns.find(s => s.id === z.sign)!;
+    }
+    if (month === endMonth && day <= endDay) {
+      return zodiacSigns.find(s => s.id === z.sign)!;
+    }
+  }
+  
+  return zodiacSigns[0]; // Default to Aries
+};
+
+export const getZodiacById = (id: string): ZodiacSign | undefined => {
+  return zodiacSigns.find(s => s.id === id);
+};
+
+// Element types
+export type ZodiacElement = 'Fire' | 'Earth' | 'Air' | 'Water';
+
+export interface ElementInsight {
+  description: string;
+  workEnvironment: string;
+  careerAdvice: string;
+}
+
+// Element-based career insights
+export const elementInsights: Record<ZodiacElement, ElementInsight> = {
+  Fire: {
+    description: 'Fire signs are passionate, dynamic, and temperamental. They bring energy and enthusiasm to everything they do.',
+    workEnvironment: 'Thrives in fast-paced, competitive environments with visible results.',
+    careerAdvice: 'Channel your passion into leadership roles. Balance intensity with patience.',
+  },
+  Earth: {
+    description: 'Earth signs are grounded, practical, and reliable. They build lasting structures and value tangible results.',
+    workEnvironment: 'Thrives in stable, structured environments with clear progression paths.',
+    careerAdvice: 'Leverage your practicality for long-term success. Balance stability with openness to change.',
+  },
+  Air: {
+    description: 'Air signs are intellectual, communicative, and analytical. They excel at ideas, communication, and relationships.',
+    workEnvironment: 'Thrives in social, idea-driven environments with intellectual stimulation.',
+    careerAdvice: 'Use your communication skills to build networks. Balance breadth with depth of expertise.',
+  },
+  Water: {
+    description: 'Water signs are intuitive, emotional, and ultra-sensitive. They bring depth and compassion to all they do.',
+    workEnvironment: 'Thrives in supportive, emotionally intelligent environments with meaningful work.',
+    careerAdvice: 'Trust your intuition in career decisions. Balance emotions with practical considerations.',
+  },
+};
+
+export default zodiacSigns;
+=== END FILE ===
+
+=== FILE: src/data/blood-donor.ts ===
+// Blood Donor Network System for Myanmar
+// LIFE-SAVING FEATURE - Connect blood donors with those in need
+// NON-POLITICAL - Pure humanitarian service
+
+export type BloodType = 'A+' | 'A-' | 'B+' | 'B-' | 'AB+' | 'AB-' | 'O+' | 'O-' | 'unknown';
+
+export type UrgencyLevel = 'critical' | 'urgent' | 'normal';
+
+export type BloodRequestStatus = 'active' | 'fulfilled' | 'expired' | 'cancelled';
+
+export interface BloodRequest {
+  id: string;
+  requesterId: string;
+  requesterName: string;
+  requesterPhone: string;
+  bloodType: BloodType;
+  urgency: UrgencyLevel;
+  hospital: string;
+  hospitalAddress: string;
+  region: string;
+  notes?: string;
+  status: BloodRequestStatus;
+  createdAt: string;
+  expiresAt: string;
+  requiredUnits: number;
+  fulfilledUnits: number;
+  donors?: BloodDonation[];
+}
+
+export interface BloodDonation {
+  donorId: string;
+  donorName: string;
+  donorPhone: string;
+  bloodType: BloodType;
+  donatedAt: string;
+}
+
+export interface BloodDonor {
+  userId: string;
+  displayName: string;
+  phone: string;
+  bloodType: BloodType;
+  region: string;
+  available: boolean;
+  lastDonation?: string;
+  donationCount: number;
+  registeredAt: string;
+  // Health info
+  age?: number;
+  weight?: number;
+  conditions?: string[];
+  medications?: string[];
+  verified: boolean;
+}
+
+// Blood type compatibility chart
+export const bloodTypeCompatibility = {
+  'A+': {
+    canDonateTo: ['A+', 'AB+'],
+    canReceiveFrom: ['A+', 'A-', 'O+', 'O-'],
+  },
+  'A-': {
+    canDonateTo: ['A+', 'A-', 'AB+', 'AB-'],
+    canReceiveFrom: ['A-', 'O-'],
+  },
+  'B+': {
+    canDonateTo: ['B+', 'AB+'],
+    canReceiveFrom: ['B+', 'B-', 'O+', 'O-'],
+  },
+  'B-': {
+    canDonateTo: ['B+', 'B-', 'AB+', 'AB-'],
+    canReceiveFrom: ['B-', 'O-'],
+  },
+  'AB+': {
+    canDonateTo: ['AB+'],
+    canReceiveFrom: ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'], // Universal recipient
+  },
+  'AB-': {
+    canDonateTo: ['AB+', 'AB-'],
+    canReceiveFrom: ['A-', 'B-', 'AB-', 'O-'],
+  },
+  'O+': {
+    canDonateTo: ['O+', 'A+', 'B+', 'AB+'],
+    canReceiveFrom: ['O+', 'O-'],
+  },
+  'O-': {
+    canDonateTo: ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'], // Universal donor
+    canReceiveFrom: ['O-'],
+  },
+  'unknown': {
+    canDonateTo: [],
+    canReceiveFrom: ['O-'], // Safe default
+  },
+};
+
+// Blood type info with Burmese translations
+export const bloodTypeInfo = {
+  'A+': { 
+    label: 'A+', 
+    labelMm: 'A+', 
+    color: 'from-red-500 to-rose-500',
+    bgColor: 'bg-red-500/20',
+    borderColor: 'border-red-500/30',
+    textColor: 'text-red-400',
+    percentage: 27, // Approximate percentage in Myanmar
+  },
+  'A-': { 
+    label: 'A-', 
+    labelMm: 'A-', 
+    color: 'from-rose-500 to-pink-500',
+    bgColor: 'bg-rose-500/20',
+    borderColor: 'border-rose-500/30',
+    textColor: 'text-rose-400',
+    percentage: 6,
+  },
+  'B+': { 
+    label: 'B+', 
+    labelMm: 'B+', 
+    color: 'from-blue-500 to-indigo-500',
+    bgColor: 'bg-blue-500/20',
+    borderColor: 'border-blue-500/30',
+    textColor: 'text-blue-400',
+    percentage: 32,
+  },
+  'B-': { 
+    label: 'B-', 
+    labelMm: 'B-', 
+    color: 'from-indigo-500 to-violet-500',
+    bgColor: 'bg-indigo-500/20',
+    borderColor: 'border-indigo-500/30',
+    textColor: 'text-indigo-400',
+    percentage: 2,
+  },
+  'AB+': { 
+    label: 'AB+', 
+    labelMm: 'AB+', 
+    color: 'from-purple-500 to-fuchsia-500',
+    bgColor: 'bg-purple-500/20',
+    borderColor: 'border-purple-500/30',
+    textColor: 'text-purple-400',
+    percentage: 5,
+    special: 'Universal Recipient',
+    specialMm: 'Universal လက်ခံသူ',
+  },
+  'AB-': { 
+    label: 'AB-', 
+    labelMm: 'AB-', 
+    color: 'from-fuchsia-500 to-pink-500',
+    bgColor: 'bg-fuchsia-500/20',
+    borderColor: 'border-fuchsia-500/30',
+    textColor: 'text-fuchsia-400',
+    percentage: 1,
+  },
+  'O+': { 
+    label: 'O+', 
+    labelMm: 'O+', 
+    color: 'from-teal-500 to-cyan-500',
+    bgColor: 'bg-teal-500/20',
+    borderColor: 'border-teal-500/30',
+    textColor: 'text-teal-400',
+    percentage: 26,
+  },
+  'O-': { 
+    label: 'O-', 
+    labelMm: 'O-', 
+    color: 'from-green-500 to-emerald-500',
+    bgColor: 'bg-green-500/20',
+    borderColor: 'border-green-500/30',
+    textColor: 'text-green-400',
+    percentage: 1,
+    special: 'Universal Donor',
+    specialMm: 'Universal ပေးသူ',
+  },
+  'unknown': { 
+    label: 'Unknown', 
+    labelMm: 'မသိ', 
+    color: 'from-slate-500 to-gray-500',
+    bgColor: 'bg-slate-500/20',
+    borderColor: 'border-slate-500/30',
+    textColor: 'text-slate-400',
+    percentage: 0,
+  },
+};
+
+// Urgency levels
+export const urgencyInfo = {
+  critical: {
+    label: 'Critical',
+    labelMm: 'အလွန်အရေးပေါ်',
+    description: 'Life-threatening - need blood within hours',
+    descriptionMm: 'အသက်အန္တရာယ်ရှိ - နာရီအတွင်းလိုသည်',
+    color: 'text-red-400',
+    bgColor: 'bg-red-500/20',
+    borderColor: 'border-red-500/30',
+    icon: '🚨',
+    hoursToExpiry: 6,
+  },
+  urgent: {
+    label: 'Urgent',
+    labelMm: 'အရေးပေါ်',
+    description: 'Need blood within 24 hours',
+    descriptionMm: '၂၄နာရီအတွင်းလိုသည်',
+    color: 'text-orange-400',
+    bgColor: 'bg-orange-500/20',
+    borderColor: 'border-orange-500/30',
+    icon: '⚠️',
+    hoursToExpiry: 24,
+  },
+  normal: {
+    label: 'Normal',
+    labelMm: 'ပုံမှန်',
+    description: 'Scheduled procedure - need blood within 3 days',
+    descriptionMm: 'ချိန်းဆိုထားသောလုပ်ငန်း - ၃ရက်အတွင်းလိုသည်',
+    color: 'text-amber-400',
+    bgColor: 'bg-amber-500/20',
+    borderColor: 'border-amber-500/30',
+    icon: '📋',
+    hoursToExpiry: 72,
+  },
+};
+
+// Myanmar major hospitals
+export const myanmarHospitals = [
+  { id: 'yangon-general', name: 'Yangon General Hospital', nameMm: 'ရန်ကုန်ပြည်သူ့ဆေးရုံကြီး', region: 'yangon' },
+  { id: 'yangon-children', name: 'Yangon Children Hospital', nameMm: 'ရန်ကုန်ကလေးဆေးရုံကြီး', region: 'yangon' },
+  { id: 'yangon-women', name: 'Central Women Hospital', nameMm: 'အမျိုးသမီးဆေးရုံ', region: 'yangon' },
+  { id: 'mandalay-general', name: 'Mandalay General Hospital', nameMm: 'မန္တလေးပြည်သူ့ဆေးရုံကြီး', region: 'mandalay' },
+  { id: 'mandalay-children', name: 'Mandalay Children Hospital', nameMm: 'မန္တလေးကလေးဆေးရုံ', region: 'mandalay' },
+  { id: 'naypyidaw-general', name: 'Naypyidaw General Hospital', nameMm: 'နေပြည်တော်ပြည်သူ့ဆေးရုံကြီး', region: 'naypyidaw' },
+  { id: 'taunggyi-hospital', name: 'Taunggyi Hospital', nameMm: 'တောင်ကြီးဆေးရုံ', region: 'shan' },
+  { id: 'mawlamyine-hospital', name: 'Mawlamyine Hospital', nameMm: 'မော်လမြိုင်ဆေးရုံ', region: 'mon' },
+  { id: 'pathein-hospital', name: 'Pathein Hospital', nameMm: 'ဘသီးဆေးရုံ', region: 'ayeyarwady' },
+  { id: 'sittwe-hospital', name: 'Sittwe Hospital', nameMm: 'စစ်တွေဆေးရုံ', region: 'rakhine' },
+  { id: 'other', name: 'Other Hospital', nameMm: 'အခြားဆေးရုံ', region: 'all' },
+];
+
+// Myanmar regions for blood donor network
+export const myanmarRegions = [
+  { id: 'yangon', name: 'Yangon', nameMm: 'ရန်ကုန်' },
+  { id: 'mandalay', name: 'Mandalay', nameMm: 'မန္တလေး' },
+  { id: 'naypyidaw', name: 'Naypyidaw', nameMm: 'နေပြည်တော်' },
+  { id: 'bago', name: 'Bago', nameMm: 'ပဲခူး' },
+  { id: 'magway', name: 'Magway', nameMm: 'မကွေး' },
+  { id: 'sagaing', name: 'Sagaing', nameMm: 'စစ်ကိုင်း' },
+  { id: 'shan', name: 'Shan State', nameMm: 'ရှမ်းပြည်နယ်' },
+  { id: 'mon', name: 'Mon State', nameMm: 'မွန်ပြည်နယ်' },
+  { id: 'ayeyarwady', name: 'Ayeyarwady', nameMm: 'ဧရာဝတီ' },
+  { id: 'rakhine', name: 'Rakhine State', nameMm: 'ရခိုင်ပြည်နယ်' },
+  { id: 'kachin', name: 'Kachin State', nameMm: 'ကချင်ပြည်နယ်' },
+  { id: 'kayin', name: 'Kayin State', nameMm: 'ကရင်ပြည်နယ်' },
+  { id: 'kayah', name: 'Kayah State', nameMm: 'ကယားပြည်နယ်' },
+  { id: 'chin', name: 'Chin State', nameMm: 'ချင်းပြည်နယ်' },
+  { id: 'tanintharyi', name: 'Tanintharyi', nameMm: 'တနင်္သာရီ' },
+];
+
+// Helper functions
+export const canDonateTo = (donorType: BloodType, recipientType: BloodType): boolean => {
+  return bloodTypeCompatibility[donorType].canDonateTo.includes(recipientType);
+};
+
+export const canReceiveFrom = (recipientType: BloodType, donorType: BloodType): boolean => {
+  return bloodTypeCompatibility[recipientType].canReceiveFrom.includes(donorType);
+};
+
+export const getCompatibleDonors = (bloodType: BloodType): BloodType[] => {
+  return bloodTypeCompatibility[bloodType].canReceiveFrom;
+};
+
+export const getUrgencyExpiry = (urgency: UrgencyLevel): Date => {
+  const now = new Date();
+  const hours = urgencyInfo[urgency].hoursToExpiry;
+  return new Date(now.getTime() + hours * 60 * 60 * 1000);
+};
+
+// Health eligibility for blood donation
+export const donationEligibilityCriteria = {
+  minAge: 18,
+  maxAge: 65,
+  minWeight: 45, // kg
+  minDaysSinceLastDonation: 90,
+  conditions: [
+    'No current illness or fever',
+    'Not pregnant or breastfeeding',
+    'No recent surgery (within 6 months)',
+    'No recent tattoo or piercing (within 6 months)',
+    'Not taking antibiotics',
+  ],
+  conditionsMm: [
+    'လက်ရှိဖြစ်ပွားနေသောရောဂါ သို့မဟုတ် အဖျားမရှိခြင်း',
+    'ကိုယ်ဝန်မရှိခြင်း သို့မဟုတ် နို့တိုက်ခြင်းမဟုတ်ခြင်း',
+    'မကြာသေးမီ ခွဲစိတ်မှုမရှိခြင်း (၆လအတွင်း)',
+    'မကြာသေးမီ တကူနှင့် ပါးစပ်မပြုလုပ်ရခြင်း (၆လအတွင်း)',
+    'ပဋိဇီဝဆေးမသောက်ရခြင်း',
+  ],
+};
+
+// Sample blood requests for demo
+export const sampleBloodRequests: BloodRequest[] = [
+  {
+    id: 'req-001',
+    requesterId: 'user-123',
+    requesterName: 'Aung Myint',
+    requesterPhone: '09xxxxxxxxx',
+    bloodType: 'O-',
+    urgency: 'critical',
+    hospital: 'Yangon General Hospital',
+    hospitalAddress: 'Bogyoke Aung San Road, Yangon',
+    region: 'yangon',
+    notes: 'Emergency surgery - accident victim',
+    status: 'active',
+    createdAt: new Date().toISOString(),
+    expiresAt: new Date(Date.now() + 6 * 60 * 60 * 1000).toISOString(),
+    requiredUnits: 3,
+    fulfilledUnits: 1,
+  },
+];
+=== END FILE ===
+
+=== FILE: src/data/safety-alerts.ts ===
+// Safety Alerts System for Myanmar
+// Life-saving alerts from neutral, international sources
+// NO POLITICS - Pure scientific and humanitarian data only
+
+export type AlertType = 'cyclone' | 'earthquake' | 'flood' | 'heat' | 'storm' | 'landslide' | 'health' | 'general';
+export type AlertSeverity = 'watch' | 'warning' | 'emergency';
+export type AlertStatus = 'active' | 'expired' | 'monitoring';
+
+export interface SafetyAlert {
+  id: string;
+  type: AlertType;
+  severity: AlertSeverity;
+  status: AlertStatus;
+  title: string;
+  titleMm: string;
+  description: string;
+  descriptionMm: string;
+  affectedRegions: string[];
+  issuedAt: string;
+  expiresAt?: string;
+  source: string;
+  sourceUrl?: string;
+  safetyTips: string[];
+  safetyTipsMm: string[];
+  coordinates?: {
+    lat: number;
+    lng: number;
+  };
+  magnitude?: number; // For earthquakes
+  temperature?: number; // For heat warnings
+  windSpeed?: number; // For cyclones
+}
+
+export interface EmergencyContact {
+  id: string;
+  name: string;
+  nameMm: string;
+  phone: string;
+  category: 'emergency' | 'medical' | 'disaster' | 'hotline';
+  description: string;
+  descriptionMm: string;
+  available24h: boolean;
+}
+
+export interface PreparednessGuide {
+  id: string;
+  type: AlertType;
+  title: string;
+  titleMm: string;
+  season: 'year-round' | 'monsoon' | 'summer' | 'winter' | 'cyclone-season';
+  content: {
+    before: string[];
+    beforeMm: string[];
+    during: string[];
+    duringMm: string[];
+    after: string[];
+    afterMm: string[];
+  };
+  checklist: string[];
+  checklistMm: string[];
+  emergencyKit: string[];
+  emergencyKitMm: string[];
+}
+
+// Alert type information
+export const alertTypeInfo = {
+  cyclone: {
+    label: 'Cyclone Warning',
+    labelMm: 'မုန်တိုင်းသတိပေးချက်',
+    icon: '🌀',
+    color: 'from-red-500 to-orange-500',
+    bgColor: 'bg-red-500/20',
+    borderColor: 'border-red-500/30',
+    textColor: 'text-red-400',
+  },
+  earthquake: {
+    label: 'Earthquake Alert',
+    labelMm: 'ငလျင်သတိပေးချက်',
+    icon: '🌍',
+    color: 'from-amber-500 to-yellow-500',
+    bgColor: 'bg-amber-500/20',
+    borderColor: 'border-amber-500/30',
+    textColor: 'text-amber-400',
+  },
+  flood: {
+    label: 'Flood Warning',
+    labelMm: 'ရေလွမ်းမိုးသတိပေးချက်',
+    icon: '🌊',
+    color: 'from-blue-500 to-cyan-500',
+    bgColor: 'bg-blue-500/20',
+    borderColor: 'border-blue-500/30',
+    textColor: 'text-blue-400',
+  },
+  heat: {
+    label: 'Extreme Heat',
+    labelMm: 'အပူချိန်မြင့်သတိပေးချက်',
+    icon: '🌡️',
+    color: 'from-orange-500 to-red-500',
+    bgColor: 'bg-orange-500/20',
+    borderColor: 'border-orange-500/30',
+    textColor: 'text-orange-400',
+  },
+  storm: {
+    label: 'Storm Warning',
+    labelMm: 'မိုးကြိုးမုန်တိုင်းသတိပေးချက်',
+    icon: '⛈️',
+    color: 'from-slate-500 to-gray-500',
+    bgColor: 'bg-slate-500/20',
+    borderColor: 'border-slate-500/30',
+    textColor: 'text-slate-400',
+  },
+  landslide: {
+    label: 'Landslide Risk',
+    labelMm: 'မြေပြိုကျဆင်းသတိပေးချက်',
+    icon: '⛰️',
+    color: 'from-stone-500 to-amber-500',
+    bgColor: 'bg-stone-500/20',
+    borderColor: 'border-stone-500/30',
+    textColor: 'text-stone-400',
+  },
+  health: {
+    label: 'Health Advisory',
+    labelMm: 'ကျန်းမာရေးအကြံပြုချက်',
+    icon: '🏥',
+    color: 'from-green-500 to-emerald-500',
+    bgColor: 'bg-green-500/20',
+    borderColor: 'border-green-500/30',
+    textColor: 'text-green-400',
+  },
+  general: {
+    label: 'Safety Alert',
+    labelMm: 'လုံခြုံရေးသတိပေးချက်',
+    icon: '⚠️',
+    color: 'from-yellow-500 to-amber-500',
+    bgColor: 'bg-yellow-500/20',
+    borderColor: 'border-yellow-500/30',
+    textColor: 'text-yellow-400',
+  },
+};
+
+// Severity levels
+export const severityInfo = {
+  watch: {
+    label: 'Watch',
+    labelMm: 'စောင့်ကြည့်',
+    description: 'Conditions possible - stay alert',
+    descriptionMm: 'ဖြစ်နိုင်ချေရှိ - သတိထားပါ',
+    color: 'text-yellow-400',
+    bgColor: 'bg-yellow-500/20',
+    borderColor: 'border-yellow-500/30',
+  },
+  warning: {
+    label: 'Warning',
+    labelMm: 'သတိပေးချက်',
+    description: 'Event expected - prepare now',
+    descriptionMm: 'ဖြစ်နိုင်ချေမြင့် - ပြင်ဆင်ပါ',
+    color: 'text-orange-400',
+    bgColor: 'bg-orange-500/20',
+    borderColor: 'border-orange-500/30',
+  },
+  emergency: {
+    label: 'Emergency',
+    labelMm: 'အရေးပေါ်',
+    description: 'Immediate danger - take action',
+    descriptionMm: 'အချက်ချင်းအန္တရာယ် - လုပ်ဆောင်ပါ',
+    color: 'text-red-400',
+    bgColor: 'bg-red-500/20',
+    borderColor: 'border-red-500/30',
+  },
+};
+
+// Myanmar regions/states
+export const myanmarRegions = [
+  { id: 'yangon', name: 'Yangon', nameMm: 'ရန်ကုန်' },
+  { id: 'mandalay', name: 'Mandalay', nameMm: 'မန္တလေး' },
+  { id: 'rakhine', name: 'Rakhine', nameMm: 'ရခိုင်' },
+  { id: 'ayeyarwady', name: 'Ayeyarwady', nameMm: 'ဧရာဝတီ' },
+  { id: 'bago', name: 'Bago', nameMm: 'ပဲခူး' },
+  { id: 'magway', name: 'Magway', nameMm: 'မကွေး' },
+  { id: 'sagaing', name: 'Sagaing', nameMm: 'စစ်ကိုင်း' },
+  { id: 'tanintharyi', name: 'Tanintharyi', nameMm: 'တနင်္သာရီ' },
+  { id: 'mon', name: 'Mon', nameMm: 'မွန်' },
+  { id: 'kayin', name: 'Kayin', nameMm: 'ကရင်' },
+  { id: 'kayah', name: 'Kayah', nameMm: 'ကယား' },
+  { id: 'shan', name: 'Shan', nameMm: 'ရှမ်း' },
+  { id: 'kachin', name: 'Kachin', nameMm: 'ကချင်' },
+  { id: 'chin', name: 'Chin', nameMm: 'ချင်း' },
+  { id: 'naypyidaw', name: 'Naypyidaw', nameMm: 'နေပြည်တော်' },
+];
+
+// Emergency Contacts for Myanmar
+export const emergencyContacts: EmergencyContact[] = [
+  // Emergency Services
+  {
+    id: 'police',
+    name: 'Police Emergency',
+    nameMm: 'ရဲတပ်ဖွဲ့အရေးပေါ်',
+    phone: '199',
+    category: 'emergency',
+    description: 'Police emergency hotline',
+    descriptionMm: 'ရဲတပ်ဖွဲ့အရေးပေါ်ဖုန်းလိုင်း',
+    available24h: true,
+  },
+  {
+    id: 'fire',
+    name: 'Fire Department',
+    nameMm: 'မီးသတ်တပ်ဖွဲ့',
+    phone: '191',
+    category: 'emergency',
+    description: 'Fire emergency and rescue',
+    descriptionMm: 'မီးလောင်မှုအရေးပေါ်နှင့်ကယ်ဆယ်ရေး',
+    available24h: true,
+  },
+  {
+    id: 'ambulance',
+    name: 'Ambulance',
+    nameMm: 'အမ်ဘူလင်စ်',
+    phone: '192',
+    category: 'emergency',
+    description: 'Medical emergency ambulance',
+    descriptionMm: 'ဆေးဘက်ဆိုင်ရာအရေးပေါ်အမ်ဘူလင်စ်',
+    available24h: true,
+  },
+  // Medical
+  {
+    id: 'yangon-general',
+    name: 'Yangon General Hospital',
+    nameMm: 'ရန်ကုန်ပြည်သူ့ဆေးရုံကြီး',
+    phone: '01-252-386',
+    category: 'medical',
+    description: 'Main public hospital Yangon',
+    descriptionMm: 'ရန်ကုန်အဓိကအစိုးရဆေးရုံ',
+    available24h: true,
+  },
+  {
+    id: 'mandalay-general',
+    name: 'Mandalay General Hospital',
+    nameMm: 'မန္တလေးပြည်သူ့ဆေးရုံကြီး',
+    phone: '02-331-014',
+    category: 'medical',
+    description: 'Main public hospital Mandalay',
+    descriptionMm: 'မန္တလေးအဓိကအစိုးရဆေးရုံ',
+    available24h: true,
+  },
+  {
+    id: 'myanmar-red-cross',
+    name: 'Myanmar Red Cross',
+    nameMm: 'မြန်မာနိုင်ငံကြက်ခြေနီအသင်း',
+    phone: '01-381-127',
+    category: 'disaster',
+    description: 'Disaster response and first aid',
+    descriptionMm: 'ဘေးအန္တရာယ်တုံ့ပြန်ရေးနှင့်အကူအညီ',
+    available24h: true,
+  },
+  // Disaster Management
+  {
+    id: 'disaster-management',
+    name: 'Disaster Management Centre',
+    nameMm: 'သဘာဝဘေးအန္တရာယ်စီမံခန့်ခွဲမှုဌာနချုပ်',
+    phone: '067-410-162',
+    category: 'disaster',
+    description: 'National disaster coordination',
+    descriptionMm: 'အမျိုးသားဘေးအန္တရာယ်ညှိနှိုင်းမှု',
+    available24h: true,
+  },
+  // Weather and Information
+  {
+    id: 'weather-hotline',
+    name: 'Weather Information',
+    nameMm: 'မိုးလေဝသသတင်းအချက်အလက်',
+    phone: '01-667-544',
+    category: 'hotline',
+    description: 'Weather forecasts and warnings',
+    descriptionMm: 'မိုးလေဝသခန့်မှန်းချက်နှင့်သတိပေးချက်များ',
+    available24h: false,
+  },
+  {
+    id: 'earthquake-info',
+    name: 'Earthquake Information',
+    nameMm: 'ငလျင်သတင်းအချက်အလက်',
+    phone: '067-418-066',
+    category: 'hotline',
+    description: 'Earthquake monitoring and information',
+    descriptionMm: 'ငလျင်စောင့်ကြည့်နှင့်သတင်းအချက်အလက်',
+    available24h: true,
+  },
+];
+
+// Preparedness Guides
+export const preparednessGuides: PreparednessGuide[] = [
+  {
+    id: 'cyclone-guide',
+    type: 'cyclone',
+    title: 'Cyclone Preparedness Guide',
+    titleMm: 'မုန်တိုင်းပြင်ဆင်မှုလမ်းညွှန်',
+    season: 'cyclone-season',
+    content: {
+      before: [
+        'Know your evacuation route and nearest shelter',
+        'Prepare an emergency kit with food, water, and medicine for 3 days',
+        'Reinforce your home - secure loose objects, cover windows',
+        'Charge all phones and power banks fully',
+        'Store important documents in waterproof bags',
+        'Know the cyclone warning signals in your area',
+      ],
+      beforeMm: [
+        'သင့်ထွက်ခွာရမည့်လမ်းကြောင်းနှင့်အနီးဆုံးဘေးကာကွယ်ရေးနေရာကိုသိပါ',
+        'အစားအသောက်၊ ရေနှင့်ဆေးဝါးများပါဝင်သောအရေးပေါ်အထုပ်ပြင်ဆင်ပါ (၃ရက်စာ)',
+        'အိမ်ကိုခိုင်ခံ့အောင်လုပ်ပါ - လွတ်လပ်စွာလှုပ်ရှသောပစ္စည်းများတိတိကျကျချိတ်ဆက်ပါ',
+        'ဖုန်းများနှင့်ပါဝါဘဏ်များအပြည့်အ၀လျှပ်စစ်ဖြည့်ပါ',
+        'အရေးကြီးသောစာရွက်စာတမ်းများကိုရေမဝင်သောအိတ်တွင်သိမ်းဆည်းပါ',
+        'သင့်နေရာတွင်မုန်တိုင်းသတိပေးသင်္ကေတများကိုသိပါ',
+      ],
+      during: [
+        'Stay indoors away from windows and doors',
+        'Go to the strongest room in your house',
+        'Do not go outside during the eye of the storm',
+        'Listen to radio/phone for updates',
+        'If flooding occurs, move to higher ground immediately',
+        'Keep your emergency kit with you at all times',
+      ],
+      duringMm: [
+        'ပြတင်းပေါက်နှင့်တံခါးများမှဝေးသောအိမ်တွင်းနေပါ',
+        'အိမ်၏အခိုင်မာဆုံးအခန်းသို့သွားပါ',
+        'မုန်တိုင်းမျက်လုံးအချိန်တွင်အပြင်မသွားပါ',
+        'အသစ်ဆုံးသတင်းအတွက်ရေဒီယို/ဖုန်းနားထောင်ပါ',
+        'ရေလွမ်းမိုးပါက ချက်ချင်းမြင့်မားသောနေရာသို့ရွှေ့ပါ',
+        'အရေးပေါ်အထုပ်ကိုအမြဲတမ်းသင့်နှင့်အတူထားပါ',
+      ],
+      after: [
+        'Wait for official all-clear before going outside',
+        'Watch for downed power lines and flooded areas',
+        'Check for structural damage before re-entering buildings',
+        'Do not drink tap water until declared safe',
+        'Help neighbors who may need assistance',
+        'Document damage for insurance/assistance purposes',
+      ],
+      afterMm: [
+        'တရားဝင်ဘေးကင်းကြောင်းကြေညာမှမပြုလုပ်မီအပြင်မသွားပါ',
+        'လျှပ်စစ်ကြိုးများကျနေသည်နှင့်ရေလွမ်းမိုးနေသောနေရာများကိုသတိထားပါ',
+        'အဆောက်အဦးများအတွင်းပြန်မဝင်မီတည်ဆောက်မှုပျက်စီးမှုရှိမရှိစစ်ဆေးပါ',
+        'ဘေးကင်းကြောင်းကြေညာမချိန်အထိရေစက်ရေမသောက်ပါ',
+        'အကူအညီလိုနိုင်သောအိမ်နီးချင်းများကိုကူညီပါ',
+        'အာမခံ/အကူအညီအတွက်ပျက်စီးမှုမှတ်တမ်းတင်ပါ',
+      ],
+    },
+    checklist: [
+      'Emergency kit prepared (food, water, medicine)',
+      'Important documents in waterproof bag',
+      'Phone and power bank charged',
+      'Evacuation route known',
+      'Home secured (windows, loose items)',
+      'Radio/communication device ready',
+      'Cash on hand (ATMs may not work)',
+    ],
+    checklistMm: [
+      'အရေးပေါ်အထုပ်ပြင်ဆင်ပြီး (အစာ၊ ရေ၊ ဆေးဝါး)',
+      'အရေးကြီးစာရွက်စာတမ်းများရေမဝင်အိတ်တွင်ထားပါ',
+      'ဖုန်းနှင့်ပါဝါဘဏ်လျှပ်စစ်ဖြည့်ပြီး',
+      'ထွက်ခွာရမည့်လမ်းကြောင်းသိပြီး',
+      'အိမ်လုံခြုံပြီး (ပြတင်းပေါက်၊ လှုပ်ရှပစ္စည်းများ)',
+      'ရေဒီယို/ဆက်သွယ်ရေးပစ္စည်းအဆင်သင့်',
+      'ငွေသားထားပါ (ဘဏ်အေတီအမ်များအလုပ်မလုပ်နိုင်ပါ)',
+    ],
+    emergencyKit: [
+      'Water (3 liters per person per day)',
+      'Non-perishable food (canned goods, biscuits)',
+      'First aid kit',
+      'Flashlight with extra batteries',
+      'Battery-powered radio',
+      'Whistle for signaling',
+      'Dust masks',
+      'Plastic sheeting and rope',
+      'Moist towelettes and garbage bags',
+      'Local maps',
+      'Phone chargers and power banks',
+    ],
+    emergencyKitMm: [
+      'ရေ (တစ်ဦးလျှင်တစ်ရက်လျှင် ၃လီတာ)',
+      'မပျက်စီးနိုင်သောအစာ (ထောပတ်ဗူး၊ မုန့်များ)',
+      'အရေးပေါ်ကုသမှုအထုပ်',
+      'အပိုဘက်ထရီပါသောမီးရှူးတံ',
+      'ဘက်ထရီဖြင့်လည်ပတ်သောရေဒီယို',
+      'အသံပေးခေါင်းလောင်း',
+      'ဖုန်ကာများ',
+      'ပလတ်စတစ်စားပွဲတင်အကာနှင့်ကြိုး',
+      'စိတ်ချယ်များနှင့်သဲပုံးများ',
+      'ဒေသဆိုင်ရာမြေပုံများ',
+      'ဖုန်းအားသွင်းကိရိယာများနှင့်ပါဝါဘဏ်များ',
+    ],
+  },
+  {
+    id: 'earthquake-guide',
+    type: 'earthquake',
+    title: 'Earthquake Safety Guide',
+    titleMm: 'ငလျင်လုံခြုံရေးလမ်းညွှန်',
+    season: 'year-round',
+    content: {
+      before: [
+        'Secure heavy furniture to walls',
+        'Know safe spots in each room (under sturdy furniture, against interior walls)',
+        'Prepare emergency kit',
+        'Know how to shut off gas, water, and electricity',
+        'Practice "Drop, Cover, Hold On" with family',
+        'Identify safe outdoor areas away from buildings and power lines',
+      ],
+      beforeMm: [
+        'လေးလံသောပစ္စည်းများကိုနံရံတွင်ခိုင်ခံ့စွာချိတ်ဆက်ပါ',
+        'အခန်းတိုင်းတွင်ဘေးကင်းရာနေရာများသိပါ (ခိုင်ခံ့သောပစ္စည်းအောက်၊ အတွင်းနံရံနှင့်ကပ်)',
+        'အရေးပေါ်အထုပ်ပြင်ဆင်ပါ',
+        'ဓာတ်ငွေ့၊ ရေနှင့်လျှပ်စစ်ပိတ်နည်းသိပါ',
+        'မိသားစုနှင့်အတူ "ကိုယ်ထား၊ ချုပ်ထား၊ ကိုင်ထား" လေ့ကျင့်ပါ',
+        'အဆောက်အဦးနှင့်လျှပ်စစ်ကြိုးများမှဝေးသောဘေးကင်းသောအပြင်နေရာများရှာပါ',
+      ],
+      during: [
+        'DROP to hands and knees immediately',
+        'Take COVER under sturdy furniture or against interior wall',
+        'HOLD ON until shaking stops',
+        'Stay away from windows, outside doors, and things that can fall',
+        'If outdoors, move to open area away from buildings and power lines',
+        'If in a vehicle, stop in clear area and stay inside',
+      ],
+      duringMm: [
+        'ချက်ချင်းလက်နှင့်ဒူးဂူးချပါ',
+        'ခိုင်ခံ့သောပစ္စည်းအောက်သို့ဝင်ပါ သို့မဟုတ်အတွင်းနံရံကပ်ပါ',
+        'လှုပ်ရှမှုရပ်သည်အထိကိုင်ထားပါ',
+        'ပြတင်းပေါက်၊ တံခါးများနှင့်ကျနိုင်သောပစ္စည်းများမှဝေးပါ',
+        'အပြင်တွင်ရှိပါက အဆောက်အဦးနှင့်လျှပ်စစ်ကြိုးများမှဝေးသောနေရာသို့သွားပါ',
+        'ယာဉ်တွင်းရှိပါက ဗလာနေရာတွင်ရပ်ပြီးအတွင်းမှာပဲနေပါ',
+      ],
+      after: [
+        'Check yourself and others for injuries',
+        'Check for gas leaks - do not use matches or lighters',
+        'Expect aftershocks and be ready to drop, cover, hold on',
+        'Check for structural damage before re-entering buildings',
+        'Listen to emergency broadcasts for information',
+        'Stay away from damaged buildings and power lines',
+      ],
+      afterMm: [
+        'သင့်ကိုယ်သင်နှင့်အခြားသူများထိခိုက်မှုရှိမရှိစစ်ဆေးပါ',
+        'ဓာတ်ငွေ့ leak ရှိမရှိစစ်ဆေးပါ - မီးခြစ်မသုံးပါ',
+        'နောက်ဆက်တွဲငလျင်များဖြစ်နိုင်သဖြင့် ကိုယ်ထား၊ ချုပ်ထား၊ ကိုင်ထား အဆင်သင့်နေပါ',
+        'အဆောက်အဦးများအတွင်းပြန်မဝင်မီတည်ဆောက်မှုပျက်စီးမှုစစ်ဆေးပါ',
+        'အချက်အလက်အတွက်အရေးပေါ်ထုတ်လွှင့်မှုနားထောင်ပါ',
+        'ပျက်စီးသောအဆောက်အဦးနှင့်လျှပ်စစ်ကြိုးများမှဝေးပါ',
+      ],
+    },
+    checklist: [
+      'Heavy furniture secured to walls',
+      'Safe spots identified in each room',
+      'Emergency kit ready',
+      'Gas/water/electricity shutoff tools accessible',
+      'Family evacuation plan practiced',
+      'Outdoor meeting spot identified',
+    ],
+    checklistMm: [
+      'လေးလံသောပစ္စည်းများနံရံတွင်ခိုင်ခံ့စွာချိတ်ဆက်ပြီး',
+      'အခန်းတိုင်းတွင်ဘေးကင်းနေရာများရှာပြီး',
+      'အရေးပေါ်အထုပ်အဆင်သင့်',
+      'ဓာတ်ငွေ့/ရေ/လျှပ်စစ်ပိတ်ကိရိယာများလွယ်ကူစွာရယူနိုင်',
+      'မိသားစုထွက်ခွာမှုအစီအစဉ်လေ့ကျင့်ပြီး',
+      'အပြင်ဆုံမှာနေရာသတ်မှတ်ပြီး',
+    ],
+    emergencyKit: [
+      'Water and non-perishable food for 3 days',
+      'First aid kit',
+      'Flashlight and extra batteries',
+      'Dust masks',
+      'Whistle',
+      'Basic tools (wrench, pliers)',
+      'Sturdy shoes',
+      'Important documents copies',
+      'Cash',
+    ],
+    emergencyKitMm: [
+      '၃ရက်စာရေနှင့်မပျက်စီးနိုင်သောအစာ',
+      'အရေးပေါ်ကုသမှုအထုပ်',
+      'မီးရှူးတံနှင့်အပိုဘက်ထရီ',
+      'ဖုန်ကာများ',
+      'ခေါင်းလောင်း',
+      'အခြေခံကိရိယာများ (စပနယ်၊ ညှပ်',
+      'ခိုင်ခံ့သောဖိနပ်များ',
+      'အရေးကြီးစာရွက်စာတမ်းများဓာတ်ပုံ',
+      'ငွေသား',
+    ],
+  },
+  {
+    id: 'flood-guide',
+    type: 'flood',
+    title: 'Flood Safety Guide',
+    titleMm: 'ရေလွမ်းမိုးဘေးလုံခြုံရေးလမ်းညွှန်',
+    season: 'monsoon',
+    content: {
+      before: [
+        'Know your area\'s flood risk and evacuation routes',
+        'Move valuable items to higher floors',
+        'Clear drains and gutters around your home',
+        'Prepare waterproof containers for important items',
+        'Know the location of higher ground near you',
+        'Have a family communication plan',
+      ],
+      beforeMm: [
+        'သင့်ဒေသ၏ရေလွမ်းမိုးအန္တရာယ်နှင့်ထွက်ခွာလမ်းကြောင်းများသိပါ',
+        'တန်ဖိုးရှိပစ္စည်းများကိုအထက်ထပ်သို့ရွှေ့ပါ',
+        'အိမ်ပတ်လည်ရေဆင်းပေါက်နှင့်မိုးရေပြွန်များရှင်းလင်းပါ',
+        'အရေးကြီးပစ္စည်းများအတွက်ရေမဝင်ကွန်တိန်နာများပြင်ဆင်ပါ',
+        'သင့်နေရာအနီးမြင့်မားသောမြေနေရာသိပါ',
+        'မိသားစုဆက်သွယ်ရေးအစီအစဉ်ရှိပါ',
+      ],
+      during: [
+        'Move to higher ground immediately when advised',
+        'Never walk, swim, or drive through flood water',
+        'Just 6 inches of moving water can knock you down',
+        'Stay off bridges over fast-moving water',
+        'If trapped in building, go to highest level',
+        'Avoid contact with flood water - it may be contaminated',
+      ],
+      duringMm: [
+        'အကြံပြုခံရပါကချက်ချင်းမြင့်မားသောမြေသို့ရွှေ့ပါ',
+        'ရေလွမ်းမိုးရေထဲမလမ်းလျှောက်၊ မဆက်သွား၊ မကူးခရပါ',
+        'ရေလှုပ်ရှားမှု ၆လက်မသာရှိပါကလဲကျနိုင်သည်',
+        'အလျင်စီးဆင်းနေသောရေရှိတံတားပေါ်မနေပါ',
+        'အဆောက်အဦးတွင်ပိတ်မိပါကအမြင့်ဆုံးအဆင့်သို့သွားပါ',
+        'ရေလွမ်းမိုးရေနှင့်မထိတွေ့ပါ - ညစ်ပတ်နေနိုင်သည်',
+      ],
+      after: [
+        'Return home only when authorities say it is safe',
+        'Avoid driving through flooded roads',
+        'Wear protective clothing when cleaning',
+        'Do not drink tap water until declared safe',
+        'Document damage for insurance/assistance',
+        'Clean and disinfect everything that got wet',
+      ],
+      afterMm: [
+        'အာဏာပိုင်များဘေးကင်းကြောင်းပြောမှသာအိမ်ပြန်ပါ',
+        'ရေလွမ်းမိုးနေသောလမ်းများဖြတ်မမောင်းပါ',
+        'ရှင်းလင်းသည့်အခါကာကွယ်မှုအဝတ်စားဝတ်ပါ',
+        'ဘေးကင်းကြောင်းကြေညာမချိန်အထိရေစက်ရေမသောက်ပါ',
+        'အာမခံ/အကူအညီအတွက်ပျက်စီးမှုမှတ်တမ်းတင်ပါ',
+        'ရေစိုထားသမျှအရာခပ်သုတ်ပြီးပိုးသတ်ပါ',
+      ],
+    },
+    checklist: [
+      'Evacuation route planned',
+      'Valuables moved to high ground',
+      'Emergency kit waterproofed',
+      'Communication plan with family',
+      'Charged phones and power banks',
+      'Important documents in waterproof bag',
+    ],
+    checklistMm: [
+      'ထွက်ခွာလမ်းကြောင်းစီစဉ်ပြီး',
+      'တန်ဖိုးရှိပစ္စည်းများမြင့်မားသောနေရာသို့ရွှေ့ပြီး',
+      'အရေးပေါ်အထုပ်ရေမဝင်အောင်ပြုလုပ်ပြီး',
+      'မိသားစုဆက်သွယ်ရေးအစီအစဉ်ရှိပြီး',
+      'ဖုန်းများနှင့်ပါဝါဘဏ်များလျှပ်စစ်ဖြည့်ပြီး',
+      'အရေးကြီးစာရွက်စာတမ်းများရေမဝင်အိတ်တွင်ထားပြီး',
+    ],
+    emergencyKit: [
+      'Waterproof bags for electronics',
+      'Bottled water (3 liters per person per day)',
+      'Non-perishable food',
+      'Waterproof flashlight',
+      'Whistle',
+      'Life jacket if available',
+      'First aid kit',
+      'Waterproof matches',
+      'Rope',
+    ],
+    emergencyKitMm: [
+      'လျှပ်စစ်ပစ္စည်းများအတွက်ရေမဝင်အိတ်များ',
+      'ရေပုလင်း (တစ်ဦးလျှင်တစ်ရက်လျှင် ၃လီတာ)',
+      'မပျက်စီးနိုင်သောအစာ',
+      'ရေမဝင်မီးရှူးတံ',
+      'ခေါင်းလောင်း',
+      'ရှိပါကအသက်ကယ်ဂါင်္',
+      'အရေးပေါ်ကုသမှုအထုပ်',
+      'ရေမဝင်မီးခြစ်',
+      'ကြိုး',
+    ],
+  },
+  {
+    id: 'heat-guide',
+    type: 'heat',
+    title: 'Extreme Heat Safety Guide',
+    titleMm: 'အပူချိန်မြင့်ဘေးလုံခြုံရေးလမ်းညွှန်',
+    season: 'summer',
+    content: {
+      before: [
+        'Install or check air conditioning if available',
+        'Prepare fans and ensure good ventilation',
+        'Stock up on water and electrolyte drinks',
+        'Identify coolest rooms in your home',
+        'Know the signs of heat exhaustion and heat stroke',
+        'Plan to check on elderly neighbors and relatives',
+      ],
+      beforeMm: [
+        'ရှိပါကအဲကွန်းဒိုင်းတပ်ဆင်ပါ သို့မဟုတ်စစ်ဆေးပါ',
+        'ပန်ကာများပြင်ဆင်ပြီးလေဝင်လေထွက်ကောင်းမွန်စေပါ',
+        'ရေနှင့်အီလက်ထရိုလိုက်အဖျော်ယမကာများသိုမှီးပါ',
+        'အိမ်တွင်အအေးဆုံးအခန်းများရှာပါ',
+        'အပူနှင့်ပတ်သက်သောပြဿနာနှင့်အပူ ударရောဂလက္ခဏာများသိပါ',
+        'အသက်ကြီးသူအိမ်နီးချင်းနှင့်ဆွေမျိုးများကိုစစ်ဆေးရန်စီစဉ်ပါ',
+      ],
+      during: [
+        'Stay in air-conditioned spaces as much as possible',
+        'Drink water frequently, even if not thirsty',
+        'Avoid outdoor activities during 10am-4pm',
+        'Wear lightweight, light-colored, loose clothing',
+        'Take cool showers or baths',
+        'Never leave children or pets in parked vehicles',
+      ],
+      duringMm: [
+        'ဖြစ်နိုင်သမျှအဲကွန်းဒိုင်းရှိနေရာများတွင်နေပါ',
+        'နှလုံးမသာပါကပဲရေမကြာမကြာသောက်ပါ',
+        'နံနက် ၁၀နာရီမှ ၄နာရီအတွင်းအပြင်လှုပ်ရှားမှုရှောင်ကြဉ်ပါ',
+        'ပေါ့ပါး၊ အရောင်ဖြူ၊ လွတ်လပ်သောအဝတ်စားဝတ်ပါ',
+        'အေးသောရေချိုးချိန်သို့မဟုတ်ရေကန်သွားပါ',
+        'ကလေးများနှင့်အိမ်မွေးတိရစ္ဆာန်များကိုကားထဲတွင်မထားပါ',
+      ],
+      after: [
+        'Continue hydrating even after temperature drops',
+        'Check on neighbors, especially elderly',
+        'Watch for signs of heat illness for several days',
+        'Let your body recover before resuming normal activities',
+        'If someone shows heat stroke signs, call emergency immediately',
+      ],
+      afterMm: [
+        'အပူချိန်ကျပြီးသည့်နောက်ပါရေဆက်သောက်ပါ',
+        'အိမ်နီးချင်းများအထူးသဖြင့်အသက်ကြီးသူများစစ်ဆေးပါ',
+        ' 며칀ကြာအပူရောဂလက္ခဏာများစောင့်ကြည့်ပါ',
+        'ပုံမှန်လှုပ်ရှားမှုပြန်စမပါကခန္ဓာကိုယ်ပြန်လည်သက်သာပါ',
+        'တစ်ဦးဦးတွင်အပူ ударရောဂလက္ခဏာပြပါကချက်ချင်းအရေးပေါ်ခေါ်ပါ',
+      ],
+    },
+    checklist: [
+      'Water and electrolyte drinks stocked',
+      'Fans and cooling equipment ready',
+      'Lightweight clothing prepared',
+      'Coolest room identified',
+      'Emergency contacts saved',
+      'Plan to check on elderly neighbors',
+    ],
+    checklistMm: [
+      'ရေနှင့်အီလက်ထရိုလိုက်အဖျော်ယမကာများသိုမှီးပြီး',
+      'ပန်ကာနှင့်အေးစက်စေသောကိရိယာများအဆင်သင့်',
+      'ပေါ့ပါးသောအဝတ်စားများပြင်ဆင်ပြီး',
+      'အအေးဆုံးအခန်းသတ်မှတ်ပြီး',
+      'အရေးပေါ်ဆက်သွယ်ရေးနံပါတ်များသိမ်းဆည်းပြီး',
+      'အသက်ကြီးသူအိမ်နီးချင်းများစစ်ဆေးရန်စီစဉ်ပြီး',
+    ],
+    emergencyKit: [
+      'Extra water bottles',
+      'Electrolyte powder or drinks',
+      'Cooling towels or bandanas',
+      'Portable fan (battery)',
+      'Spray bottle for misting',
+      'Sunscreen SPF 30+',
+      'Hat and sunglasses',
+      'First aid kit with burn treatment',
+    ],
+    emergencyKitMm: [
+      'ရေပုလင်းအပိုများ',
+      'အီလက်ထရိုလိုက်မှုန့် သို့မဟုတ်အဖျော်ယမကာ',
+      'အေးစက်စေသောခြောက်များ သို့မဟုတ်လည်ပတ်ကြိုးများ',
+      'အမြဲတမ်းပန်ကာ (ဘက်ထရီ)',
+      'မှုန့်ပက်ရန်ဆေးဘူး',
+      'နေကာနှင့်နေမျက်မှန်',
+      'ထိပ်တောင်များ',
+      'အရေးပေါ်ကုသမှုအထုပ် (ပူဒဏ်ရှိုင်းမှုအတွက်)',
+    ],
+  },
+];
+
+// Seasonal information
+export const seasonalInfo = {
+  'cyclone-season': {
+    label: 'Cyclone Season',
+    labelMm: 'မုန်တိုင်းရာသီ',
+    months: 'April - May, October - November',
+    monthsMm: 'ဧပြီ - မေ၊ အောက်တိုဘာ - နိုဝင်ဘာ',
+    description: 'Peak cyclone risk period for Myanmar coastal areas',
+    descriptionMm: 'မြန်မာကမ်းရိုးတန်းဒေသများအတွက်မုန်တိုင်းအန္တရာယ်မြင့်မားသောကာလ',
+  },
+  'monsoon': {
+    label: 'Monsoon Season',
+    labelMm: 'မုတ်သုန်ရာသီ',
+    months: 'May - October',
+    monthsMm: 'မေ - အောက်တိုဘာ',
+    description: 'Heavy rains and flooding risk across Myanmar',
+    descriptionMm: 'မြန်မာနိုင်ငံတစ်ဝန်းလုံးတွင်မိုးသားများပြီးရေလွမ်းမိုးအန္တရာယ်',
+  },
+  'summer': {
+    label: 'Summer/Hot Season',
+    labelMm: 'နွေရာသီ',
+    months: 'March - May',
+    monthsMm: 'မတ် - မေ',
+    description: 'Extreme heat temperatures, especially in central Myanmar',
+    descriptionMm: 'အပူချိန်မြင့်မား၊ အထူးသဖြင့်အလယ်ပိုင်းမြန်မာ',
+  },
+  'winter': {
+    label: 'Winter/Cool Season',
+    labelMm: 'ဆောင်းရာသီ',
+    months: 'November - February',
+    monthsMm: 'နိုဝင်ဘာ - ဖေဖော်ဝါရီ',
+    description: 'Cooler temperatures, lower disaster risk',
+    descriptionMm: 'အေးမြသောအပူချိန်၊ ဘေးအန္တရာယ်နိမ့်',
+  },
+  'year-round': {
+    label: 'Year-Round',
+    labelMm: 'တစ်နှစ်ပတ်လုံး',
+    months: 'All months',
+    monthsMm: 'လုံးဝ',
+    description: 'Relevant throughout the year',
+    descriptionMm: 'တစ်နှစ်လုံးဆိုင်သည်',
+  },
+};
+
+// Helper functions
+export const getAlertsByType = (type: AlertType): SafetyAlert[] => [];
+export const getAlertsByRegion = (region: string): SafetyAlert[] => [];
+export const getActiveAlerts = (): SafetyAlert[] => [];
+export const getContactsByCategory = (category: EmergencyContact['category']): EmergencyContact[] => 
+  emergencyContacts.filter(c => c.category === category);
+export const getGuideByType = (type: AlertType): PreparednessGuide | undefined => 
+  preparednessGuides.find(g => g.type === type);
+export const getGuidesBySeason = (season: PreparednessGuide['season']): PreparednessGuide[] => 
+  preparednessGuides.filter(g => g.season === season || g.season === 'year-round');
+=== END FILE ===
+
+################################################################################
+# SECTION: COMPLETE FILE LIST (All 149 files)
+################################################################################
+
+src/app/(admin)/admin/page.tsx
+src/app/(admin)/layout.tsx
+src/app/(auth)/forgot-password/page.tsx
+src/app/(auth)/layout.tsx
+src/app/(auth)/login/page.tsx
+src/app/(auth)/quick-login/page.tsx
+src/app/(auth)/register/page.tsx
+src/app/(company)/company/ai-tools/page.tsx
+src/app/(company)/company/analytics/page.tsx
+src/app/(company)/company/applicants/page.tsx
+src/app/(company)/company/assessments/page.tsx
+src/app/(company)/company/billing/page.tsx
+src/app/(company)/company/interview-scheduling/page.tsx
+src/app/(company)/company/jobs/page.tsx
+src/app/(company)/company/page.tsx
+src/app/(company)/company/referrals/page.tsx
+src/app/(company)/company/settings/page.tsx
+src/app/(company)/layout.tsx
+src/app/(dashboard)/dashboard/academy/buddy/page.tsx
+src/app/(dashboard)/dashboard/academy/knowledge/page.tsx
+src/app/(dashboard)/dashboard/academy/page.tsx
+src/app/(dashboard)/dashboard/blood/page.tsx
+src/app/(dashboard)/dashboard/careers/page.tsx
+src/app/(dashboard)/dashboard/community/page.tsx
+src/app/(dashboard)/dashboard/companies/page.tsx
+src/app/(dashboard)/dashboard/impact/page.tsx
+src/app/(dashboard)/dashboard/jobs/page.tsx
+src/app/(dashboard)/dashboard/leaderboard/page.tsx
+src/app/(dashboard)/dashboard/marketplace/page.tsx
+src/app/(dashboard)/dashboard/messages/page.tsx
+src/app/(dashboard)/dashboard/page.tsx
+src/app/(dashboard)/dashboard/referrals/page.tsx
+src/app/(dashboard)/dashboard/rewards/page.tsx
+src/app/(dashboard)/dashboard/safety/page.tsx
+src/app/(dashboard)/dashboard/settings/page.tsx
+src/app/(dashboard)/dashboard/wellness/page.tsx
+src/app/(dashboard)/dashboard/zodiac/page.tsx
+src/app/(dashboard)/layout.tsx
+src/app/api/admin/seed-jobs/route.ts
+src/app/api/admin/seed-leads/route.ts
+src/app/api/ai/analyze-resume/route.ts
+src/app/api/ai/cover-letter/route.ts
+src/app/api/ai/generate-document/route.ts
+src/app/api/ai/generate-jd/route.ts
+src/app/api/ai/interview-prep/route.ts
+src/app/api/ai/job-match/route.ts
+src/app/api/applications/route.ts
+src/app/api/auth/route.ts
+src/app/api/chat/route.ts
+src/app/api/hr/analytics/route.ts
+src/app/api/hr/candidate-screening/route.ts
+src/app/api/hr/interview-schedule/route.ts
+src/app/api/hr/offer-letter/route.ts
+src/app/api/hr/onboarding/route.ts
+src/app/api/hr/resume-builder/route.ts
+src/app/api/jobs/route.ts
+src/app/api/knowledge/chat/route.ts
+src/app/api/knowledge/news/route.ts
+src/app/api/notifications/route.ts
+src/app/api/push/subscribe/route.ts
+src/app/api/referrals/route.ts
+src/app/api/route.ts
+src/app/api/social/activity/route.ts
+src/app/api/social/comments/route.ts
+src/app/api/social/connections/route.ts
+src/app/api/social/discussions/route.ts
+src/app/api/stats/route.ts
+src/app/api/supabase/jobs/route.ts
+src/app/api/supabase/leads/route.ts
+src/app/api/supabase/referrals/route.ts
+src/app/api/translation/route.ts
+src/app/api/users/[id]/route.ts
+src/app/api/users/route.ts
+src/app/layout.tsx
+src/app/page.tsx
+src/app/providers.tsx
+src/app/test-login/page.tsx
+src/components/Academy.tsx
+src/components/AvatarSystem.tsx
+src/components/Dashboard.tsx
+src/components/Footer.tsx
+src/components/ForCompanies.tsx
+src/components/Hero.tsx
+src/components/Jobs.tsx
+src/components/Leaderboard.tsx
+src/components/LearningTracks.tsx
+src/components/LoginModal.tsx
+src/components/Navigation.tsx
+src/components/OnboardingModal.tsx
+src/components/PointsShop.tsx
+src/components/SocialShare.tsx
+src/components/WhyRefer.tsx
+src/components/ai/AICoverLetterGenerator.tsx
+src/components/ai/AIInterviewPrep.tsx
+src/components/ai/AIJobMatcher.tsx
+src/components/ai/index.ts
+src/components/applications/ApplicationTracker.tsx
+src/components/daily-checkin/DailyCheckin.tsx
+src/components/hr/HRAnalyticsDashboard.tsx
+src/components/hr/HRCandidateScreening.tsx
+src/components/hr/index.ts
+src/components/impact/ImpactFundSection.tsx
+src/components/notifications/NotificationBadge.tsx
+src/components/notifications/NotificationCenter.tsx
+src/components/onboarding/OnboardingFlow.tsx
+src/components/pwa-install.tsx
+src/components/pwa/InstallPrompt.tsx
+src/components/pwa/MobileBottomNav.tsx
+src/components/pwa/OfflineBanner.tsx
+src/components/pwa/OfflineIndicator.tsx
+src/components/pwa/PWAInstallPrompt.tsx
+src/components/pwa/PWAUpdateNotification.tsx
+src/components/pwa/PullToRefresh.tsx
+src/components/pwa/PushNotificationSetup.tsx
+src/components/pwa/ServiceWorkerRegistration.tsx
+src/components/pwa/index.ts
+src/components/social/ActivityFeed.tsx
+src/components/social/DiscussionBoard.tsx
+src/components/social/index.ts
+src/components/ui/LanguageToggle.tsx
+src/components/ui/accordion.tsx
+src/components/ui/alert-dialog.tsx
+src/components/ui/alert.tsx
+src/components/ui/aspect-ratio.tsx
+src/components/ui/avatar.tsx
+src/components/ui/badge.tsx
+src/components/ui/breadcrumb.tsx
+src/components/ui/button.tsx
+src/components/ui/calendar.tsx
+src/components/ui/card.tsx
+src/components/ui/carousel.tsx
+src/components/ui/chart.tsx
+src/components/ui/checkbox.tsx
+src/components/ui/collapsible.tsx
+src/components/ui/command.tsx
+src/components/ui/context-menu.tsx
+src/components/ui/dialog.tsx
+src/components/ui/drawer.tsx
+src/components/ui/dropdown-menu.tsx
+src/components/ui/form.tsx
+src/components/ui/hover-card.tsx
+src/components/ui/input-otp.tsx
+src/components/ui/input.tsx
+src/components/ui/label.tsx
+src/components/ui/menubar.tsx
+src/components/ui/navigation-menu.tsx
+src/components/ui/pagination.tsx
+src/components/ui/popover.tsx
+src/components/ui/progress.tsx
+src/components/ui/radio-group.tsx
+src/components/ui/resizable.tsx
+src/components/ui/scroll-area.tsx
+src/components/ui/select.tsx
+src/components/ui/separator.tsx
+src/components/ui/sheet.tsx
+src/components/ui/sidebar.tsx
+src/components/ui/skeleton.tsx
+src/components/ui/slider.tsx
+src/components/ui/sonner.tsx
+src/components/ui/switch.tsx
+src/components/ui/table.tsx
+src/components/ui/tabs.tsx
+src/components/ui/textarea.tsx
+src/components/ui/toast.tsx
+src/components/ui/toaster.tsx
+src/components/ui/toggle-group.tsx
+src/components/ui/toggle.tsx
+src/components/ui/tooltip.tsx
+src/contexts/AuthContext.tsx
+src/contexts/TranslationContext.tsx
+src/data/additional-courses.ts
+src/data/blood-donor.ts
+src/data/careerRoadmap.ts
+src/data/companies.ts
+src/data/equipment.ts
+src/data/jobs.ts
+src/data/knowledge-cards.ts
+src/data/safety-alerts.ts
+src/data/zodiac.ts
+src/hooks/use-mobile.ts
+src/hooks/use-toast.ts
+src/hooks/use-touch-gestures.ts
+src/lib/db.ts
+src/lib/offline-db.ts
+src/lib/prisma.ts
+src/lib/pwa.ts
+src/lib/supabase.ts
+src/lib/utils.ts

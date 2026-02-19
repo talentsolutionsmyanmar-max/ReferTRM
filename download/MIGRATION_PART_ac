@@ -1,0 +1,4500 @@
+    matches: topMatches,
+    careerPath,
+    skillDevelopment,
+    marketInsights,
+    analyzedAt: new Date().toISOString(),
+    source: 'algorithm',
+  });
+}
+
+// GET endpoint for category suggestions
+export async function GET(request: NextRequest) {
+  const { searchParams } = new URL(request.url);
+  const skills = searchParams.get('skills')?.split(',').map(s => s.trim().toLowerCase()) || [];
+  
+  const suggestions: { category: string; roles: string[]; matchScore: number }[] = [];
+  
+  for (const [category, data] of Object.entries(jobCategories)) {
+    const categorySkillsLower = data.skills.map(s => s.toLowerCase());
+    const matchingSkills = skills.filter(skill => 
+      categorySkillsLower.some(catSkill => 
+        catSkill.includes(skill) || skill.includes(catSkill)
+      )
+    );
+    
+    if (matchingSkills.length > 0) {
+      suggestions.push({
+        category,
+        roles: data.roles.slice(0, 3),
+        matchScore: Math.round((matchingSkills.length / data.skills.length) * 100),
+      });
+    }
+  }
+  
+  return NextResponse.json({
+    success: true,
+    suggestions: suggestions.sort((a, b) => b.matchScore - a.matchScore).slice(0, 5),
+    allCategories: Object.keys(jobCategories),
+  });
+}
+=== END FILE ===
+
+=== FILE: src/app/api/ai/analyze-resume/route.ts ===
+import { NextRequest, NextResponse } from 'next/server';
+import ZAI from 'z-ai-web-dev-sdk';
+
+// Skills database for matching
+const skillsDatabase: Record<string, string[]> = {
+  technical: [
+    'javascript', 'typescript', 'python', 'java', 'c++', 'c#', 'ruby', 'go', 'rust', 'php',
+    'react', 'vue', 'angular', 'node.js', 'express', 'django', 'flask', 'spring', 'next.js',
+    'sql', 'mysql', 'postgresql', 'mongodb', 'redis', 'elasticsearch', 'graphql',
+    'aws', 'azure', 'gcp', 'docker', 'kubernetes', 'ci/cd', 'jenkins', 'git',
+    'html', 'css', 'sass', 'tailwind', 'bootstrap', 'figma', 'photoshop',
+    'machine learning', 'deep learning', 'tensorflow', 'pytorch', 'data analysis',
+    'excel', 'powerpoint', 'word', 'google sheets', 'tableau', 'power bi',
+  ],
+  soft: [
+    'leadership', 'communication', 'teamwork', 'problem solving', 'critical thinking',
+    'time management', 'project management', 'negotiation', 'presentation', 'mentoring',
+    'customer service', 'sales', 'marketing', 'analytical', 'creative', 'adaptable',
+    'organized', 'detail-oriented', 'collaborative', 'innovative',
+  ],
+};
+
+// Job role requirements for matching
+const jobRequirements: Record<string, { required: string[]; preferred: string[] }> = {
+  'software-engineer': {
+    required: ['javascript', 'python', 'sql', 'git'],
+    preferred: ['react', 'node.js', 'docker', 'aws', 'typescript'],
+  },
+  'sales-manager': {
+    required: ['sales', 'communication', 'leadership', 'customer service'],
+    preferred: ['marketing', 'negotiation', 'presentation', 'crm'],
+  },
+  'marketing-specialist': {
+    required: ['marketing', 'communication', 'creative', 'analytical'],
+    preferred: ['social media', 'seo', 'content writing', 'google analytics'],
+  },
+  'hr-manager': {
+    required: ['leadership', 'communication', 'teamwork', 'organized'],
+    preferred: ['recruitment', 'training', 'employee relations', 'hris'],
+  },
+  'accountant': {
+    required: ['excel', 'analytical', 'detail-oriented', 'organized'],
+    preferred: ['quickbooks', 'sap', 'tax preparation', 'auditing'],
+  },
+  'operations-manager': {
+    required: ['leadership', 'project management', 'problem solving', 'organized'],
+    preferred: ['supply chain', 'logistics', 'erp', 'process improvement'],
+  },
+  'customer-service': {
+    required: ['customer service', 'communication', 'problem solving', 'teamwork'],
+    preferred: ['crm', 'phone etiquette', 'complaint handling', 'multilingual'],
+  },
+  'data-analyst': {
+    required: ['sql', 'excel', 'python', 'analytical'],
+    preferred: ['tableau', 'power bi', 'statistics', 'machine learning'],
+  },
+  'project-manager': {
+    required: ['project management', 'leadership', 'communication', 'organized'],
+    preferred: ['pmp', 'agile', 'scrum', 'jira', 'microsoft project'],
+  },
+  'executive-assistant': {
+    required: ['organized', 'communication', 'time management', 'detail-oriented'],
+    preferred: ['calendar management', 'travel coordination', 'microsoft office', 'scheduling'],
+  },
+};
+
+export async function POST(request: NextRequest) {
+  try {
+    const body = await request.json();
+    const { resumeText, targetJobRole } = body;
+
+    if (!resumeText || typeof resumeText !== 'string') {
+      return NextResponse.json(
+        { success: false, error: 'Resume text is required' },
+        { status: 400 }
+      );
+    }
+
+    // Try AI analysis first
+    try {
+      const zai = await ZAI.create();
+      
+      const completion = await zai.chat.completions.create({
+        messages: [
+          {
+            role: 'system',
+            content: `You are an expert resume analyzer and HR professional. Extract key information from resumes and provide hiring recommendations. Always respond in valid JSON format with the following structure:
+{
+  "candidateName": "Full name",
+  "email": "email address or empty string",
+  "phone": "phone number or empty string",
+  "skills": [{"name": "skill name", "level": "expert|proficient|familiar"}],
+  "experience": [{"title": "job title", "company": "company name", "duration": "duration string"}],
+  "education": [{"degree": "degree name", "school": "school name", "year": "year"}],
+  "matchScore": 0-100 score if targetJobRole provided,
+  "strengths": ["strength1", "strength2"],
+  "gaps": ["gap1", "gap2"],
+  "recommendation": "strongly-recommend|recommend|consider|not-suitable",
+  "summary": "Brief summary of the candidate and recommendation"
+}`,
+          },
+          {
+            role: 'user',
+            content: `Analyze this resume and extract all key information. ${targetJobRole ? `Also provide a match score and fit assessment for the role: ${targetJobRole}` : ''}
+
+Resume text:
+${resumeText}
+
+Respond ONLY with valid JSON, no additional text.`,
+          },
+        ],
+        temperature: 0.3,
+        max_tokens: 2000,
+      });
+
+      const responseText = completion.choices?.[0]?.message?.content || '';
+      
+      try {
+        // Try to parse the AI response as JSON
+        const analysis = JSON.parse(responseText);
+        
+        return NextResponse.json({
+          success: true,
+          analysis,
+          analyzedAt: new Date().toISOString(),
+        });
+      } catch {
+        // If parsing fails, use fallback
+        console.log('AI response parsing failed, using fallback');
+        return generateFallbackAnalysis(resumeText, targetJobRole);
+      }
+    } catch (aiError) {
+      console.log('AI analysis failed, using fallback:', aiError);
+      return generateFallbackAnalysis(resumeText, targetJobRole);
+    }
+  } catch (error) {
+    console.error('Resume analysis error:', error);
+    return NextResponse.json(
+      { success: false, error: 'Failed to analyze resume' },
+      { status: 500 }
+    );
+  }
+}
+
+function generateFallbackAnalysis(resumeText: string, targetJobRole: string | null) {
+  const text = resumeText.toLowerCase();
+  
+  // Extract candidate name (look for common patterns)
+  const namePatterns = [
+    /name[:\s]+([A-Za-z\s]+)/i,
+    /^([A-Z][a-z]+\s+[A-Z][a-z]+)/m,
+  ];
+  
+  let candidateName = 'Candidate';
+  for (const pattern of namePatterns) {
+    const match = resumeText.match(pattern);
+    if (match) {
+      candidateName = match[1].trim();
+      break;
+    }
+  }
+
+  // Extract email
+  const emailMatch = resumeText.match(/[\w.-]+@[\w.-]+\.\w+/);
+  const email = emailMatch ? emailMatch[0] : 'Not provided';
+
+  // Extract phone
+  const phoneMatch = resumeText.match(/(\+?\d{1,3}[-.\s]?)?\(?\d{2,4}\)?[-.\s]?\d{3,4}[-.\s]?\d{3,4}/);
+  const phone = phoneMatch ? phoneMatch[0] : 'Not provided';
+
+  // Extract skills from database
+  const foundSkills: { name: string; level: 'expert' | 'proficient' | 'familiar' }[] = [];
+  
+  [...skillsDatabase.technical, ...skillsDatabase.soft].forEach(skill => {
+    if (text.includes(skill.toLowerCase())) {
+      // Determine level based on context
+      let level: 'expert' | 'proficient' | 'familiar' = 'proficient';
+      if (text.includes(`expert in ${skill}`) || text.includes(`${skill} expert`) || 
+          text.includes(`advanced ${skill}`) || text.includes(`senior ${skill}`)) {
+        level = 'expert';
+      } else if (text.includes(`familiar with ${skill}`) || text.includes(`basic ${skill}`) ||
+                 text.includes(`beginner ${skill}`)) {
+        level = 'familiar';
+      }
+      foundSkills.push({ name: skill, level });
+    }
+  });
+
+  // Extract experience (simplified)
+  const experience: { title: string; company: string; duration: string }[] = [];
+  const expPatterns = [
+    /(\d{4})\s*[-–]\s*(present|current|\d{4})/gi,
+    /(senior|junior|lead|manager|developer|engineer|analyst|specialist|coordinator)\s+(?:at|@)?\s*([A-Za-z\s]+)/gi,
+  ];
+  
+  // Add some mock experience based on years found
+  const years = resumeText.match(/\d{4}/g);
+  if (years && years.length > 0) {
+    const uniqueYears = [...new Set(years)].sort();
+    if (uniqueYears.length >= 2) {
+      experience.push({
+        title: 'Professional Role',
+        company: 'Company',
+        duration: `${uniqueYears[0]} - ${uniqueYears[uniqueYears.length - 1]}`,
+      });
+    }
+  }
+
+  // Extract education
+  const education: { degree: string; school: string; year: string }[] = [];
+  const degreePatterns = [
+    /(bachelor|master|phd|mba|b\.?sc\.?|m\.?sc\.?|b\.?a\.?|m\.?a\.?)[^.,]*?(\d{4})?/gi,
+    /(university|college|institute)[^.,]*/gi,
+  ];
+  
+  degreePatterns.forEach(pattern => {
+    const matches = resumeText.match(pattern);
+    if (matches) {
+      matches.slice(0, 2).forEach(match => {
+        const yearMatch = match.match(/\d{4}/);
+        education.push({
+          degree: match.trim(),
+          school: 'University',
+          year: yearMatch ? yearMatch[0] : 'N/A',
+        });
+      });
+    }
+  });
+
+  // Calculate match score if job role provided
+  let matchScore = 50;
+  let recommendation: 'strongly-recommend' | 'recommend' | 'consider' | 'not-suitable' = 'consider';
+  
+  if (targetJobRole && jobRequirements[targetJobRole]) {
+    const requirements = jobRequirements[targetJobRole];
+    const skillNames = foundSkills.map(s => s.name.toLowerCase());
+    
+    let requiredMatch = 0;
+    requirements.required.forEach(skill => {
+      if (skillNames.includes(skill.toLowerCase()) || text.includes(skill.toLowerCase())) {
+        requiredMatch++;
+      }
+    });
+    
+    let preferredMatch = 0;
+    requirements.preferred.forEach(skill => {
+      if (skillNames.includes(skill.toLowerCase()) || text.includes(skill.toLowerCase())) {
+        preferredMatch++;
+      }
+    });
+    
+    const requiredScore = (requiredMatch / requirements.required.length) * 60;
+    const preferredScore = (preferredMatch / requirements.preferred.length) * 40;
+    matchScore = Math.round(requiredScore + preferredScore);
+    
+    if (matchScore >= 80) recommendation = 'strongly-recommend';
+    else if (matchScore >= 60) recommendation = 'recommend';
+    else if (matchScore >= 40) recommendation = 'consider';
+    else recommendation = 'not-suitable';
+  }
+
+  // Generate strengths and gaps
+  const strengths: string[] = [];
+  const gaps: string[] = [];
+  
+  if (foundSkills.length >= 5) {
+    strengths.push(`Strong skill set with ${foundSkills.length} identifiable skills`);
+  }
+  if (foundSkills.some(s => s.level === 'expert')) {
+    strengths.push('Has expert-level proficiency in key areas');
+  }
+  if (experience.length >= 2) {
+    strengths.push('Diverse professional experience');
+  }
+  if (education.length > 0) {
+    strengths.push('Relevant educational background');
+  }
+  
+  if (foundSkills.length < 3) {
+    gaps.push('Limited skills detected in resume - consider more detailed skill descriptions');
+  }
+  if (experience.length === 0) {
+    gaps.push('Experience details could not be extracted clearly');
+  }
+  if (!email || email === 'Not provided') {
+    gaps.push('Contact information not clearly stated');
+  }
+
+  // Generate summary
+  const skillCount = foundSkills.length;
+  const expertCount = foundSkills.filter(s => s.level === 'expert').length;
+  
+  const summary = `${candidateName} is a candidate with ${skillCount} detected skills${expertCount > 0 ? `, including ${expertCount} at expert level` : ''}. ${matchScore > 60 ? 'Based on the resume analysis, this candidate shows promise and should be considered for further evaluation.' : 'More information may be needed to fully assess this candidate\'s fit for the role.'}`;
+
+  const analysis = {
+    candidateName,
+    email,
+    phone,
+    skills: foundSkills.slice(0, 10), // Limit to 10 skills
+    experience: experience.slice(0, 3),
+    education: education.slice(0, 2),
+    matchScore,
+    strengths: strengths.length > 0 ? strengths : ['Resume successfully analyzed'],
+    gaps: gaps.length > 0 ? gaps : ['No significant gaps identified'],
+    recommendation,
+    summary,
+  };
+
+  return NextResponse.json({
+    success: true,
+    analysis,
+    analyzedAt: new Date().toISOString(),
+    fallback: true,
+  });
+}
+=== END FILE ===
+
+################################################################################
+# SECTION: MAIN COMPONENTS
+################################################################################
+
+=== FILE: src/components/Dashboard.tsx ===
+'use client';
+
+import { useState } from 'react';
+import { motion } from 'framer-motion';
+import { 
+  Flame, 
+  Star, 
+  Trophy, 
+  Gift, 
+  ChevronRight,
+  Sparkles,
+  Target,
+  Award,
+  Clock,
+  TrendingUp,
+  Users,
+  BookOpen,
+  Zap
+} from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
+import { Progress } from '@/components/ui/progress';
+import { Badge } from '@/components/ui/badge';
+
+// Mock user data - in production, this would come from Firebase/API
+const mockUser = {
+  name: 'Thiri Aung',
+  nameMm: 'သီရိအောင်',
+  points: 450,
+  streak: 7,
+  maxStreak: 12,
+  level: 'Professional',
+  experience: 650,
+  nextLevelAt: 1000,
+  totalReferrals: 3,
+  totalEarned: 125000,
+  avatar: '👩‍💼',
+  zodiac: '♌ Leo',
+  traits: ['Leadership', 'Creative', 'Persistent'],
+  completedModules: 8,
+  totalModules: 24,
+};
+
+const levelColors: Record<string, string> = {
+  Amateur: 'text-green-400',
+  Professional: 'text-blue-400',
+  Expert: 'text-purple-400',
+  Master: 'text-amber-400',
+};
+
+const streakMilestones = [3, 7, 14, 30, 60, 100];
+
+export default function Dashboard() {
+  const [showTraits, setShowTraits] = useState(false);
+  const [showPointsShop, setShowPointsShop] = useState(false);
+
+  const levelProgress = (mockUser.experience / mockUser.nextLevelAt) * 100;
+  const nextStreakMilestone = streakMilestones.find(m => m > mockUser.streak) || 100;
+
+  return (
+    <section id="dashboard" className="py-8 px-4">
+      <div className="max-w-6xl mx-auto">
+        {/* Welcome Header */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="glass-card p-6 mb-6"
+        >
+          <div className="flex flex-col md:flex-row items-center gap-6">
+            {/* Avatar */}
+            <div className="relative">
+              <div className="w-24 h-24 rounded-2xl bg-gradient-to-r from-teal-500 to-cyan-500 flex items-center justify-center text-5xl">
+                {mockUser.avatar}
+              </div>
+              <div className="absolute -bottom-2 -right-2 bg-amber-500 rounded-full px-2 py-1 text-xs font-bold text-slate-900">
+                Lv.{mockUser.level === 'Amateur' ? 1 : mockUser.level === 'Professional' ? 2 : mockUser.level === 'Expert' ? 3 : 4}
+              </div>
+            </div>
+
+            {/* User Info */}
+            <div className="flex-1 text-center md:text-left">
+              <h2 className="text-2xl font-bold text-white mb-1">
+                Welcome back, {mockUser.name}! 👋
+              </h2>
+              <p className="text-slate-400 burmese-text mb-2">
+                နောက်တစ်ကြိမ် ကြိုဆိုပါသည်၊ {mockUser.nameMm}!
+              </p>
+              <div className="flex flex-wrap items-center justify-center md:justify-start gap-3">
+                <Badge className={`${levelColors[mockUser.level]} bg-white/5 border-current`}>
+                  <Star className="h-3 w-3 mr-1" />
+                  {mockUser.level}
+                </Badge>
+                <Badge className="bg-amber-500/20 text-amber-400 border-amber-500/30">
+                  <Flame className="h-3 w-3 mr-1" />
+                  {mockUser.streak} Day Streak
+                </Badge>
+                <Badge className="bg-teal-500/20 text-teal-400 border-teal-500/30">
+                  <ZodiacSign className="h-3 w-3 mr-1" />
+                  {mockUser.zodiac}
+                </Badge>
+              </div>
+            </div>
+
+            {/* Quick Stats */}
+            <div className="flex gap-4">
+              <div className="text-center">
+                <div className="text-3xl font-bold text-amber-400">{mockUser.points}</div>
+                <div className="text-xs text-slate-400">Points</div>
+              </div>
+              <div className="text-center">
+                <div className="text-3xl font-bold text-teal-400">{mockUser.completedModules}</div>
+                <div className="text-xs text-slate-400">Modules</div>
+              </div>
+            </div>
+          </div>
+
+          {/* Level Progress */}
+          <div className="mt-6">
+            <div className="flex justify-between text-sm mb-2">
+              <span className="text-slate-400">Level Progress</span>
+              <span className="text-teal-400">{mockUser.experience}/{mockUser.nextLevelAt} XP</span>
+            </div>
+            <Progress value={levelProgress} className="h-2 bg-slate-700" />
+          </div>
+        </motion.div>
+
+        {/* Stats Grid */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+          {/* Points Card */}
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ delay: 0.1 }}
+          >
+            <Card className="glass-card-hover bg-gradient-to-br from-amber-500/10 to-orange-500/10 border-amber-500/20">
+              <CardContent className="p-4 text-center">
+                <Star className="h-6 w-6 text-amber-400 mx-auto mb-2" />
+                <div className="text-2xl font-bold text-amber-400">{mockUser.points}</div>
+                <div className="text-xs text-slate-400">Total Points</div>
+                <Button 
+                  variant="link" 
+                  className="text-amber-400 text-xs p-0 mt-2"
+                  onClick={() => setShowPointsShop(true)}
+                >
+                  Spend Points →
+                </Button>
+              </CardContent>
+            </Card>
+          </motion.div>
+
+          {/* Streak Card */}
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ delay: 0.2 }}
+          >
+            <Card className="glass-card-hover bg-gradient-to-br from-red-500/10 to-orange-500/10 border-red-500/20">
+              <CardContent className="p-4 text-center">
+                <Flame className="h-6 w-6 text-orange-400 mx-auto mb-2" />
+                <div className="text-2xl font-bold text-orange-400">{mockUser.streak}</div>
+                <div className="text-xs text-slate-400">Day Streak</div>
+                <div className="text-xs text-slate-500 mt-2">
+                  Next: {nextStreakMilestone} days 🔥
+                </div>
+              </CardContent>
+            </Card>
+          </motion.div>
+
+          {/* Referrals Card */}
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ delay: 0.3 }}
+          >
+            <Card className="glass-card-hover bg-gradient-to-br from-green-500/10 to-emerald-500/10 border-green-500/20">
+              <CardContent className="p-4 text-center">
+                <Users className="h-6 w-6 text-green-400 mx-auto mb-2" />
+                <div className="text-2xl font-bold text-green-400">{mockUser.totalReferrals}</div>
+                <div className="text-xs text-slate-400">Referrals</div>
+                <div className="text-xs text-green-400 mt-2">
+                  +{(mockUser.totalEarned / 1000).toFixed(0)}K MMK earned
+                </div>
+              </CardContent>
+            </Card>
+          </motion.div>
+
+          {/* Progress Card */}
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ delay: 0.4 }}
+          >
+            <Card className="glass-card-hover bg-gradient-to-br from-purple-500/10 to-pink-500/10 border-purple-500/20">
+              <CardContent className="p-4 text-center">
+                <BookOpen className="h-6 w-6 text-purple-400 mx-auto mb-2" />
+                <div className="text-2xl font-bold text-purple-400">{mockUser.completedModules}</div>
+                <div className="text-xs text-slate-400">/{mockUser.totalModules} Modules</div>
+                <div className="text-xs text-slate-500 mt-2">
+                  {Math.round((mockUser.completedModules / mockUser.totalModules) * 100)}% complete
+                </div>
+              </CardContent>
+            </Card>
+          </motion.div>
+        </div>
+
+        {/* Streak Details */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.5 }}
+          className="glass-card p-6 mb-6"
+        >
+          <h3 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
+            <Flame className="h-5 w-5 text-orange-400" />
+            Streak Progress
+          </h3>
+          <div className="flex items-center gap-2 overflow-x-auto pb-2">
+            {streakMilestones.map((milestone) => (
+              <div
+                key={milestone}
+                className={`flex-shrink-0 w-16 h-16 rounded-xl flex flex-col items-center justify-center ${
+                  mockUser.streak >= milestone
+                    ? 'bg-gradient-to-br from-orange-500 to-red-500'
+                    : mockUser.streak >= milestone - 2
+                    ? 'bg-orange-500/20 border border-orange-500/30'
+                    : 'bg-slate-800'
+                }`}
+              >
+                <span className={`text-lg font-bold ${
+                  mockUser.streak >= milestone ? 'text-white' : 'text-slate-400'
+                }`}>
+                  {milestone}
+                </span>
+                <span className="text-xs text-slate-300">days</span>
+                {mockUser.streak >= milestone && (
+                  <Trophy className="h-3 w-3 text-amber-300 mt-1" />
+                )}
+              </div>
+            ))}
+          </div>
+          <p className="text-slate-400 text-sm mt-4">
+            🎯 {nextStreakMilestone - mockUser.streak} more days to unlock +{(nextStreakMilestone / 2) * 5} bonus points!
+          </p>
+        </motion.div>
+
+        {/* Traits & Zodiac */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.6 }}
+          className="glass-card p-6 mb-6"
+        >
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-lg font-bold text-white flex items-center gap-2">
+              <Sparkles className="h-5 w-5 text-purple-400" />
+              Your Traits & Zodiac
+            </h3>
+            <Button
+              variant="outline"
+              size="sm"
+              className="border-purple-500/30 text-purple-400"
+              onClick={() => setShowTraits(!showTraits)}
+            >
+              View Details
+            </Button>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <Badge className="bg-purple-500/20 text-purple-300 border-purple-500/30 text-base px-4 py-2">
+              {mockUser.zodiac}
+            </Badge>
+            {mockUser.traits.map((trait) => (
+              <Badge
+                key={trait}
+                className="bg-teal-500/20 text-teal-300 border-teal-500/30"
+              >
+                {trait}
+              </Badge>
+            ))}
+          </div>
+        </motion.div>
+
+        {/* Daily Bonus CTA */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.7 }}
+        >
+          <Card className="glass-card bg-gradient-to-r from-teal-500/10 to-cyan-500/10 border-teal-500/30">
+            <CardContent className="p-6 flex flex-col md:flex-row items-center justify-between gap-4">
+              <div className="flex items-center gap-4">
+                <div className="w-14 h-14 rounded-xl bg-gradient-to-r from-teal-500 to-cyan-500 flex items-center justify-center">
+                  <Gift className="h-7 w-7 text-white" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-bold text-white">Daily Bonus Available!</h3>
+                  <p className="text-slate-400 text-sm burmese-text">
+                    နေ့စဉ်အပိုဆုကြေးရယူပါ
+                  </p>
+                </div>
+              </div>
+              <Button className="btn-teal">
+                <Zap className="mr-2 h-4 w-4" />
+                Claim +10 Points
+              </Button>
+            </CardContent>
+          </Card>
+        </motion.div>
+      </div>
+    </section>
+  );
+}
+
+// Simple zodiac icon component
+function ZodiacSign({ className }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="currentColor">
+      <circle cx="12" cy="12" r="10" fill="none" stroke="currentColor" strokeWidth="2"/>
+      <path d="M12 2 L12 6 M12 18 L12 22 M2 12 L6 12 M18 12 L22 12" stroke="currentColor" strokeWidth="2"/>
+    </svg>
+  );
+}
+=== END FILE ===
+
+=== FILE: src/components/Navigation.tsx ===
+'use client';
+
+import { useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Menu, X, Send, Home, Briefcase, Building2, Users, GraduationCap, ChevronRight } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+
+const navItems = [
+  { label: 'Home', href: '#', labelMm: 'ပင်မစာမျက်နှာ', icon: Home },
+  { label: 'Jobs', href: '#jobs', labelMm: 'အလုပ်များ', icon: Briefcase },
+  { label: 'Companies', href: '#companies', labelMm: 'ကုမ္ပဏီများ', icon: Building2 },
+  { label: 'Refer', href: '#why-refer', labelMm: 'ရည်ညွှန်းပါ', icon: Users },
+  { label: 'Academy', href: '#academy', labelMm: 'သင်ကြားရေး', icon: GraduationCap },
+];
+
+export default function Navigation() {
+  const [isOpen, setIsOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState('Home');
+
+  return (
+    <motion.header
+      initial={{ opacity: 0, y: -20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5 }}
+      className="fixed top-0 left-0 right-0 z-50 backdrop-blur-xl bg-slate-900/80 border-b border-white/5 safe-area-top"
+    >
+      <div className="max-w-7xl mx-auto px-4">
+        <div className="flex items-center justify-between h-16 md:h-20">
+          {/* Logo */}
+          <a href="#" className="flex items-center gap-2 touch-target">
+            <div className="w-10 h-10 md:w-11 md:h-11 rounded-xl bg-gradient-to-r from-teal-500 to-cyan-500 flex items-center justify-center">
+              <span className="text-xl font-bold text-slate-900">R</span>
+            </div>
+            <div className="flex flex-col">
+              <span className="text-base md:text-lg font-bold leading-none">
+                <span className="text-teal-400">TRM</span>{' '}
+                <span className="text-white">ReferTRM</span>
+              </span>
+            </div>
+          </a>
+
+          {/* Desktop Navigation */}
+          <nav className="hidden md:flex items-center gap-1">
+            {navItems.map((item) => (
+              <a
+                key={item.label}
+                href={item.href}
+                onClick={() => setActiveTab(item.label)}
+                className={`px-4 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 touch-target ${
+                  activeTab === item.label
+                    ? 'text-teal-400 bg-teal-500/10'
+                    : 'text-slate-300 hover:text-white hover:bg-white/5'
+                }`}
+              >
+                {item.label}
+              </a>
+            ))}
+          </nav>
+
+          {/* CTA Button - Desktop */}
+          <div className="hidden md:flex items-center gap-3">
+            <Button
+              className="btn-primary btn-mobile touch-target"
+              onClick={() => window.open('https://t.me/ReferTRM', '_blank')}
+            >
+              <Send className="mr-2 h-4 w-4" />
+              Join Telegram
+            </Button>
+          </div>
+
+          {/* Mobile Menu Button - Minimum 44x44px touch target */}
+          <button
+            className="md:hidden flex items-center justify-center w-11 h-11 rounded-xl text-slate-400 hover:text-white hover:bg-white/5 transition-colors touch-target no-select"
+            onClick={() => setIsOpen(!isOpen)}
+            aria-label={isOpen ? 'Close menu' : 'Open menu'}
+            aria-expanded={isOpen}
+          >
+            {isOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
+          </button>
+        </div>
+
+        {/* Orange Progress Bar */}
+        <div className="h-0.5 w-full overflow-hidden">
+          <motion.div
+            initial={{ x: '-100%' }}
+            animate={{ x: '100%' }}
+            transition={{ duration: 3, repeat: Infinity, ease: 'linear' }}
+            className="h-full w-1/3 bg-gradient-to-r from-transparent via-amber-500 to-transparent"
+          />
+        </div>
+      </div>
+
+      {/* Mobile Menu - Full screen overlay for better UX */}
+      <AnimatePresence>
+        {isOpen && (
+          <>
+            {/* Backdrop */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="md:hidden fixed inset-0 bg-black/50 z-40"
+              onClick={() => setIsOpen(false)}
+            />
+            
+            {/* Menu Panel */}
+            <motion.div
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              transition={{ duration: 0.2 }}
+              className="md:hidden fixed top-[68px] left-0 right-0 bg-slate-900/98 backdrop-blur-xl border-b border-white/5 z-50 overflow-y-auto max-h-[calc(100vh-68px)]"
+            >
+              <nav className="flex flex-col p-4 gap-1 safe-area-bottom">
+                {navItems.map((item, index) => (
+                  <motion.a
+                    key={item.label}
+                    href={item.href}
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: index * 0.05 }}
+                    onClick={() => {
+                      setActiveTab(item.label);
+                      setIsOpen(false);
+                    }}
+                    className={`flex items-center justify-between px-4 py-4 rounded-xl text-base font-medium transition-all duration-200 touch-target ${
+                      activeTab === item.label
+                        ? 'text-teal-400 bg-teal-500/10'
+                        : 'text-slate-300 hover:text-white hover:bg-white/5'
+                    }`}
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${
+                        activeTab === item.label ? 'bg-teal-500/20' : 'bg-white/5'
+                      }`}>
+                        <item.icon className="h-5 w-5" />
+                      </div>
+                      <div>
+                        <div className="text-base">{item.label}</div>
+                        <div className="text-xs text-slate-500 burmese-text">{item.labelMm}</div>
+                      </div>
+                    </div>
+                    <ChevronRight className={`h-5 w-5 ${
+                      activeTab === item.label ? 'text-teal-400' : 'text-slate-500'
+                    }`} />
+                  </motion.a>
+                ))}
+                
+                {/* CTA Button - Mobile */}
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: navItems.length * 0.05 }}
+                  className="mt-4 pt-4 border-t border-white/5"
+                >
+                  <Button
+                    className="w-full btn-primary btn-mobile text-base py-5"
+                    onClick={() => window.open('https://t.me/ReferTRM', '_blank')}
+                  >
+                    <Send className="mr-2 h-5 w-5" />
+                    Join Telegram
+                  </Button>
+                  
+                  {/* Trust Badge */}
+                  <div className="mt-3 text-center">
+                    <p className="text-xs text-slate-500">
+                      🇲🇲 Made with ❤️ in Myanmar
+                    </p>
+                  </div>
+                </motion.div>
+              </nav>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+    </motion.header>
+  );
+}
+=== END FILE ===
+
+=== FILE: src/components/Hero.tsx ===
+'use client';
+
+import { motion } from 'framer-motion';
+import { Briefcase, Users, FileText, ArrowDown, Send } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+
+const trustStats = [
+  { icon: Briefcase, value: '25+', label: 'Real Open Roles', labelMm: 'အလုပ်နေရာများ' },
+  { icon: FileText, value: '1,000+', label: 'CVs Ready', labelMm: 'ကိုယ်ရေးအကျဉ်းများ' },
+  { icon: Users, value: '150+', label: 'Active Referrers', labelMm: 'ရည်ညွှန်းသူများ' },
+];
+
+export default function Hero() {
+  const scrollToJobs = () => {
+    document.getElementById('jobs')?.scrollIntoView({ behavior: 'smooth' });
+  };
+
+  const scrollToCompanies = () => {
+    document.getElementById('companies')?.scrollIntoView({ behavior: 'smooth' });
+  };
+
+  return (
+    <section className="relative min-h-[90vh] flex items-center justify-center overflow-hidden px-4 py-16">
+      {/* Background Effects */}
+      <div className="absolute inset-0 overflow-hidden">
+        <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-teal-500/10 rounded-full blur-3xl animate-pulse-slow" />
+        <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-amber-500/10 rounded-full blur-3xl animate-pulse-slow" style={{ animationDelay: '2s' }} />
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-gradient-radial from-teal-500/5 to-transparent rounded-full" />
+      </div>
+
+      <div className="relative z-10 max-w-5xl mx-auto text-center">
+        {/* Badge */}
+        <motion.div
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6 }}
+          className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/5 border border-white/10 mb-6"
+        >
+          <span className="w-2 h-2 bg-teal-400 rounded-full animate-pulse" />
+          <span className="text-sm text-slate-300">Powered by Talent Solutions Myanmar</span>
+        </motion.div>
+
+        {/* Main Title */}
+        <motion.h1
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, delay: 0.1 }}
+          className="text-4xl md:text-6xl font-bold mb-4"
+        >
+          <span className="text-gradient-teal">Refer Friends</span>
+          <span className="text-white">, </span>
+          <span className="text-gradient-gold">Earn Rewards</span>
+        </motion.h1>
+
+        {/* Subtitle */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, delay: 0.2 }}
+          className="mb-8"
+        >
+          <p className="text-xl md:text-2xl text-slate-300 mb-2">
+            Earn up to <span className="text-gradient-gold font-bold">500,000 MMK</span> via KPay (85% to you)
+          </p>
+          <p className="text-lg text-slate-400 burmese-text mb-4">
+            သူငယ်ချင်းများကို ရည်ညွှန်းပါ → KPay မှတဆင့် ကျပ် ၅သိန်းထိ ရရှိပါ
+          </p>
+          <p className="text-md text-slate-500">
+            Companies pay only <span className="text-amber-400 font-semibold">50,000 MMK</span> flat success fee per hire
+          </p>
+        </motion.div>
+
+        {/* CTA Buttons */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, delay: 0.3 }}
+          className="flex flex-col sm:flex-row gap-4 justify-center mb-10"
+        >
+          <Button
+            onClick={scrollToJobs}
+            size="lg"
+            className="btn-teal text-lg px-8 py-6"
+          >
+            <Briefcase className="mr-2 h-5 w-5" />
+            Browse 25 Real Jobs
+          </Button>
+          <Button
+            onClick={scrollToCompanies}
+            size="lg"
+            className="btn-gold text-lg px-8 py-6"
+          >
+            <Send className="mr-2 h-5 w-5" />
+            For Companies – 3 Free Hires
+          </Button>
+        </motion.div>
+
+        {/* Burmese Button Labels */}
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.6, delay: 0.4 }}
+          className="flex flex-col sm:flex-row gap-4 justify-center mb-12 text-sm text-slate-500 burmese-text"
+        >
+          <span>အလုပ် ၂၅ ခု ကြည့်ရှုပါ</span>
+          <span className="hidden sm:inline">|</span>
+          <span>ကုမ္ပဏီများအတွက် - အခမဲ့ ၃ နေရာ</span>
+        </motion.div>
+
+        {/* Trust Stats */}
+        <motion.div
+          initial={{ opacity: 0, y: 30 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, delay: 0.5 }}
+          className="grid grid-cols-1 sm:grid-cols-3 gap-4 max-w-3xl mx-auto"
+        >
+          {trustStats.map((stat, index) => (
+            <motion.div
+              key={stat.label}
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 0.4, delay: 0.6 + index * 0.1 }}
+              className="glass-card p-5 text-center"
+            >
+              <stat.icon className="h-7 w-7 text-teal-400 mx-auto mb-2" />
+              <div className="text-2xl font-bold text-white mb-1">{stat.value}</div>
+              <div className="text-slate-300 text-sm">{stat.label}</div>
+              <div className="text-slate-500 text-xs burmese-text">{stat.labelMm}</div>
+            </motion.div>
+          ))}
+        </motion.div>
+
+        {/* Scroll Indicator */}
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.6, delay: 1 }}
+          className="absolute bottom-4 left-1/2 -translate-x-1/2"
+        >
+          <motion.div
+            animate={{ y: [0, 8, 0] }}
+            transition={{ duration: 2, repeat: Infinity }}
+            className="flex flex-col items-center text-slate-500 cursor-pointer"
+            onClick={scrollToJobs}
+          >
+            <span className="text-xs mb-1">Scroll</span>
+            <ArrowDown className="h-4 w-4" />
+          </motion.div>
+        </motion.div>
+      </div>
+    </section>
+  );
+}
+=== END FILE ===
+
+=== FILE: src/components/Jobs.tsx ===
+'use client';
+
+import { motion } from 'framer-motion';
+import { MapPin, Banknote, Send, Clock, Building2, Flame } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Card, CardContent } from '@/components/ui/card';
+
+interface Job {
+  id: string;
+  title: string;
+  titleMm?: string;
+  company: string;
+  location: string;
+  locationMm?: string;
+  salary: string;
+  salaryMm?: string;
+  reward: number;
+  skills: string[];
+  type: string;
+  urgent: boolean;
+}
+
+// Real job data from Urgent Positions For January.xlsx
+const jobs: Job[] = [
+  {
+    id: '1',
+    title: 'Senior Supervisor',
+    company: 'RK Yangon Steel',
+    location: 'Thanlyin',
+    salary: '7.5 - 10 Lakhs',
+    reward: 300,
+    skills: ['Leadership', 'Manufacturing', 'Team Management'],
+    type: 'Full-time',
+    urgent: true,
+  },
+  {
+    id: '2',
+    title: 'Warehouse Supervisor',
+    company: 'Universal Energy',
+    location: 'Thingangyun',
+    salary: 'Negotiable',
+    reward: 200,
+    skills: ['Inventory', 'Logistics', 'Operations'],
+    type: 'Full-time',
+    urgent: false,
+  },
+  {
+    id: '3',
+    title: 'Content & Script Writer',
+    company: 'Shwe Taung Htun',
+    location: 'Mingalar Taung Nyunt',
+    salary: '4 - 6 Lakhs',
+    reward: 150,
+    skills: ['Content Writing', 'Creative', 'Marketing'],
+    type: 'Full-time',
+    urgent: false,
+  },
+  {
+    id: '4',
+    title: 'Site Engineer',
+    company: 'Sun Myat Tun',
+    location: 'Botahtaung',
+    salary: '7.5 Lakhs',
+    reward: 250,
+    skills: ['Engineering', 'Construction', 'Project Management'],
+    type: 'Full-time',
+    urgent: true,
+  },
+  {
+    id: '5',
+    title: 'Data Collector',
+    company: 'NielsenIQ Myanmar',
+    location: 'Mdy, Sagaing, Meikhtila',
+    salary: '3.5 Lakhs',
+    reward: 100,
+    skills: ['Data Entry', 'Research', 'Field Work'],
+    type: 'Full-time',
+    urgent: false,
+  },
+  {
+    id: '6',
+    title: 'Loan Officer',
+    company: 'Real Aid Microfinance',
+    location: 'Ayeyarwady',
+    salary: '4 - 5 Lakhs',
+    reward: 150,
+    skills: ['Finance', 'Customer Service', 'Sales'],
+    type: 'Full-time',
+    urgent: false,
+  },
+  {
+    id: '7',
+    title: 'Brand Executive',
+    company: 'Unicharm Myanmar',
+    location: 'Yankin',
+    salary: '7 - 9 Lakhs',
+    reward: 200,
+    skills: ['Branding', 'Marketing', 'FMCG'],
+    type: 'Full-time',
+    urgent: false,
+  },
+  {
+    id: '8',
+    title: 'Assistant Brand Manager',
+    company: 'Unicharm Myanmar',
+    location: 'Yankin',
+    salary: '15 - 17 Lakhs',
+    reward: 400,
+    skills: ['Brand Management', 'Marketing Strategy', 'Team Leadership'],
+    type: 'Full-time',
+    urgent: true,
+  },
+  {
+    id: '9',
+    title: 'Graphic Designer',
+    company: 'WOW Sport',
+    location: 'Kamaryut',
+    salary: 'Around 10 Lakhs',
+    reward: 200,
+    skills: ['Adobe Suite', 'Creative Design', 'Visual Arts'],
+    type: 'Full-time',
+    urgent: false,
+  },
+  {
+    id: '10',
+    title: 'Senior Sales Executive',
+    company: 'WOW Sport',
+    location: 'Kamaryut',
+    salary: '10 Lakhs',
+    reward: 250,
+    skills: ['Sales', 'B2B', 'Negotiation'],
+    type: 'Full-time',
+    urgent: true,
+  },
+  {
+    id: '11',
+    title: 'IT Supervisor',
+    company: 'Wave Plus',
+    location: 'Mingalardon',
+    salary: '6 Lakhs',
+    reward: 180,
+    skills: ['IT Support', 'Networking', 'Troubleshooting'],
+    type: 'Full-time',
+    urgent: false,
+  },
+  {
+    id: '12',
+    title: 'Interior Designer',
+    company: 'Delight Amatat',
+    location: 'Thingangyun',
+    salary: '10 - 15 Lakhs',
+    reward: 350,
+    skills: ['Interior Design', 'AutoCAD', 'Creative'],
+    type: 'Full-time',
+    urgent: false,
+  },
+];
+
+const containerVariants = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: {
+      staggerChildren: 0.05,
+    },
+  },
+};
+
+const itemVariants = {
+  hidden: { opacity: 0, y: 20 },
+  visible: { opacity: 1, y: 0 },
+};
+
+export default function Jobs() {
+  const handleRefer = (job: Job) => {
+    const message = encodeURIComponent(
+      `Hello! I want to refer a candidate for: ${job.title} at ${job.company}\n\nJob ID: ${job.id}`
+    );
+    window.open(`https://t.me/ReferTRM?text=${message}`, '_blank');
+  };
+
+  return (
+    <section id="jobs" className="py-16 px-4 relative">
+      {/* Background */}
+      <div className="absolute inset-0 bg-gradient-to-b from-transparent via-teal-500/5 to-transparent pointer-events-none" />
+
+      <div className="max-w-7xl mx-auto relative">
+        {/* Section Header */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.6 }}
+          className="text-center mb-10"
+        >
+          <h2 className="text-3xl md:text-4xl font-bold mb-3">
+            <span className="text-gradient-teal">Urgent Positions</span>
+          </h2>
+          <p className="text-lg text-slate-400 mb-1">January 2025 Openings</p>
+          <p className="text-slate-500 burmese-text">ဇန်နဝါရီ ၂၀၂၅ အလုပ်နေရာများ</p>
+        </motion.div>
+
+        {/* Stats Bar */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          className="flex flex-wrap justify-center gap-4 mb-10"
+        >
+          <div className="glass-card px-6 py-3 text-center">
+            <div className="text-2xl font-bold text-teal-400">{jobs.length}</div>
+            <div className="text-sm text-slate-400">Open Positions</div>
+          </div>
+          <div className="glass-card px-6 py-3 text-center">
+            <div className="text-2xl font-bold text-amber-400">{jobs.filter(j => j.urgent).length}</div>
+            <div className="text-sm text-slate-400">Urgent</div>
+          </div>
+          <div className="glass-card px-6 py-3 text-center">
+            <div className="text-2xl font-bold text-green-400">50K</div>
+            <div className="text-sm text-slate-400">Success Fee</div>
+          </div>
+        </motion.div>
+
+        {/* Jobs Grid */}
+        <motion.div
+          variants={containerVariants}
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ once: true }}
+          className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"
+        >
+          {jobs.map((job) => (
+            <motion.div key={job.id} variants={itemVariants}>
+              <Card className="glass-card-hover h-full group">
+                <CardContent className="p-5">
+                  {/* Job Header */}
+                  <div className="flex justify-between items-start mb-3">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2">
+                        <h3 className="text-lg font-bold text-white group-hover:text-teal-400 transition-colors">
+                          {job.title}
+                        </h3>
+                        {job.urgent && (
+                          <Badge className="bg-red-500/20 text-red-400 border-red-500/30">
+                            <Flame className="h-3 w-3 mr-1" />
+                            Urgent
+                          </Badge>
+                        )}
+                      </div>
+                    </div>
+                    <Badge variant="outline" className="border-teal-500/50 text-teal-400">
+                      {job.type}
+                    </Badge>
+                  </div>
+
+                  {/* Company */}
+                  <div className="flex items-center gap-2 text-slate-400 mb-2">
+                    <Building2 className="h-4 w-4" />
+                    <span>{job.company}</span>
+                  </div>
+
+                  {/* Location & Salary */}
+                  <div className="space-y-1 mb-3">
+                    <div className="flex items-center gap-2 text-slate-300 text-sm">
+                      <MapPin className="h-3.5 w-3.5 text-teal-400" />
+                      <span>{job.location}</span>
+                    </div>
+                    <div className="flex items-center gap-2 text-slate-300 text-sm">
+                      <Banknote className="h-3.5 w-3.5 text-amber-400" />
+                      <span>{job.salary} MMK</span>
+                    </div>
+                  </div>
+
+                  {/* Skills */}
+                  <div className="flex flex-wrap gap-1 mb-3">
+                    {job.skills.slice(0, 2).map((skill) => (
+                      <Badge
+                        key={skill}
+                        variant="secondary"
+                        className="bg-slate-800 text-slate-300 text-xs"
+                      >
+                        {skill}
+                      </Badge>
+                    ))}
+                    {job.skills.length > 2 && (
+                      <Badge variant="secondary" className="bg-slate-800 text-slate-400 text-xs">
+                        +{job.skills.length - 2}
+                      </Badge>
+                    )}
+                  </div>
+
+                  {/* Reward */}
+                  <div className="mb-3 p-2 rounded-lg bg-amber-500/10 border border-amber-500/20">
+                    <div className="text-amber-400 font-bold">
+                      Refer & Earn {job.reward}K MMK
+                    </div>
+                    <div className="text-slate-500 text-xs">
+                      Company pays 50K success fee
+                    </div>
+                  </div>
+
+                  {/* CTA Button */}
+                  <Button
+                    className="w-full btn-teal text-sm"
+                    onClick={() => handleRefer(job)}
+                  >
+                    <Send className="mr-2 h-4 w-4" />
+                    Refer via Telegram
+                  </Button>
+                </CardContent>
+              </Card>
+            </motion.div>
+          ))}
+        </motion.div>
+
+        {/* Load More */}
+        <motion.div
+          initial={{ opacity: 0 }}
+          whileInView={{ opacity: 1 }}
+          viewport={{ once: true }}
+          className="text-center mt-10"
+        >
+          <Button variant="outline" className="btn-outline-teal">
+            View All Positions
+          </Button>
+        </motion.div>
+      </div>
+    </section>
+  );
+}
+=== END FILE ===
+
+=== FILE: src/components/Leaderboard.tsx ===
+'use client';
+
+import { useState } from 'react';
+import { motion } from 'framer-motion';
+import { Trophy, Medal, Award, TrendingUp, Users, Flame, Crown, Star } from 'lucide-react';
+import { Card, CardContent } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+
+interface LeaderboardEntry {
+  rank: number;
+  name: string;
+  nameMm: string;
+  avatar: string;
+  value: number;
+  change: number; // Position change
+  level: string;
+  isYou?: boolean;
+}
+
+const leaderboardData = {
+  points: [
+    { rank: 1, name: 'Myat Thu', nameMm: 'မြတ်သူ', avatar: '👨‍💼', value: 2450, change: 0, level: 'Master' },
+    { rank: 2, name: 'Su Hlaing', nameMm: 'စုလှိုင်', avatar: '👩‍💼', value: 2180, change: 2, level: 'Expert' },
+    { rank: 3, name: 'Aung Min', nameMm: 'အောင်မင်း', avatar: '👨‍💻', value: 1950, change: -1, level: 'Expert' },
+    { rank: 4, name: 'Thiri Aung', nameMm: 'သီရိအောင်', avatar: '👩‍🎨', value: 1650, change: 1, level: 'Professional', isYou: true },
+    { rank: 5, name: 'Kyaw Zin', nameMm: 'ကျော်ဇင်', avatar: '👨‍🔬', value: 1520, change: 0, level: 'Professional' },
+    { rank: 6, name: 'Nwe Nwe', nameMm: 'နွဲ့နွဲ့', avatar: '👩‍🏫', value: 1380, change: 3, level: 'Professional' },
+    { rank: 7, name: 'Zaw Zaw', nameMm: 'ဇော်ဇော်', avatar: '👨‍🔧', value: 1250, change: -2, level: 'Professional' },
+    { rank: 8, name: 'Hla Hla', nameMm: 'လှလှ', avatar: '👩‍⚕️', value: 1180, change: 0, level: 'Professional' },
+    { rank: 9, name: 'Min Min', nameMm: 'မင်းမင်း', avatar: '👨‍🎤', value: 1050, change: 1, level: 'Professional' },
+    { rank: 10, name: 'Yu Yu', nameMm: 'ယုယု', avatar: '👩‍🚀', value: 980, change: -1, level: 'Professional' },
+  ],
+  referrals: [
+    { rank: 1, name: 'Aung Min', nameMm: 'အောင်မင်း', avatar: '👨‍💻', value: 15, change: 0, level: 'Master' },
+    { rank: 2, name: 'Myat Thu', nameMm: 'မြတ်သူ', avatar: '👨‍💼', value: 12, change: 1, level: 'Expert' },
+    { rank: 3, name: 'Thiri Aung', nameMm: 'သီရိအောင်', avatar: '👩‍🎨', value: 8, change: 2, level: 'Professional', isYou: true },
+    { rank: 4, name: 'Su Hlaing', nameMm: 'စုလှိုင်', avatar: '👩‍💼', value: 7, change: -2, level: 'Expert' },
+    { rank: 5, name: 'Zaw Zaw', nameMm: 'ဇော်ဇော်', avatar: '👨‍🔧', value: 6, change: 0, level: 'Professional' },
+  ],
+  streak: [
+    { rank: 1, name: 'Myat Thu', nameMm: 'မြတ်သူ', avatar: '👨‍💼', value: 45, change: 0, level: 'Master' },
+    { rank: 2, name: 'Su Hlaing', nameMm: 'စုလှိုင်', avatar: '👩‍💼', value: 38, change: 0, level: 'Expert' },
+    { rank: 3, name: 'Thiri Aung', nameMm: 'သီရိအောင်', avatar: '👩‍🎨', value: 7, change: 5, level: 'Professional', isYou: true },
+    { rank: 4, name: 'Aung Min', nameMm: 'အောင်မင်း', avatar: '👨‍💻', value: 21, change: -1, level: 'Expert' },
+    { rank: 5, name: 'Nwe Nwe', nameMm: 'နွဲ့နွဲ့', avatar: '👩‍🏫', value: 18, change: 2, level: 'Professional' },
+  ],
+};
+
+const getRankBadge = (rank: number) => {
+  if (rank === 1) return { icon: Crown, color: 'text-amber-400', bg: 'bg-amber-500/20' };
+  if (rank === 2) return { icon: Medal, color: 'text-slate-300', bg: 'bg-slate-400/20' };
+  if (rank === 3) return { icon: Award, color: 'text-orange-400', bg: 'bg-orange-500/20' };
+  return null;
+};
+
+const levelColors: Record<string, string> = {
+  Amateur: 'text-green-400',
+  Professional: 'text-blue-400',
+  Expert: 'text-purple-400',
+  Master: 'text-amber-400',
+};
+
+export default function Leaderboard() {
+  const [activeTab, setActiveTab] = useState('points');
+
+  const renderLeaderboard = (data: LeaderboardEntry[], unit: string) => (
+    <div className="space-y-3">
+      {data.map((entry, index) => {
+        const badge = getRankBadge(entry.rank);
+        
+        return (
+          <motion.div
+            key={entry.rank}
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ delay: index * 0.05 }}
+            className={`glass-card p-4 flex items-center gap-4 ${
+              entry.isYou ? 'border-teal-500/50 bg-teal-500/5' : ''
+            }`}
+          >
+            {/* Rank */}
+            <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${
+              badge ? badge.bg : 'bg-slate-800'
+            }`}>
+              {badge ? (
+                <badge.icon className={`h-6 w-6 ${badge.color}`} />
+              ) : (
+                <span className="text-slate-400 font-bold">#{entry.rank}</span>
+              )}
+            </div>
+
+            {/* Avatar */}
+            <div className="w-12 h-12 rounded-xl bg-gradient-to-r from-teal-500 to-cyan-500 flex items-center justify-center text-2xl">
+              {entry.avatar}
+            </div>
+
+            {/* Info */}
+            <div className="flex-1">
+              <div className="flex items-center gap-2">
+                <span className="font-bold text-white">
+                  {entry.name}
+                  {entry.isYou && (
+                    <Badge className="ml-2 bg-teal-500/20 text-teal-400 border-teal-500/30 text-xs">
+                      You
+                    </Badge>
+                  )}
+                </span>
+              </div>
+              <p className="text-slate-500 text-sm burmese-text">{entry.nameMm}</p>
+              <Badge className={`${levelColors[entry.level]} bg-white/5 border-current text-xs mt-1`}>
+                {entry.level}
+              </Badge>
+            </div>
+
+            {/* Value */}
+            <div className="text-right">
+              <div className="text-2xl font-bold text-white">
+                {entry.value.toLocaleString()}
+                <span className="text-slate-400 text-sm ml-1">{unit}</span>
+              </div>
+              {entry.change !== 0 && (
+                <div className={`text-xs flex items-center justify-end gap-1 ${
+                  entry.change > 0 ? 'text-green-400' : 'text-red-400'
+                }`}>
+                  <TrendingUp className={`h-3 w-3 ${entry.change < 0 ? 'rotate-180' : ''}`} />
+                  {entry.change > 0 ? '+' : ''}{entry.change}
+                </div>
+              )}
+            </div>
+          </motion.div>
+        );
+      })}
+    </div>
+  );
+
+  return (
+    <section id="leaderboard" className="py-8 px-4">
+      <div className="max-w-4xl mx-auto">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="text-center mb-8"
+        >
+          <div className="flex items-center justify-center gap-2 mb-4">
+            <Trophy className="h-8 w-8 text-amber-400" />
+            <h2 className="text-3xl font-bold text-white">Leaderboard</h2>
+          </div>
+          <p className="text-slate-400 burmese-text">အဆင့်သတ်မှတ်ချက်</p>
+        </motion.div>
+
+        <Tabs defaultValue="points" className="w-full">
+          <TabsList className="grid w-full grid-cols-3 mb-6 bg-slate-800/50">
+            <TabsTrigger value="points" className="flex items-center gap-2">
+              <Star className="h-4 w-4" />
+              Points
+            </TabsTrigger>
+            <TabsTrigger value="referrals" className="flex items-center gap-2">
+              <Users className="h-4 w-4" />
+              Referrals
+            </TabsTrigger>
+            <TabsTrigger value="streak" className="flex items-center gap-2">
+              <Flame className="h-4 w-4" />
+              Streak
+            </TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="points">
+            {renderLeaderboard(leaderboardData.points, 'pts')}
+          </TabsContent>
+          <TabsContent value="referrals">
+            {renderLeaderboard(leaderboardData.referrals, 'hires')}
+          </TabsContent>
+          <TabsContent value="streak">
+            {renderLeaderboard(leaderboardData.streak, 'days')}
+          </TabsContent>
+        </Tabs>
+
+        {/* Monthly Prize Pool */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.3 }}
+          className="mt-8"
+        >
+          <Card className="glass-card bg-gradient-to-r from-amber-500/10 to-orange-500/10 border-amber-500/20">
+            <CardContent className="p-6 text-center">
+              <Crown className="h-12 w-12 text-amber-400 mx-auto mb-4" />
+              <h3 className="text-xl font-bold text-white mb-2">
+                Monthly Prize Pool: 300,000 MMK
+              </h3>
+              <p className="text-slate-400 text-sm mb-4">
+                Top 10 referrers each month share the prize pool!
+              </p>
+              <p className="text-slate-500 text-xs burmese-text">
+                တစ်လလျှင် ထိပ်တန်း ရည်ညွှန်းသူ ၁၀ ဦးသည် ဆုကြေးကို ဝေမျှရမည်!
+              </p>
+            </CardContent>
+          </Card>
+        </motion.div>
+      </div>
+    </section>
+  );
+}
+=== END FILE ===
+
+=== FILE: src/components/Academy.tsx ===
+'use client';
+
+import { useState } from 'react';
+import { motion } from 'framer-motion';
+import { 
+  Brain, 
+  Users, 
+  MessageSquare, 
+  TrendingUp, 
+  Play, 
+  Lock, 
+  CheckCircle,
+  BookOpen,
+  Target,
+  Award,
+  Volume2,
+  Wifi,
+  Eye,
+  GraduationCap
+} from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
+import { Progress } from '@/components/ui/progress';
+import { Badge } from '@/components/ui/badge';
+
+interface Track {
+  id: string;
+  icon: React.ElementType;
+  title: string;
+  titleMm: string;
+  description: string;
+  modules: number;
+  completedModules: number;
+  duration: string;
+  points: number;
+  color: string;
+  level: string;
+}
+
+const tracks: Track[] = [
+  {
+    id: 'recruitment',
+    icon: Users,
+    title: 'Recruitment Fundamentals',
+    titleMm: 'အလုပ်စုံရှာဖွေရေး အခြေခံများ',
+    description: 'Master the art of finding and placing top talent',
+    modules: 8,
+    completedModules: 2,
+    duration: '2 hours',
+    points: 300,
+    color: 'from-teal-500 to-emerald-500',
+    level: 'Beginner',
+  },
+  {
+    id: 'sales-marketing',
+    icon: TrendingUp,
+    title: 'Sales & Marketing',
+    titleMm: 'အရောင်းနှင့် မာကတ်တင်း',
+    description: 'Learn to promote jobs and attract candidates effectively',
+    modules: 6,
+    completedModules: 0,
+    duration: '1.5 hours',
+    points: 250,
+    color: 'from-blue-500 to-indigo-500',
+    level: 'Intermediate',
+  },
+  {
+    id: 'communication',
+    icon: MessageSquare,
+    title: 'Communication Skills',
+    titleMm: 'ဆက်သွယ်ရေး ကျွမ်းကျင်မှုများ',
+    description: 'Build rapport with candidates and companies',
+    modules: 5,
+    completedModules: 0,
+    duration: '1 hour',
+    points: 200,
+    color: 'from-purple-500 to-pink-500',
+    level: 'Beginner',
+  },
+  {
+    id: 'ai-ml',
+    icon: Brain,
+    title: 'AI & Technology',
+    titleMm: 'AI နှင့် နည်းပညာ',
+    description: 'Understand AI fundamentals for tech recruitment',
+    modules: 10,
+    completedModules: 0,
+    duration: '3 hours',
+    points: 400,
+    color: 'from-amber-500 to-orange-500',
+    level: 'Advanced',
+  },
+];
+
+const containerVariants = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: {
+      staggerChildren: 0.1,
+    },
+  },
+};
+
+const itemVariants = {
+  hidden: { opacity: 0, y: 20 },
+  visible: { opacity: 1, y: 0 },
+};
+
+export default function Academy() {
+  const [textMode, setTextMode] = useState(false);
+  const [lowData, setLowData] = useState(false);
+
+  return (
+    <section id="academy" className="py-20 px-4 relative min-h-screen">
+      {/* Background */}
+      <div className="absolute inset-0 bg-gradient-to-b from-transparent via-purple-500/5 to-transparent pointer-events-none" />
+
+      <div className="max-w-6xl mx-auto relative">
+        {/* Section Header */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.6 }}
+          className="text-center mb-12"
+        >
+          <Badge className="bg-purple-500/20 text-purple-400 border-purple-500/30 mb-4">
+            <GraduationCap className="h-4 w-4 mr-1" />
+            Learning Hub
+          </Badge>
+          <h2 className="text-3xl md:text-4xl font-bold mb-3">
+            <span className="text-white">Learning </span>
+            <span className="text-gradient-teal">Tracks</span>
+          </h2>
+          <p className="text-slate-400 burmese-text text-lg">
+            သင်ကြားရေးလမ်းကြောင်းများ
+          </p>
+        </motion.div>
+
+        {/* Stats Bar */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-10"
+        >
+          <div className="glass-card p-4 text-center">
+            <div className="text-2xl font-bold text-teal-400">4</div>
+            <div className="text-sm text-slate-400">Tracks</div>
+          </div>
+          <div className="glass-card p-4 text-center">
+            <div className="text-2xl font-bold text-amber-400">29</div>
+            <div className="text-sm text-slate-400">Modules</div>
+          </div>
+          <div className="glass-card p-4 text-center">
+            <div className="text-2xl font-bold text-purple-400">1,150</div>
+            <div className="text-sm text-slate-400">Points</div>
+          </div>
+          <div className="glass-card p-4 text-center">
+            <div className="text-2xl font-bold text-green-400">2/8</div>
+            <div className="text-sm text-slate-400">Completed</div>
+          </div>
+        </motion.div>
+
+        {/* Learning Tracks Grid */}
+        <motion.div
+          variants={containerVariants}
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ once: true }}
+          className="grid grid-cols-1 md:grid-cols-2 gap-6"
+        >
+          {tracks.map((track) => {
+            const progress = Math.round((track.completedModules / track.modules) * 100);
+            
+            return (
+              <motion.div key={track.id} variants={itemVariants}>
+                <Card className="glass-card-hover h-full group bg-slate-800/50">
+                  <CardContent className="p-6">
+                    <div className="flex items-start gap-4 mb-4">
+                      {/* Icon */}
+                      <div
+                        className={`w-14 h-14 rounded-xl bg-gradient-to-r ${track.color} flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform duration-300`}
+                      >
+                        <track.icon className="h-7 w-7 text-white" />
+                      </div>
+
+                      {/* Title & Level */}
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-1">
+                          <h3 className="text-lg font-bold text-white group-hover:text-teal-400 transition-colors">
+                            {track.title}
+                          </h3>
+                        </div>
+                        <p className="text-slate-500 text-sm burmese-text">
+                          {track.titleMm}
+                        </p>
+                        <Badge 
+                          variant="outline" 
+                          className={`mt-2 ${
+                            track.level === 'Beginner' ? 'border-green-500/50 text-green-400' :
+                            track.level === 'Intermediate' ? 'border-amber-500/50 text-amber-400' :
+                            'border-red-500/50 text-red-400'
+                          }`}
+                        >
+                          {track.level}
+                        </Badge>
+                      </div>
+                    </div>
+
+                    {/* Description */}
+                    <p className="text-slate-400 text-sm mb-4">
+                      {track.description}
+                    </p>
+
+                    {/* Progress Section */}
+                    <div className="mb-4">
+                      <div className="flex justify-between items-center mb-2">
+                        <span className="text-sm text-slate-400">
+                          <BookOpen className="h-4 w-4 inline mr-1" />
+                          {track.completedModules}/{track.modules} modules
+                        </span>
+                        <span className="text-sm font-medium text-teal-400">
+                          {progress}%
+                        </span>
+                      </div>
+                      <Progress 
+                        value={progress} 
+                        className="h-2 bg-slate-700"
+                      />
+                    </div>
+
+                    {/* Meta Info */}
+                    <div className="flex items-center justify-between text-sm text-slate-500 mb-4">
+                      <span className="flex items-center gap-1">
+                        <Target className="h-4 w-4" />
+                        {track.duration}
+                      </span>
+                      <span className="flex items-center gap-1 text-amber-400">
+                        <Award className="h-4 w-4" />
+                        +{track.points} pts
+                      </span>
+                    </div>
+
+                    {/* Action Button */}
+                    <Button
+                      className={`w-full ${
+                        track.completedModules > 0 ? 'btn-teal' : 'btn-outline-teal'
+                      }`}
+                    >
+                      {track.completedModules > 0 ? (
+                        <>
+                          <Play className="mr-2 h-4 w-4" />
+                          Continue Learning
+                        </>
+                      ) : (
+                        <>
+                          <Play className="mr-2 h-4 w-4" />
+                          Start Track
+                        </>
+                      )}
+                    </Button>
+                  </CardContent>
+                </Card>
+              </motion.div>
+            );
+          })}
+        </motion.div>
+
+        {/* Level Progression */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          className="mt-12"
+        >
+          <Card className="glass-card bg-slate-800/30">
+            <CardContent className="p-6">
+              <h3 className="text-xl font-bold text-white mb-4 text-center flex items-center justify-center gap-2">
+                <Award className="h-5 w-5 text-amber-400" />
+                Level Progression & Rewards
+              </h3>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                {[
+                  { level: 'Amateur', points: '0-299', bonus: '1x', icon: '🌱', color: 'text-green-400' },
+                  { level: 'Professional', points: '300-599', bonus: '1.25x', icon: '⭐', color: 'text-blue-400' },
+                  { level: 'Expert', points: '600-899', bonus: '1.5x', icon: '🏆', color: 'text-purple-400' },
+                  { level: 'Master', points: '900+', bonus: '2x', icon: '👑', color: 'text-amber-400' },
+                ].map((item) => (
+                  <div key={item.level} className="text-center p-4 rounded-xl bg-white/5 hover:bg-white/10 transition-colors">
+                    <div className="text-3xl mb-2">{item.icon}</div>
+                    <div className={`font-bold ${item.color}`}>{item.level}</div>
+                    <div className="text-sm text-slate-400">{item.points} pts</div>
+                    <div className="text-amber-400 font-semibold mt-1">{item.bonus} Bonus</div>
+                  </div>
+                ))}
+              </div>
+              <p className="text-center text-slate-500 text-sm burmese-text mt-4">
+                သင်ခန်းစာများ ပြီးမြောက်ပါက အဆင့်မြှင့်တင်ပြီး ဆုကြေးများ ပိုမိုရရှိပါမည်
+              </p>
+            </CardContent>
+          </Card>
+        </motion.div>
+
+        {/* Utility Buttons - Text Mode & Low Data */}
+        <motion.div
+          initial={{ opacity: 0 }}
+          whileInView={{ opacity: 1 }}
+          viewport={{ once: true }}
+          className="fixed bottom-6 right-6 flex flex-col gap-2 z-40"
+        >
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setTextMode(!textMode)}
+            className={`${textMode ? 'bg-teal-500/20 border-teal-500/50 text-teal-400' : 'bg-slate-800/80 border-white/10 text-slate-300'} backdrop-blur-xl`}
+          >
+            <Eye className="h-4 w-4 mr-2" />
+            Text Mode
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setLowData(!lowData)}
+            className={`${lowData ? 'bg-amber-500/20 border-amber-500/50 text-amber-400' : 'bg-slate-800/80 border-white/10 text-slate-300'} backdrop-blur-xl`}
+          >
+            <Wifi className="h-4 w-4 mr-2" />
+            Low Data
+          </Button>
+        </motion.div>
+      </div>
+    </section>
+  );
+}
+=== END FILE ===
+
+=== FILE: src/components/Footer.tsx ===
+'use client';
+
+import { motion } from 'framer-motion';
+import { Send, Mail, Phone, MapPin, ExternalLink } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+
+const quickLinks = [
+  { label: 'Browse Jobs', href: '#jobs', labelMm: 'အလုပ်များ ကြည့်ရှုပါ' },
+  { label: 'For Companies', href: '#companies', labelMm: 'ကုမ္ပဏီများအတွက်' },
+  { label: 'Why Refer', href: '#why-refer', labelMm: 'အဘယ်ကြောင့် ရည်ညွှန်းသင့်သနည်း' },
+  { label: 'Academy', href: '#academy', labelMm: 'သင်ကြားရေး' },
+];
+
+const socialLinks = [
+  { label: 'Telegram', href: 'https://t.me/ReferTRM', icon: Send },
+];
+
+export default function Footer() {
+  const currentYear = new Date().getFullYear();
+
+  return (
+    <footer className="relative border-t border-white/5">
+      {/* Background */}
+      <div className="absolute inset-0 bg-gradient-to-t from-slate-900/50 to-transparent pointer-events-none" />
+
+      <div className="max-w-6xl mx-auto px-4 py-12 relative">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+          {/* Brand Section */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+          >
+            <div className="flex items-center gap-2 mb-4">
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-r from-teal-500 to-cyan-500 flex items-center justify-center">
+                <span className="text-xl font-bold text-slate-900">R</span>
+              </div>
+              <span className="text-2xl font-bold">
+                <span className="text-gradient-teal">Refer</span>
+                <span className="text-white">TRM</span>
+              </span>
+            </div>
+            <p className="text-slate-400 mb-4">
+              Myanmar's trusted referral hiring platform. Connect talent with opportunity.
+            </p>
+            <p className="text-slate-500 text-sm burmese-text">
+              မြန်မာနိုင်ငံ၏ ယုံကြည်စိတ်ချရသော ရည်ညွှန်းခြင်းလုပ်ငန်းပလက်ဖောင်း
+            </p>
+
+            {/* Social Links */}
+            <div className="flex gap-3 mt-6">
+              {socialLinks.map((link) => (
+                <Button
+                  key={link.label}
+                  variant="outline"
+                  size="icon"
+                  className="border-white/10 hover:border-teal-500/50 hover:bg-teal-500/10"
+                  asChild
+                >
+                  <a href={link.href} target="_blank" rel="noopener noreferrer">
+                    <link.icon className="h-5 w-5" />
+                  </a>
+                </Button>
+              ))}
+            </div>
+          </motion.div>
+
+          {/* Quick Links */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ delay: 0.1 }}
+          >
+            <h4 className="text-white font-semibold mb-4">Quick Links</h4>
+            <ul className="space-y-3">
+              {quickLinks.map((link) => (
+                <li key={link.label}>
+                  <a
+                    href={link.href}
+                    className="text-slate-400 hover:text-teal-400 transition-colors flex items-center gap-1"
+                  >
+                    {link.label}
+                    <span className="text-slate-600 text-sm burmese-text">({link.labelMm})</span>
+                  </a>
+                </li>
+              ))}
+            </ul>
+          </motion.div>
+
+          {/* Contact */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ delay: 0.2 }}
+          >
+            <h4 className="text-white font-semibold mb-4">Contact Us</h4>
+            <ul className="space-y-3">
+              <li>
+                <a
+                  href="https://t.me/ReferTRM"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-slate-400 hover:text-teal-400 transition-colors flex items-center gap-2"
+                >
+                  <Send className="h-4 w-4" />
+                  <span>@ReferTRM</span>
+                  <ExternalLink className="h-3 w-3" />
+                </a>
+              </li>
+              <li className="flex items-center gap-2 text-slate-400">
+                <Mail className="h-4 w-4" />
+                <span>contact@refertrm.com</span>
+              </li>
+              <li className="flex items-center gap-2 text-slate-400">
+                <Phone className="h-4 w-4" />
+                <span>+95 9 XXX XXX XXX</span>
+              </li>
+              <li className="flex items-start gap-2 text-slate-400">
+                <MapPin className="h-4 w-4 mt-0.5" />
+                <span>Yangon, Myanmar</span>
+              </li>
+            </ul>
+
+            {/* CTA */}
+            <Button className="btn-teal mt-6 w-full" asChild>
+              <a href="https://t.me/ReferTRM" target="_blank" rel="noopener noreferrer">
+                <Send className="mr-2 h-4 w-4" />
+                Contact on Telegram
+              </a>
+            </Button>
+          </motion.div>
+        </div>
+
+        {/* Bottom Bar */}
+        <motion.div
+          initial={{ opacity: 0 }}
+          whileInView={{ opacity: 1 }}
+          viewport={{ once: true }}
+          transition={{ delay: 0.3 }}
+          className="mt-12 pt-8 border-t border-white/5"
+        >
+          <div className="flex flex-col md:flex-row justify-between items-center gap-4 text-sm text-slate-500">
+            <div>
+              © {currentYear} ReferTRM by Talent Solutions Myanmar. All rights reserved.
+            </div>
+            <div className="flex gap-6">
+              <a href="#" className="hover:text-teal-400 transition-colors">
+                Privacy Policy
+              </a>
+              <a href="#" className="hover:text-teal-400 transition-colors">
+                Terms of Service
+              </a>
+            </div>
+          </div>
+        </motion.div>
+      </div>
+    </footer>
+  );
+}
+=== END FILE ===
+
+=== FILE: src/components/ForCompanies.tsx ===
+'use client';
+
+import { motion } from 'framer-motion';
+import { Check, Send, Zap, Building, Users, Briefcase, Star } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Card, CardContent, CardHeader } from '@/components/ui/card';
+
+interface PricingPlan {
+  name: string;
+  nameMm: string;
+  price: string;
+  period: string;
+  description: string;
+  features: string[];
+  highlight?: boolean;
+  badge?: string;
+  icon: React.ElementType;
+  color: string;
+}
+
+const plans: PricingPlan[] = [
+  {
+    name: 'Free Trial',
+    nameMm: 'အခမဲ့ စမ်းသပ်',
+    price: '0',
+    period: 'forever',
+    description: 'Try our platform with 3 free hires',
+    features: [
+      '3 free successful hires',
+      'Basic job posting',
+      'Email support',
+      'Standard referral tracking',
+    ],
+    icon: Zap,
+    color: 'from-slate-500 to-slate-600',
+  },
+  {
+    name: 'Bronze',
+    nameMm: 'ကြေးနီ',
+    price: '100,000',
+    period: '/month',
+    description: 'Perfect for small businesses',
+    features: [
+      '10 job postings/month',
+      '5 successful hires included',
+      'Priority support',
+      'Basic analytics dashboard',
+      'Direct referrer messaging',
+    ],
+    icon: Building,
+    color: 'from-amber-600 to-amber-700',
+  },
+  {
+    name: 'Silver',
+    nameMm: 'ငွေ',
+    price: '250,000',
+    period: '/month',
+    description: 'Most popular for growing companies',
+    features: [
+      '25 job postings/month',
+      '15 successful hires included',
+      'Premium support',
+      'Advanced analytics & reports',
+      'Featured job listings',
+      'Dedicated account manager',
+    ],
+    highlight: true,
+    badge: 'Most Popular',
+    icon: Star,
+    color: 'from-slate-400 to-slate-500',
+  },
+  {
+    name: 'Gold',
+    nameMm: 'ရွှေ',
+    price: '500,000',
+    period: '/month',
+    description: 'For established enterprises',
+    features: [
+      'Unlimited job postings',
+      '30 successful hires included',
+      '24/7 priority support',
+      'Full analytics suite',
+      'Custom branding',
+      'API access',
+      'Bulk referrals',
+    ],
+    icon: Briefcase,
+    color: 'from-amber-400 to-yellow-500',
+  },
+  {
+    name: 'Diamond',
+    nameMm: 'စိန်',
+    price: 'Custom',
+    period: '',
+    description: 'Enterprise solutions',
+    features: [
+      'Everything in Gold',
+      'Unlimited hires',
+      'White-label solution',
+      'Custom integrations',
+      'On-site training',
+      'SLA guarantee',
+      'Dedicated success team',
+    ],
+    icon: Users,
+    color: 'from-cyan-400 to-teal-500',
+  },
+];
+
+const containerVariants = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: {
+      staggerChildren: 0.1,
+    },
+  },
+};
+
+const itemVariants = {
+  hidden: { opacity: 0, y: 30 },
+  visible: { opacity: 1, y: 0 },
+};
+
+export default function ForCompanies() {
+  const handleContact = () => {
+    window.open('https://t.me/ReferTRM', '_blank');
+  };
+
+  return (
+    <section id="companies" className="py-20 px-4 relative">
+      {/* Background */}
+      <div className="absolute inset-0 bg-gradient-to-b from-transparent via-amber-500/5 to-transparent pointer-events-none" />
+
+      <div className="max-w-7xl mx-auto relative">
+        {/* Section Header */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.6 }}
+          className="text-center mb-12"
+        >
+          <Badge className="bg-amber-500/20 text-amber-400 border-amber-500/30 mb-4">
+            For Companies
+          </Badge>
+          <h2 className="text-3xl md:text-5xl font-bold mb-4">
+            <span className="text-gradient-gold">Hire Smarter & Cheaper</span>
+          </h2>
+          <p className="text-xl text-slate-300 mb-2">
+            Get 3 free successful hires to try the platform
+          </p>
+          <p className="text-slate-400 mb-4">
+            After that, pay only <span className="text-amber-400 font-semibold">50,000 MMK</span> flat success fee per hire – any position
+          </p>
+          <p className="text-slate-500 burmese-text">
+            အောင်မြင်မှုအတွက် ကျပ် ၅သောင်းသာ ပေးဆောင်ရပါမည် – မည်သည့်ရာထူးအတွက်မဆို
+          </p>
+        </motion.div>
+
+        {/* Pricing Cards */}
+        <motion.div
+          variants={containerVariants}
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ once: true }}
+          className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6"
+        >
+          {plans.map((plan) => (
+            <motion.div key={plan.name} variants={itemVariants} className="relative">
+              {plan.highlight && (
+                <div className="absolute -inset-0.5 bg-gradient-to-r from-teal-500 to-cyan-500 rounded-2xl blur opacity-30" />
+              )}
+              <Card
+                className={`glass-card-hover h-full relative ${
+                  plan.highlight
+                    ? 'border-teal-500/50 ring-2 ring-teal-500/30'
+                    : ''
+                }`}
+              >
+                {plan.badge && (
+                  <div className="absolute -top-3 left-1/2 -translate-x-1/2">
+                    <Badge className="bg-gradient-to-r from-teal-500 to-cyan-500 text-slate-900 font-semibold">
+                      {plan.badge}
+                    </Badge>
+                  </div>
+                )}
+                <CardHeader className="text-center pb-2">
+                  <div
+                    className={`w-12 h-12 rounded-xl bg-gradient-to-r ${plan.color} flex items-center justify-center mx-auto mb-3`}
+                  >
+                    <plan.icon className="h-6 w-6 text-white" />
+                  </div>
+                  <h3 className="text-xl font-bold text-white">{plan.name}</h3>
+                  <p className="text-sm text-slate-500 burmese-text">{plan.nameMm}</p>
+                </CardHeader>
+                <CardContent className="text-center">
+                  {/* Price */}
+                  <div className="mb-4">
+                    <span className="text-3xl font-bold text-white">
+                      {plan.price === 'Custom' ? plan.price : `${plan.price} MMK`}
+                    </span>
+                    <span className="text-slate-400">{plan.period}</span>
+                  </div>
+                  <p className="text-slate-400 text-sm mb-6">{plan.description}</p>
+
+                  {/* Features */}
+                  <ul className="space-y-3 mb-6 text-left">
+                    {plan.features.map((feature) => (
+                      <li key={feature} className="flex items-start gap-2">
+                        <Check className="h-4 w-4 text-teal-400 mt-0.5 flex-shrink-0" />
+                        <span className="text-slate-300 text-sm">{feature}</span>
+                      </li>
+                    ))}
+                  </ul>
+
+                  {/* CTA */}
+                  <Button
+                    className={`w-full ${
+                      plan.highlight ? 'btn-teal' : 'btn-outline-teal'
+                    }`}
+                    onClick={handleContact}
+                  >
+                    Get Started
+                  </Button>
+                </CardContent>
+              </Card>
+            </motion.div>
+          ))}
+        </motion.div>
+
+        {/* Contact CTA */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          className="text-center mt-12"
+        >
+          <div className="glass-card p-8 max-w-2xl mx-auto">
+            <h3 className="text-2xl font-bold text-white mb-2">
+              Ready to Start Hiring?
+            </h3>
+            <p className="text-slate-400 mb-4">
+              Contact us on Telegram for exclusive beta pricing and personalized onboarding
+            </p>
+            <p className="text-slate-500 text-sm burmese-text mb-6">
+              အထူးဈေးနှုန်းများနှင့် ကိုယ်ပိုင်ဝန်ဆောင်မှုအတွက် Telegram တွင် ဆက်သွယ်ပါ
+            </p>
+            <Button size="lg" className="btn-teal" onClick={handleContact}>
+              <Send className="mr-2 h-5 w-5" />
+              Contact Us on Telegram
+            </Button>
+          </div>
+        </motion.div>
+      </div>
+    </section>
+  );
+}
+=== END FILE ===
+
+=== FILE: src/components/WhyRefer.tsx ===
+'use client';
+
+import { motion } from 'framer-motion';
+import { Wallet, Percent, Trophy, Shield, ArrowRight } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
+
+interface Benefit {
+  icon: React.ElementType;
+  title: string;
+  titleMm: string;
+  description: string;
+  descriptionMm: string;
+  highlight?: string;
+  color: string;
+}
+
+const benefits: Benefit[] = [
+  {
+    icon: Percent,
+    title: 'Keep 85% of the Reward',
+    titleMm: 'ဆုကြေး၏ ၈၅% ကို သိမ်းဆည်းပါ',
+    description: 'Earn up to 425,000 - 500,000 MMK per successful referral',
+    descriptionMm: 'အောင်မြင်သော ရည်ညွှန်းမှုတစ်ခုလျှင် ကျပ် ၄.၂၅သိန်း - ၅သိန်း ရရှိပါမည်',
+    highlight: '425,000 - 500,000 MMK',
+    color: 'from-amber-400 to-yellow-500',
+  },
+  {
+    icon: Wallet,
+    title: 'Instant KPay Payment',
+    titleMm: 'KPay မှတဆင့် ချက်ချင်းပေးချေမှု',
+    description: 'Get paid directly to your KBZ Pay wallet within 24 hours',
+    descriptionMm: '၂၄ နာရီအတွင်း KBZ Pay ပိုက်ဆံအိတ်သို့ တိုက်ရိုက်ရရှိပါမည်',
+    color: 'from-teal-400 to-cyan-500',
+  },
+  {
+    icon: Trophy,
+    title: 'Bonus Multipliers',
+    titleMm: 'အပိုဆုကြေးများ',
+    description: 'Complete quick skill lessons to unlock bonus reward multipliers',
+    descriptionMm: 'ကျွမ်းကျင်မှုသင်ခန်းစာများ ပြီးမြောက်ပါက အပိုဆုကြေးများ ရရှိပါမည်',
+    color: 'from-purple-400 to-pink-500',
+  },
+  {
+    icon: Shield,
+    title: 'Trusted Platform',
+    titleMm: 'ယုံကြည်စိတ်ချရသော ပလက်ဖောင်း',
+    description: 'Powered by real recruitment agency with proven track record',
+    descriptionMm: 'အထောက်အထားမှန်ကန်သော အလုပ်စုံရှာဖွေရေးအေဂျင်စီမှ စီမံခန့်ခွဲပါသည်',
+    color: 'from-blue-400 to-indigo-500',
+  },
+];
+
+const containerVariants = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: {
+      staggerChildren: 0.15,
+    },
+  },
+};
+
+const itemVariants = {
+  hidden: { opacity: 0, x: -30 },
+  visible: { opacity: 1, x: 0 },
+};
+
+export default function WhyRefer() {
+  const handleJoin = () => {
+    window.open('https://t.me/ReferTRM', '_blank');
+  };
+
+  return (
+    <section id="why-refer" className="py-20 px-4 relative overflow-hidden">
+      {/* Background */}
+      <div className="absolute inset-0 bg-gradient-to-b from-transparent via-purple-500/5 to-transparent pointer-events-none" />
+      <div className="absolute top-1/2 right-0 w-96 h-96 bg-teal-500/10 rounded-full blur-3xl -translate-y-1/2" />
+
+      <div className="max-w-6xl mx-auto relative">
+        {/* Section Header */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.6 }}
+          className="text-center mb-12"
+        >
+          <h2 className="text-3xl md:text-5xl font-bold mb-4">
+            <span className="text-gradient-teal">Why Refer Friends</span>{' '}
+            <span className="text-white">With ReferTRM?</span>
+          </h2>
+          <p className="text-xl text-slate-400">
+            ကျွန်ုပ်တို့နှင့် အဘယ်ကြောင့် ရည်ညွှန်းသင့်သနည်း။
+          </p>
+        </motion.div>
+
+        {/* Benefits List */}
+        <motion.div
+          variants={containerVariants}
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ once: true }}
+          className="space-y-6"
+        >
+          {benefits.map((benefit, index) => (
+            <motion.div key={benefit.title} variants={itemVariants}>
+              <Card className="glass-card-hover group">
+                <CardContent className="p-6">
+                  <div className="flex items-start gap-4">
+                    {/* Icon */}
+                    <div
+                      className={`w-14 h-14 rounded-xl bg-gradient-to-r ${benefit.color} flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform duration-300`}
+                    >
+                      <benefit.icon className="h-7 w-7 text-white" />
+                    </div>
+
+                    {/* Content */}
+                    <div className="flex-1">
+                      <h3 className="text-xl font-bold text-white mb-1 group-hover:text-teal-400 transition-colors">
+                        {benefit.title}
+                      </h3>
+                      <p className="text-slate-500 text-sm burmese-text mb-2">
+                        {benefit.titleMm}
+                      </p>
+                      <p className="text-slate-300">
+                        {benefit.description}
+                      </p>
+                      <p className="text-slate-500 text-sm burmese-text mt-1">
+                        {benefit.descriptionMm}
+                      </p>
+
+                      {benefit.highlight && (
+                        <div className="mt-3 inline-flex items-center px-3 py-1 rounded-full bg-amber-500/20 border border-amber-500/30">
+                          <span className="text-amber-400 font-bold">{benefit.highlight}</span>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Number */}
+                    <div className="text-4xl font-bold text-slate-700 select-none">
+                      {String(index + 1).padStart(2, '0')}
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </motion.div>
+          ))}
+        </motion.div>
+
+        {/* CTA */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          className="text-center mt-12"
+        >
+          <Button size="lg" className="btn-teal text-lg px-8 py-6" onClick={handleJoin}>
+            Join as Referrer Today
+            <ArrowRight className="ml-2 h-5 w-5" />
+          </Button>
+          <p className="text-slate-500 text-sm burmese-text mt-3">
+            ယနေ့ပဲ ရည်ညွှန်းသူအဖြစ် စတင်ပါ
+          </p>
+        </motion.div>
+      </div>
+    </section>
+  );
+}
+=== END FILE ===
+
+=== FILE: src/components/LoginModal.tsx ===
+'use client';
+
+import { useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { X, Mail, Lock, User, Eye, EyeOff, LogIn, UserPlus } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { useAuth } from '@/contexts/AuthContext';
+
+interface LoginModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+}
+
+export default function LoginModal({ isOpen, onClose }: LoginModalProps) {
+  const [mode, setMode] = useState<'login' | 'signup'>('login');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [displayName, setDisplayName] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+
+  const { login, signup, loginAsGuest } = useAuth();
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
+    setLoading(true);
+
+    try {
+      if (mode === 'login') {
+        await login(email, password);
+      } else {
+        if (!displayName.trim()) {
+          throw new Error('Please enter your name');
+        }
+        await signup(email, password, displayName);
+      }
+      onClose();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'An error occurred');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleGuestLogin = async () => {
+    setLoading(true);
+    try {
+      await loginAsGuest();
+      onClose();
+    } catch (err) {
+      setError('Failed to login as guest');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (!isOpen) return null;
+
+  return (
+    <AnimatePresence>
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm"
+        onClick={onClose}
+      >
+        <motion.div
+          initial={{ scale: 0.9, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          exit={{ scale: 0.9, opacity: 0 }}
+          onClick={(e) => e.stopPropagation()}
+          className="relative w-full max-w-md glass-card p-6"
+        >
+          {/* Close Button */}
+          <button
+            onClick={onClose}
+            className="absolute top-4 right-4 text-slate-400 hover:text-white transition-colors"
+          >
+            <X className="h-5 w-5" />
+          </button>
+
+          {/* Header */}
+          <div className="text-center mb-6">
+            <h2 className="text-2xl font-bold text-white mb-1">
+              {mode === 'login' ? 'Welcome Back!' : 'Create Account'}
+            </h2>
+            <p className="text-slate-400 text-sm burmese-text">
+              {mode === 'login' ? 'နောက်တစ်ကြိမ် ကြိုဆိုပါသည်' : 'အကောင့်အသစ် ဖန်တီးပါ'}
+            </p>
+          </div>
+
+          {/* Tab Switcher */}
+          <div className="flex gap-2 mb-6 p-1 bg-slate-800 rounded-lg">
+            <button
+              onClick={() => setMode('login')}
+              className={`flex-1 py-2 rounded-md text-sm font-medium transition-all ${
+                mode === 'login'
+                  ? 'bg-teal-500 text-slate-900'
+                  : 'text-slate-400 hover:text-white'
+              }`}
+            >
+              <LogIn className="h-4 w-4 inline mr-2" />
+              Login
+            </button>
+            <button
+              onClick={() => setMode('signup')}
+              className={`flex-1 py-2 rounded-md text-sm font-medium transition-all ${
+                mode === 'signup'
+                  ? 'bg-teal-500 text-slate-900'
+                  : 'text-slate-400 hover:text-white'
+              }`}
+            >
+              <UserPlus className="h-4 w-4 inline mr-2" />
+              Sign Up
+            </button>
+          </div>
+
+          {/* Form */}
+          <form onSubmit={handleSubmit} className="space-y-4">
+            {mode === 'signup' && (
+              <div>
+                <label className="block text-sm text-slate-400 mb-1">Display Name</label>
+                <div className="relative">
+                  <User className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-500" />
+                  <input
+                    type="text"
+                    value={displayName}
+                    onChange={(e) => setDisplayName(e.target.value)}
+                    placeholder="Your Name"
+                    className="w-full pl-10 pr-4 py-3 bg-slate-800 border border-slate-700 rounded-lg text-white placeholder-slate-500 focus:border-teal-500 focus:outline-none"
+                  />
+                </div>
+              </div>
+            )}
+
+            <div>
+              <label className="block text-sm text-slate-400 mb-1">Email</label>
+              <div className="relative">
+                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-500" />
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="your@email.com"
+                  required
+                  className="w-full pl-10 pr-4 py-3 bg-slate-800 border border-slate-700 rounded-lg text-white placeholder-slate-500 focus:border-teal-500 focus:outline-none"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm text-slate-400 mb-1">Password</label>
+              <div className="relative">
+                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-500" />
+                <input
+                  type={showPassword ? 'text' : 'password'}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="••••••••"
+                  required
+                  minLength={6}
+                  className="w-full pl-10 pr-12 py-3 bg-slate-800 border border-slate-700 rounded-lg text-white placeholder-slate-500 focus:border-teal-500 focus:outline-none"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-white"
+                >
+                  {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                </button>
+              </div>
+            </div>
+
+            {error && (
+              <div className="text-red-400 text-sm text-center bg-red-500/10 py-2 rounded-lg">
+                {error}
+              </div>
+            )}
+
+            <Button
+              type="submit"
+              disabled={loading}
+              className="w-full btn-teal py-3"
+            >
+              {loading ? (
+                <div className="w-5 h-5 border-2 border-slate-900 border-t-transparent rounded-full animate-spin" />
+              ) : mode === 'login' ? (
+                'Login'
+              ) : (
+                'Create Account'
+              )}
+            </Button>
+          </form>
+
+          {/* Divider */}
+          <div className="flex items-center gap-4 my-6">
+            <div className="flex-1 h-px bg-slate-700" />
+            <span className="text-slate-500 text-sm">or</span>
+            <div className="flex-1 h-px bg-slate-700" />
+          </div>
+
+          {/* Guest Login */}
+          <Button
+            type="button"
+            onClick={handleGuestLogin}
+            disabled={loading}
+            variant="outline"
+            className="w-full border-slate-600 text-slate-300"
+          >
+            <User className="mr-2 h-4 w-4" />
+            Continue as Guest
+          </Button>
+          <p className="text-center text-slate-500 text-xs burmese-text mt-2">
+            ဧည့်သည်အဖြစ် ဆက်လက်လုပ်ဆောင်ပါ
+          </p>
+
+          {/* Bonus Info */}
+          {mode === 'signup' && (
+            <div className="mt-4 p-3 bg-amber-500/10 border border-amber-500/20 rounded-lg text-center">
+              <span className="text-amber-400 text-sm">🎁 Get 50 points signup bonus!</span>
+            </div>
+          )}
+        </motion.div>
+      </motion.div>
+    </AnimatePresence>
+  );
+}
+=== END FILE ===
+
+=== FILE: src/components/OnboardingModal.tsx ===
+'use client';
+
+import { useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { X, Volume2, ChevronRight, Star, Users, Trophy, Sparkles } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+
+interface OnboardingStep {
+  title: string;
+  titleMm: string;
+  description: string;
+  descriptionMm: string;
+  icon: React.ElementType;
+  color: string;
+}
+
+const steps: OnboardingStep[] = [
+  {
+    title: 'Welcome to ReferTRM Academy',
+    titleMm: 'ReferTRM Academy မှ ကြိုဆိုပါသည်',
+    description: 'Learn recruitment skills, earn money by referring candidates, and build your career.',
+    descriptionMm: 'အလုပ်စုံရှာဖွေရေး ကျွမ်းကျင်မှုများ သင်ယူပါ၊ ကိုယ်စားလှယ်များကို ရည်ညွှန်းပြီး ငွေရှာပါ၊ သင့်အသက်မွေးဝမ်းကြောင်းကို တည်ဆောက်ပါ။',
+    icon: Sparkles,
+    color: 'from-teal-500 to-cyan-500',
+  },
+  {
+    title: 'Learn & Earn Points',
+    titleMm: 'သင်ယူပြီး အမှတ်များ ရယူပါ',
+    description: 'Complete modules to earn points. Unlock certificates and special rewards.',
+    descriptionMm: 'မော်ဂျူးများ ပြီးမြောက်ပြီး အမှတ်များ ရယူပါ။ လက်မှတ်များနှင့် အထူးဆုများကို ဖွင့်ပါ။',
+    icon: Star,
+    color: 'from-amber-500 to-orange-500',
+  },
+  {
+    title: 'Build Your Streak',
+    titleMm: 'သင့်စည်းကမ်းကို တည်ဆောက်ပါ',
+    description: 'Login daily to build your streak. Earn bonus points and unlock exclusive perks.',
+    descriptionMm: 'နေ့စဉ် လော့ဂ်အင်လုပ်ပြီး သင့်စည်းကမ်းကို တည်ဆောက်ပါ။ အပိုဆုများနှင့် အထူးအခွင့်အရေးများ ရယူပါ။',
+    icon: Trophy,
+    color: 'from-purple-500 to-pink-500',
+  },
+  {
+    title: 'Refer & Earn Real Money',
+    titleMm: 'ရည်ညွှန်းပြီး ငွေအမှန် ရှာပါ',
+    description: 'Refer candidates to jobs. Earn up to 500,000 MMK per successful placement.',
+    descriptionMm: 'အလုပ်အတွက် ကိုယ်စားလှယ်များကို ရည်ညွှန်းပါ။ အောင်မြင်သော ချိန်ခွင်လျှော့တွက်တိုင်း ကျပ် ၅သိန်းထိ ရရှိပါမည်။',
+    icon: Users,
+    color: 'from-green-500 to-emerald-500',
+  },
+];
+
+interface OnboardingModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+}
+
+export default function OnboardingModal({ isOpen, onClose }: OnboardingModalProps) {
+  const [currentStep, setCurrentStep] = useState(0);
+  const [isPlaying, setIsPlaying] = useState(false);
+
+  const handleNext = () => {
+    if (currentStep < steps.length - 1) {
+      setCurrentStep(currentStep + 1);
+    } else {
+      onClose();
+    }
+  };
+
+  const handleVoiceGuide = () => {
+    setIsPlaying(!isPlaying);
+    // In production, this would play Burmese audio
+  };
+
+  if (!isOpen) return null;
+
+  const step = steps[currentStep];
+  const StepIcon = step.icon;
+
+  return (
+    <AnimatePresence>
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm"
+      >
+        <motion.div
+          initial={{ scale: 0.9, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          exit={{ scale: 0.9, opacity: 0 }}
+          className="relative w-full max-w-md glass-card p-6 bg-slate-900"
+        >
+          {/* Close Button */}
+          <button
+            onClick={onClose}
+            className="absolute top-4 right-4 text-slate-400 hover:text-white transition-colors"
+          >
+            <X className="h-6 w-6" />
+          </button>
+
+          {/* Step Indicators */}
+          <div className="flex justify-center gap-2 mb-6">
+            {steps.map((_, index) => (
+              <div
+                key={index}
+                className={`w-2 h-2 rounded-full transition-all duration-300 ${
+                  index === currentStep
+                    ? 'w-8 bg-teal-400'
+                    : index < currentStep
+                    ? 'bg-teal-400/50'
+                    : 'bg-slate-600'
+                }`}
+              />
+            ))}
+          </div>
+
+          {/* Icon */}
+          <motion.div
+            key={currentStep}
+            initial={{ scale: 0 }}
+            animate={{ scale: 1 }}
+            className={`w-20 h-20 rounded-2xl bg-gradient-to-r ${step.color} flex items-center justify-center mx-auto mb-6`}
+          >
+            <StepIcon className="h-10 w-10 text-white" />
+          </motion.div>
+
+          {/* Content */}
+          <motion.div
+            key={`content-${currentStep}`}
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="text-center mb-6"
+          >
+            <h2 className="text-2xl font-bold text-white mb-2">
+              {step.title}
+            </h2>
+            <p className="text-teal-400 text-sm burmese-text mb-4">
+              {step.titleMm}
+            </p>
+            <p className="text-slate-300 mb-2">
+              {step.description}
+            </p>
+            <p className="text-slate-500 text-sm burmese-text">
+              {step.descriptionMm}
+            </p>
+          </motion.div>
+
+          {/* Voice Guide Button */}
+          <Button
+            variant="outline"
+            className={`w-full mb-4 ${isPlaying ? 'bg-teal-500/20 border-teal-500/50 text-teal-400' : 'border-white/10 text-slate-300'}`}
+            onClick={handleVoiceGuide}
+          >
+            <Volume2 className="mr-2 h-4 w-4" />
+            {isPlaying ? 'Playing...' : 'Burmese Voice Guide - မြန်မာအသံလမ်းညွှန်'}
+          </Button>
+
+          {/* Next Button */}
+          <Button className="w-full btn-teal" onClick={handleNext}>
+            {currentStep === steps.length - 1 ? (
+              <>
+                Get Started - စတင်ပါ
+              </>
+            ) : (
+              <>
+                Next - နောက်တစ်ဆင့်
+                <ChevronRight className="ml-2 h-4 w-4" />
+              </>
+            )}
+          </Button>
+        </motion.div>
+      </motion.div>
+    </AnimatePresence>
+  );
+}
+=== END FILE ===
+
+=== FILE: src/components/AvatarSystem.tsx ===
+'use client';
+
+import { useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Crown, Star, Sparkles, Lock, Check } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+
+// Myanmar-style Chibi Avatar System
+interface AvatarOption {
+  id: string;
+  name: string;
+  nameMm: string;
+  emoji: string;
+  style: string;
+  tier: 'bronze' | 'silver' | 'gold' | 'diamond' | 'legendary';
+  cost: number;
+  unlocked: boolean;
+}
+
+const avatarOptions: AvatarOption[] = [
+  // Bronze Tier (Free - Starter)
+  { id: 'starter-1', name: 'Beginner', nameMm: 'စတင်သူ', emoji: '🌱', style: 'Nature', tier: 'bronze', cost: 0, unlocked: true },
+  { id: 'starter-2', name: 'Learner', nameMm: 'သင်ယူသူ', emoji: '📚', style: 'Academic', tier: 'bronze', cost: 0, unlocked: true },
+  { id: 'starter-3', name: 'Explorer', nameMm: 'စူးစမ်းသူ', emoji: '🔍', style: 'Curious', tier: 'bronze', cost: 0, unlocked: true },
+
+  // Silver Tier (5,000 pts)
+  { id: 'pro-1', name: 'Professional', nameMm: 'ပရော်ဖက်ရှင်နယ်', emoji: '💼', style: 'Business', tier: 'silver', cost: 5000, unlocked: false },
+  { id: 'pro-2', name: 'Tech Star', nameMm: 'နည်းပညာကျွမ်းကျင်', emoji: '💻', style: 'Tech', tier: 'silver', cost: 5000, unlocked: false },
+  { id: 'pro-3', name: 'Scholar', nameMm: 'ပညာရှင်', emoji: '🎓', style: 'Academic', tier: 'silver', cost: 5000, unlocked: false },
+  { id: 'pro-4', name: 'Creative', nameMm: 'ဖန်တီးသူ', emoji: '🎨', style: 'Arts', tier: 'silver', cost: 5000, unlocked: false },
+
+  // Gold Tier (10,000 pts)
+  { id: 'expert-1', name: 'Expert', nameMm: 'ကျွမ်းကျင်သူ', emoji: '⭐', style: 'Elite', tier: 'gold', cost: 10000, unlocked: false },
+  { id: 'expert-2', name: 'Leader', nameMm: 'ခေါင်းဆောင်', emoji: '👑', style: 'Command', tier: 'gold', cost: 10000, unlocked: false },
+  { id: 'expert-3', name: 'Mentor', nameMm: 'နည်းပြ', emoji: '🎯', style: 'Guide', tier: 'gold', cost: 10000, unlocked: false },
+
+  // Diamond Tier (25,000 pts)
+  { id: 'master-1', name: 'Master', nameMm: 'မာစတာ', emoji: '💎', style: 'Prestige', tier: 'diamond', cost: 25000, unlocked: false },
+  { id: 'master-2', name: 'Champion', nameMm: 'ချန်ပီယံ', emoji: '🏆', style: 'Victory', tier: 'diamond', cost: 25000, unlocked: false },
+  { id: 'master-3', name: 'Innovator', nameMm: 'ဆန်းသစ်တီထွင်သူ', emoji: '🚀', style: 'Visionary', tier: 'diamond', cost: 25000, unlocked: false },
+
+  // Legendary Tier (50,000 pts)
+  { id: 'legend-1', name: 'Legend', nameMm: 'ထူးချွန်သူ', emoji: '🌟', style: 'Mythic', tier: 'legendary', cost: 50000, unlocked: false },
+  { id: 'legend-2', name: 'Unicorn', nameMm: 'ယူနီကorn', emoji: '🦄', style: 'Rare', tier: 'legendary', cost: 50000, unlocked: false },
+  { id: 'legend-3', name: 'Phoenix', nameMm: 'ဇာဂနာ', emoji: '🔥', style: 'Rebirth', tier: 'legendary', cost: 50000, unlocked: false },
+];
+
+// Avatar Accessories
+interface Accessory {
+  id: string;
+  name: string;
+  nameMm: string;
+  emoji: string;
+  cost: number;
+  slot: 'head' | 'body' | 'background';
+}
+
+const accessories: Accessory[] = [
+  { id: 'acc-1', name: 'Crown', nameMm: 'သရဖူ', emoji: '👑', cost: 5000, slot: 'head' },
+  { id: 'acc-2', name: 'Graduation Cap', nameMm: 'ဘွဲ့ဆောင်သီး', emoji: '🎓', cost: 3000, slot: 'head' },
+  { id: 'acc-3', name: 'Fire Aura', nameMm: 'မီးနောက်ခံ', emoji: '🔥', cost: 8000, slot: 'background' },
+  { id: 'acc-4', name: 'Sparkles', nameMm: 'တလက်လက်', emoji: '✨', cost: 2000, slot: 'background' },
+  { id: 'acc-5', name: 'Briefcase', nameMm: 'လုပ်ငန်းအိတ်', emoji: '💼', cost: 4000, slot: 'body' },
+];
+
+// Tier colors
+const tierColors: Record<string, { bg: string; border: string; text: string; glow: string }> = {
+  bronze: { bg: 'from-amber-700 to-amber-900', border: 'border-amber-600', text: 'text-amber-400', glow: 'shadow-amber-500/30' },
+  silver: { bg: 'from-slate-400 to-slate-600', border: 'border-slate-400', text: 'text-slate-300', glow: 'shadow-slate-400/30' },
+  gold: { bg: 'from-yellow-400 to-amber-500', border: 'border-yellow-400', text: 'text-yellow-300', glow: 'shadow-yellow-500/50' },
+  diamond: { bg: 'from-cyan-300 to-blue-400', border: 'border-cyan-300', text: 'text-cyan-300', glow: 'shadow-cyan-400/50' },
+  legendary: { bg: 'from-purple-500 to-pink-500', border: 'border-purple-400', text: 'text-purple-300', glow: 'shadow-purple-500/50' },
+};
+
+const tierLabels: Record<string, { en: string; mm: string }> = {
+  bronze: { en: 'Bronze', mm: 'ကြေးနီ' },
+  silver: { en: 'Silver', mm: 'ငွေ' },
+  gold: { en: 'Gold', mm: 'ရွှေ' },
+  diamond: { en: 'Diamond', mm: 'စိန်' },
+  legendary: { en: 'Legendary', mm: 'ထူးချွန်' },
+};
+
+interface AvatarSystemProps {
+  currentPoints?: number;
+  onAvatarSelect?: (avatar: AvatarOption) => void;
+}
+
+export default function AvatarSystem({ currentPoints = 7500, onAvatarSelect }: AvatarSystemProps) {
+  const [selectedAvatar, setSelectedAvatar] = useState<AvatarOption | null>(null);
+  const [selectedTab, setSelectedTab] = useState<'avatars' | 'accessories'>('avatars');
+
+  const handleAvatarClick = (avatar: AvatarOption) => {
+    if (avatar.unlocked || avatar.cost <= currentPoints) {
+      setSelectedAvatar(avatar);
+      onAvatarSelect?.(avatar);
+    }
+  };
+
+  return (
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="text-center">
+        <h2 className="text-2xl md:text-3xl font-bold text-white mb-2">
+          Avatar <span className="text-gradient-primary">Customization</span>
+        </h2>
+        <p className="text-slate-400 burmese-text">
+          Avatar စိတ်ကြိုက်ပြင်ဆင်မှု - သင့်ရည်ညွှန်းခေါင်းဆောင်
+        </p>
+        <div className="flex items-center justify-center gap-2 mt-3">
+          <Star className="h-5 w-5 text-amber-400" />
+          <span className="text-amber-400 font-bold">{currentPoints.toLocaleString()} Points</span>
+          <span className="text-slate-500">available</span>
+        </div>
+      </div>
+
+      {/* Preview Area */}
+      <div className="glass-card p-6">
+        <div className="flex flex-col md:flex-row items-center gap-6">
+          {/* Avatar Preview */}
+          <div className="flex-shrink-0">
+            <div className="relative">
+              <motion.div
+                key={selectedAvatar?.id || 'default'}
+                initial={{ scale: 0.8, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                className={`w-32 h-32 rounded-full bg-gradient-to-br ${
+                  selectedAvatar ? tierColors[selectedAvatar.tier].bg : 'from-teal-500 to-cyan-500'
+                } flex items-center justify-center text-6xl shadow-xl ${
+                  selectedAvatar ? tierColors[selectedAvatar.tier].glow : 'shadow-teal-500/30'
+                }`}
+              >
+                {selectedAvatar?.emoji || '🧑'}
+              </motion.div>
+              
+              {/* Tier Badge */}
+              {selectedAvatar && (
+                <div className={`absolute -bottom-2 left-1/2 -translate-x-1/2 px-3 py-1 rounded-full bg-slate-800 border ${
+                  tierColors[selectedAvatar.tier].border
+                }`}>
+                  <span className={`text-xs font-bold ${tierColors[selectedAvatar.tier].text}`}>
+                    {tierLabels[selectedAvatar.tier].en}
+                  </span>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Selected Avatar Info */}
+          <div className="flex-1 text-center md:text-left">
+            <h3 className="text-xl font-bold text-white mb-1">
+              {selectedAvatar?.name || 'Choose Your Avatar'}
+            </h3>
+            <p className="text-slate-400 burmese-text text-sm mb-3">
+              {selectedAvatar?.nameMm || 'သင့် Avatar ကို ရွေးချယ်ပါ'}
+            </p>
+            {selectedAvatar && (
+              <div className="flex flex-wrap items-center gap-2 justify-center md:justify-start">
+                <Badge className={`${tierColors[selectedAvatar.tier].text} bg-white/5 border-current`}>
+                  <Crown className="h-3 w-3 mr-1" />
+                  {selectedAvatar.style}
+                </Badge>
+                <Badge className="bg-amber-500/20 text-amber-400 border-amber-500/30">
+                  <Star className="h-3 w-3 mr-1" />
+                  {selectedAvatar.cost > 0 ? `${selectedAvatar.cost.toLocaleString()} pts` : 'Free'}
+                </Badge>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Tab Switcher */}
+      <div className="flex justify-center gap-2">
+        <button
+          onClick={() => setSelectedTab('avatars')}
+          className={`px-6 py-3 rounded-xl font-medium transition-all touch-target ${
+            selectedTab === 'avatars' ? 'btn-primary' : 'bg-slate-800 text-slate-400 hover:text-white'
+          }`}
+        >
+          Avatars
+        </button>
+        <button
+          onClick={() => setSelectedTab('accessories')}
+          className={`px-6 py-3 rounded-xl font-medium transition-all touch-target ${
+            selectedTab === 'accessories' ? 'btn-primary' : 'bg-slate-800 text-slate-400 hover:text-white'
+          }`}
+        >
+          Accessories
+        </button>
+      </div>
+
+      {/* Avatar Grid */}
+      <AnimatePresence mode="wait">
+        {selectedTab === 'avatars' && (
+          <motion.div
+            key="avatars"
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            className="space-y-6"
+          >
+            {Object.keys(tierLabels).map((tier) => {
+              const tierAvatars = avatarOptions.filter((a) => a.tier === tier);
+              const colors = tierColors[tier];
+              
+              return (
+                <div key={tier} className="space-y-3">
+                  <div className="flex items-center gap-2">
+                    <h4 className={`font-bold ${colors.text}`}>
+                      {tierLabels[tier].en}
+                    </h4>
+                    <span className="text-slate-500 text-sm burmese-text">
+                      ({tierLabels[tier].mm})
+                    </span>
+                    <div className="flex-1 h-px bg-slate-800" />
+                  </div>
+                  
+                  <div className="grid grid-cols-3 md:grid-cols-6 gap-3">
+                    {tierAvatars.map((avatar) => {
+                      const isSelected = selectedAvatar?.id === avatar.id;
+                      const canUnlock = avatar.cost <= currentPoints;
+                      
+                      return (
+                        <motion.button
+                          key={avatar.id}
+                          whileHover={{ scale: 1.05 }}
+                          whileTap={{ scale: 0.95 }}
+                          onClick={() => handleAvatarClick(avatar)}
+                          disabled={!canUnlock && !avatar.unlocked}
+                          className={`relative p-3 rounded-xl transition-all touch-target haptic ${
+                            isSelected
+                              ? `bg-gradient-to-br ${colors.bg} ${colors.border} border-2 shadow-lg ${colors.glow}`
+                              : canUnlock || avatar.unlocked
+                              ? 'bg-slate-800 hover:bg-slate-700 border border-slate-700'
+                              : 'bg-slate-900 opacity-50 cursor-not-allowed border border-slate-800'
+                          }`}
+                        >
+                          <div className="text-3xl mb-2">{avatar.emoji}</div>
+                          <div className="text-xs text-white font-medium truncate">{avatar.name}</div>
+                          <div className="text-[10px] text-slate-500 truncate burmese-text">{avatar.nameMm}</div>
+                          
+                          {/* Selected Check */}
+                          {isSelected && (
+                            <div className="absolute -top-1 -right-1 w-5 h-5 bg-teal-500 rounded-full flex items-center justify-center">
+                              <Check className="h-3 w-3 text-white" />
+                            </div>
+                          )}
+                          
+                          {/* Lock Icon */}
+                          {!canUnlock && !avatar.unlocked && (
+                            <div className="absolute inset-0 flex items-center justify-center bg-slate-900/70 rounded-xl">
+                              <Lock className="h-6 w-6 text-slate-500" />
+                            </div>
+                          )}
+                        </motion.button>
+                      );
+                    })}
+                  </div>
+                </div>
+              );
+            })}
+          </motion.div>
+        )}
+
+        {selectedTab === 'accessories' && (
+          <motion.div
+            key="accessories"
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+          >
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+              {accessories.map((acc) => (
+                <motion.button
+                  key={acc.id}
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  className="p-4 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-center touch-target haptic"
+                >
+                  <div className="text-3xl mb-2">{acc.emoji}</div>
+                  <div className="text-sm text-white font-medium">{acc.name}</div>
+                  <div className="text-xs text-slate-500 burmese-text">{acc.nameMm}</div>
+                  <div className="mt-2 text-amber-400 text-xs font-bold">{acc.cost.toLocaleString()} pts</div>
+                </motion.button>
+              ))}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Save Button */}
+      <div className="flex justify-center">
+        <motion.button
+          whileHover={{ scale: 1.02 }}
+          whileTap={{ scale: 0.98 }}
+          disabled={!selectedAvatar}
+          className={`px-8 py-4 rounded-xl font-bold text-lg transition-all touch-target ${
+            selectedAvatar
+              ? 'btn-primary'
+              : 'bg-slate-800 text-slate-500 cursor-not-allowed'
+          }`}
+        >
+          <Sparkles className="inline mr-2 h-5 w-5" />
+          Save Avatar
+        </motion.button>
+      </div>
+    </div>
+  );
+}
+=== END FILE ===
+
+=== FILE: src/components/PointsShop.tsx ===
+'use client';
+
+import { useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { 
+  ShoppingBag, 
+  Lock, 
+  Check, 
+  Sparkles, 
+  FileText, 
+  MessageSquare, 
+  Palette,
+  Star,
+  Crown,
+  Zap,
+  X
+} from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+
+interface ShopItem {
+  id: string;
+  name: string;
+  nameMm: string;
+  description: string;
+  descriptionMm: string;
+  cost: number;
+  category: 'avatar' | 'feature' | 'premium';
+  icon: React.ElementType;
+  image?: string;
+  unlocked?: boolean;
+}
+
+const shopItems: ShopItem[] = [
+  // Avatar Items
+  {
+    id: 'avatar-male-1',
+    name: 'Business Professional',
+    nameMm: 'စီးပွားရေး ပရော်ဖက်ရှင်နယ်',
+    description: 'Male avatar in business attire',
+    descriptionMm: 'စီးပွားရေးအဝတ်အစားဖြင့် အမျိုးသားအvata',
+    cost: 50,
+    category: 'avatar',
+    icon: Crown,
+  },
+  {
+    id: 'avatar-female-1',
+    name: 'Career Woman',
+    nameMm: 'အလုပ်အကိုင် အမျိုးသမီး',
+    description: 'Female avatar in professional style',
+    descriptionMm: 'ပရော်ဖက်ရှင်နယ်ပုံစံဖြင့် အမျိုးသမီးအvata',
+    cost: 50,
+    category: 'avatar',
+    icon: Crown,
+  },
+  {
+    id: 'avatar-premium-1',
+    name: 'Golden Avatar Frame',
+    nameMm: 'ရွှေအvata ဘောင်',
+    description: 'Exclusive golden frame for your avatar',
+    descriptionMm: 'သင့်အvataအတွက် အထူးရွှေဘောင်',
+    cost: 200,
+    category: 'avatar',
+    icon: Star,
+  },
+  // Feature Unlocks
+  {
+    id: 'cv-template',
+    name: 'Professional CV Template',
+    nameMm: 'ပရော်ဖက်ရှင်နယ် CV ပုံစံ',
+    description: 'Downloadable CV template designed for Myanmar job market',
+    descriptionMm: 'မြန်မာအလုပ်ဈေးကွက်အတွက် ဒီဇိုင်းထုတ်ထားသော CV ပုံစံ',
+    cost: 30,
+    category: 'feature',
+    icon: FileText,
+  },
+  {
+    id: 'ai-cv-creator',
+    name: 'AI CV Creator',
+    nameMm: 'AI CV ဖန်တီးသူ',
+    description: 'AI-powered CV builder with suggestions',
+    descriptionMm: 'အကြံပြုချက်များပါဝင်သော AI စွမ်းအားဖြင့် CV တည်ဆောက်သူ',
+    cost: 100,
+    category: 'feature',
+    icon: Sparkles,
+  },
+  {
+    id: 'mentor-chat',
+    name: 'Mentor Chat Access',
+    nameMm: 'ဆရာများနှင့် စကားပြောခွင့်',
+    description: 'Chat with experienced recruiters for career advice',
+    descriptionMm: 'အလုပ်အကိုင်အကြံဉာဏ်အတွက် အတွေ့အကြုံရှိ စုံရှာဖွေသူများနှင့် စကားပြောပါ',
+    cost: 150,
+    category: 'feature',
+    icon: MessageSquare,
+  },
+  // Premium Features
+  {
+    id: 'premium-skin',
+    name: 'Premium Avatar Skins',
+    nameMm: 'အထူးအvata အသားအရေများ',
+    description: 'Unlock all premium avatar customization options',
+    descriptionMm: 'အထူးအvata စိတ်ကြိုက်ပြင်ဆင်မှု ရွေးချယ်စရာများအားလုံး',
+    cost: 300,
+    category: 'premium',
+    icon: Palette,
+  },
+  {
+    id: 'priority-support',
+    name: 'Priority Support',
+    nameMm: 'ဦးစားပေး ပံ့ပိုးမှု',
+    description: '24/7 priority support for all your questions',
+    descriptionMm: 'သင့်မေးခွန်းများအားလုံးအတွက် ၂၄/၇ ဦးစားပေး ပံ့ပိုးမှု',
+    cost: 200,
+    category: 'premium',
+    icon: Zap,
+  },
+];
+
+const categoryLabels = {
+  avatar: { en: 'Avatar Items', mm: 'အvata ပစ္စည်းများ' },
+  feature: { en: 'Feature Unlocks', mm: 'အသွင်းအပြင် ဖွင့်လှစ်မှုများ' },
+  premium: { en: 'Premium Features', mm: 'အထူးအသွင်းအပြင်များ' },
+};
+
+const categoryColors = {
+  avatar: 'from-purple-500 to-pink-500',
+  feature: 'from-teal-500 to-cyan-500',
+  premium: 'from-amber-500 to-orange-500',
+};
+
+interface PointsShopProps {
+  isOpen: boolean;
+  onClose: () => void;
+  userPoints: number;
+}
+
+export default function PointsShop({ isOpen, onClose, userPoints }: PointsShopProps) {
+  const [points, setPoints] = useState(userPoints);
+  const [purchasedItems, setPurchasedItems] = useState<string[]>([]);
+  const [showToast, setShowToast] = useState(false);
+  const [toastMessage, setToastMessage] = useState('');
+
+  const handlePurchase = (item: ShopItem) => {
+    if (purchasedItems.includes(item.id)) {
+      showToastMessage('Already owned! ✓', 'info');
+      return;
+    }
+    
+    if (points >= item.cost) {
+      setPoints(points - item.cost);
+      setPurchasedItems([...purchasedItems, item.id]);
+      showToastMessage(`Purchased ${item.name}! -${item.cost} points`, 'success');
+    } else {
+      showToastMessage('Not enough points! Keep learning 📚', 'error');
+    }
+  };
+
+  const showToastMessage = (message: string, type: 'success' | 'error' | 'info') => {
+    setToastMessage(message);
+    setShowToast(true);
+    setTimeout(() => setShowToast(false), 3000);
+  };
+
+  if (!isOpen) return null;
+
+  const categories = ['avatar', 'feature', 'premium'] as const;
+
+  return (
+    <AnimatePresence>
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm overflow-y-auto"
+      >
+        <motion.div
+          initial={{ scale: 0.9, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          exit={{ scale: 0.9, opacity: 0 }}
+          className="relative w-full max-w-4xl glass-card p-6 bg-slate-900 my-8"
+        >
+          {/* Header */}
+          <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 flex items-center justify-center">
+                <ShoppingBag className="h-6 w-6 text-white" />
+              </div>
+              <div>
+                <h2 className="text-2xl font-bold text-white">Points Shop</h2>
+                <p className="text-slate-400 burmese-text text-sm">အမှတ်ဆိုင်</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-4">
+              <div className="glass-card px-4 py-2 flex items-center gap-2">
+                <Star className="h-5 w-5 text-amber-400" />
+                <span className="text-xl font-bold text-amber-400">{points}</span>
+                <span className="text-slate-400 text-sm">pts</span>
+              </div>
+              <button
+                onClick={onClose}
+                className="text-slate-400 hover:text-white transition-colors"
+              >
+                <X className="h-6 w-6" />
+              </button>
+            </div>
+          </div>
+
+          {/* Shop Items by Category */}
+          <div className="space-y-8 max-h-[60vh] overflow-y-auto pr-2">
+            {categories.map((category) => (
+              <div key={category}>
+                <h3 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
+                  <div className={`w-8 h-8 rounded-lg bg-gradient-to-r ${categoryColors[category]} flex items-center justify-center`}>
+                    {category === 'avatar' && <Crown className="h-4 w-4 text-white" />}
+                    {category === 'feature' && <Sparkles className="h-4 w-4 text-white" />}
+                    {category === 'premium' && <Star className="h-4 w-4 text-white" />}
+                  </div>
+                  {categoryLabels[category].en}
+                  <span className="text-slate-500 burmese-text text-sm font-normal">
+                    ({categoryLabels[category].mm})
+                  </span>
+                </h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {shopItems
+                    .filter((item) => item.category === category)
+                    .map((item) => {
+                      const isPurchased = purchasedItems.includes(item.id);
+                      const canAfford = points >= item.cost;
+                      
+                      return (
+                        <motion.div
+                          key={item.id}
+                          whileHover={{ scale: 1.02 }}
+                          className={`glass-card-hover p-4 ${
+                            isPurchased ? 'border-green-500/30 bg-green-500/5' : ''
+                          }`}
+                        >
+                          <div className="flex items-start gap-3 mb-3">
+                            <div className={`w-10 h-10 rounded-lg bg-gradient-to-r ${categoryColors[category]} flex items-center justify-center flex-shrink-0`}>
+                              <item.icon className="h-5 w-5 text-white" />
+                            </div>
+                            <div className="flex-1">
+                              <h4 className="font-bold text-white">{item.name}</h4>
+                              <p className="text-slate-500 text-xs burmese-text">{item.nameMm}</p>
+                            </div>
+                            {isPurchased && (
+                              <Badge className="bg-green-500/20 text-green-400 border-green-500/30">
+                                <Check className="h-3 w-3 mr-1" /> Owned
+                              </Badge>
+                            )}
+                          </div>
+                          <p className="text-slate-400 text-sm mb-2">{item.description}</p>
+                          <p className="text-slate-500 text-xs burmese-text mb-4">{item.descriptionMm}</p>
+                          <Button
+                            className={`w-full ${
+                              isPurchased
+                                ? 'bg-green-500/20 text-green-400 cursor-default'
+                                : canAfford
+                                ? 'btn-teal'
+                                : 'bg-slate-700 text-slate-400 cursor-not-allowed'
+                            }`}
+                            onClick={() => handlePurchase(item)}
+                            disabled={isPurchased}
+                          >
+                            {isPurchased ? (
+                              <>
+                                <Check className="mr-2 h-4 w-4" />
+                                Owned
+                              </>
+                            ) : (
+                              <>
+                                <Star className="mr-2 h-4 w-4" />
+                                {item.cost} Points
+                              </>
+                            )}
+                          </Button>
+                        </motion.div>
+                      );
+                    })}
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Toast Notification */}
+          <AnimatePresence>
+            {showToast && (
+              <motion.div
+                initial={{ opacity: 0, y: 50 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: 50 }}
+                className="fixed bottom-8 left-1/2 -translate-x-1/2 glass-card px-6 py-3 bg-slate-800"
+              >
+                <p className="text-white text-center">{toastMessage}</p>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </motion.div>
+      </motion.div>
+    </AnimatePresence>
+  );
+}
+=== END FILE ===
+
+################################################################################
+# SECTION: AI COMPONENTS
+################################################################################
+
+=== FILE: src/components/ai/AIJobMatcher.tsx ===
+'use client';
+
+import { useState, useCallback } from 'react';
+import { 
+  Sparkles, 
+  Target, 
+  TrendingUp, 
+  Briefcase, 
+  MapPin, 
+  DollarSign,
+  ChevronRight,
+  Lightbulb,
+  AlertCircle,
+  RefreshCw,
+  Check,
+  X
+} from 'lucide-react';
+import { cn } from '@/lib/utils';
+
+interface JobMatch {
+  role: string;
+  category: string;
+  matchScore: number;
+  skillMatch: number;
+  growthPotential: 'high' | 'medium' | 'stable';
+  salaryRange: { min: number; max: number };
+  reasons: string[];
+  gaps: string[];
+  recommendations: string[];
+}
+
+interface CareerPath {
+  shortTerm: string;
+  mediumTerm: string;
+  longTerm: string;
+}
+
+interface JobMatchResult {
+  matches: JobMatch[];
+  careerPath: CareerPath;
+  skillDevelopment: string[];
+  marketInsights: string;
+}
+
+interface AIJobMatcherProps {
+  userProfile: {
+    skills: string[];
+    experience: number;
+    education: string;
+    interests?: string[];
+    location?: string;
+  };
+  language?: 'en' | 'my';
+  onJobSelect?: (job: JobMatch) => void;
+}
+
+export default function AIJobMatcher({ 
+  userProfile, 
+  language = 'en',
+  onJobSelect 
+}: AIJobMatcherProps) {
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState<JobMatchResult | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [selectedJob, setSelectedJob] = useState<JobMatch | null>(null);
+
+  const analyzeProfile = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    
+    try {
+      const response = await fetch('/api/ai/job-match', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userProfile,
+          limit: 5,
+        }),
+      });
+      
+      const data = await response.json();
+      
+      if (data.success) {
+        setResult(data);
+      } else {
+        setError(data.error || 'Analysis failed');
+      }
+    } catch (err) {
+      setError('Failed to analyze profile');
+    } finally {
+      setLoading(false);
+    }
+  }, [userProfile]);
+
+  const handleJobClick = (job: JobMatch) => {
+    setSelectedJob(selectedJob?.role === job.role ? null : job);
+    onJobSelect?.(job);
+  };
+
+  const formatSalary = (min: number, max: number) => {
+    const formatNum = (n: number) => {
+      if (n >= 1000000) return `${(n / 1000000).toFixed(1)}M`;
+      if (n >= 1000) return `${(n / 1000).toFixed(0)}K`;
+      return String(n);
+    };
+    return `${formatNum(min)} - ${formatNum(max)} MMK`;
+  };
+
+  const getGrowthColor = (growth: string) => {
+    switch (growth) {
+      case 'high': return 'text-green-500';
+      case 'medium': return 'text-amber-500';
+      default: return 'text-slate-400';
+    }
+  };
+
+  const texts = {
+    en: {
+      title: 'AI Job Match',
+      subtitle: 'Find your perfect career path',
+      analyze: 'Analyze My Profile',
+      analyzing: 'Analyzing...',
+      topMatches: 'Top Job Matches',
+      careerPath: 'Your Career Path',
+      shortTerm: 'Short Term (1-2 years)',
+      mediumTerm: 'Medium Term (3-5 years)',
+      longTerm: 'Long Term (5+ years)',
+      skillDevelopment: 'Recommended Skills to Develop',
+      marketInsights: 'Market Insights',
+      matchScore: 'Match Score',
+      skillMatch: 'Skill Match',
+      salaryRange: 'Salary Range',
+      growthPotential: 'Growth Potential',
+      reasons: 'Why This Match',
+      gaps: 'Skills to Develop',
+      recommendations: 'Recommendations',
+      high: 'High Growth',
+      medium: 'Medium Growth',
+      stable: 'Stable',
+    },
+    my: {
+      title: 'AI အလုပ်က配',
+      subtitle: 'သင့်အတွက် အကောင်းဆုံး အလုပ်ကို ရှာပါ',
+      analyze: 'ပရိုဖိုင်ခွဲခြမ်းစိတ်ဖြာပါ',
+      analyzing: 'ခွဲခြမ်းစိတ်ဖြာနေသည်...',
+      topMatches: 'အကောင်းဆုံး အလုပ်များ',
+      careerPath: 'သင့်အလုပ်လမ်းကြောင်း',
+      shortTerm: 'တိုတောင်းကာလ (၁-၂ နှစ်)',
+      mediumTerm: 'အလယ်အလတ်ကာလ (၃-၅ နှစ်)',
+      longTerm: 'ရှည်ကာလ (၅+ နှစ်)',
+      skillDevelopment: 'ဖွံ့ဖြိုးတိုးတက်ရန် အကျိုးသင့်ဆုံး ကျွမ်းကျင်မှုများ',
+      marketInsights: 'ဈေးကွက်အခြေအနေ',
+      matchScore: 'ကိုက်ညီမှုရမှတ်',
+      skillMatch: 'ကျွမ်းကျင်မှု ကိုက်ညီမှု',
+      salaryRange: 'လစာအပိုင်းအခြား',
+      growthPotential: 'ကြီးထွားမှုအလားအလာ',
+      reasons: 'ဤအလုပ်နှင့် ကိုက်ညီသောအကြောင်းများ',
+      gaps: 'ဖွံ့ဖြိုးတိုးတက်ရန် ကျွမ်းကျင်မှုများ',
+      recommendations: 'အကြံပြုချက်များ',
+      high: 'မြန်ဆန်စွာ ကြီးထွားသည်',
+      medium: 'အလယ်အလတ် ကြီးထွားသည်',
+      stable: 'တည်ငြိမ်သည်',
+    },
+  };
+
+  const t = texts[language];
+
+  return (
+    <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 overflow-hidden">
+      {/* Header */}
+      <div className="bg-gradient-to-r from-teal-500 to-cyan-500 p-6 text-white">
+        <div className="flex items-center gap-3 mb-2">
+          <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center">
+            <Sparkles className="w-5 h-5" />
+          </div>
+          <div>
+            <h2 className="text-xl font-bold">{t.title}</h2>
+            <p className="text-sm text-white/80">{t.subtitle}</p>
+          </div>
+        </div>
+      </div>
+
+      <div className="p-6">
+        {/* Analyze Button */}
+        {!result && (
+          <div className="text-center py-8">
+            <div className="w-20 h-20 bg-teal-100 dark:bg-teal-900/30 rounded-full flex items-center justify-center mx-auto mb-4">
+              <Target className="w-10 h-10 text-teal-500" />
+            </div>
+            <p className="text-slate-600 dark:text-slate-400 mb-6">
+              {language === 'my' 
+                ? 'သင့်ကျွမ်းကျင်မှုများနှင့် အတွေ့အကြုံကို ခွဲခြမ်းစိတ်ဖြာ၍ အကောင်းဆုံး အလုပ်များကို ရှာပေးပါမည်။'
+                : 'We\'ll analyze your skills and experience to find the best job matches for you.'}
+            </p>
+            <button
+              onClick={analyzeProfile}
+              disabled={loading}
+              className="px-6 py-3 bg-teal-500 hover:bg-teal-600 text-white rounded-xl font-medium flex items-center gap-2 mx-auto transition-colors disabled:opacity-50"
+            >
+              {loading ? (
+                <>
+                  <RefreshCw className="w-5 h-5 animate-spin" />
+                  {t.analyzing}
+                </>
+              ) : (
+                <>
+                  <Sparkles className="w-5 h-5" />
+                  {t.analyze}
+                </>
+              )}
+            </button>
+            {error && (
+              <p className="mt-4 text-red-500 flex items-center justify-center gap-2">
+                <AlertCircle className="w-4 h-4" />
+                {error}
+              </p>
+            )}
+          </div>
+        )}
+
+        {/* Results */}
+        {result && (
+          <div className="space-y-6">
+            {/* Job Matches */}
+            <div>
+              <h3 className="font-semibold text-slate-900 dark:text-white mb-4 flex items-center gap-2">
+                <Briefcase className="w-5 h-5 text-teal-500" />
+                {t.topMatches}
+              </h3>
+              
+              <div className="space-y-3">
+                {result.matches.map((job, index) => (
+                  <div key={job.role}>
+                    <button
+                      onClick={() => handleJobClick(job)}
+                      className={cn(
+                        "w-full text-left p-4 rounded-xl border transition-all",
+                        selectedJob?.role === job.role
+                          ? "border-teal-500 bg-teal-50 dark:bg-teal-900/20"
+                          : "border-slate-200 dark:border-slate-700 hover:border-teal-300"
+                      )}
+                    >
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2 mb-1">
+                            <span className="font-medium text-slate-900 dark:text-white">
+                              {job.role}
+                            </span>
+                            <span className="text-xs px-2 py-0.5 bg-slate-100 dark:bg-slate-700 rounded-full text-slate-600 dark:text-slate-400">
+                              {job.category}
+                            </span>
+                          </div>
+                          
+                          <div className="flex flex-wrap items-center gap-3 text-sm text-slate-500">
+                            <span className="flex items-center gap-1">
+                              <DollarSign className="w-3.5 h-3.5" />
+                              {formatSalary(job.salaryRange.min, job.salaryRange.max)}
+                            </span>
+                            <span className={cn("flex items-center gap-1", getGrowthColor(job.growthPotential))}>
+                              <TrendingUp className="w-3.5 h-3.5" />
+                              {t[job.growthPotential]}
+                            </span>
+                          </div>
+                        </div>
+                        
+                        <div className="text-right">
+                          <div className="text-2xl font-bold text-teal-500">
+                            {job.matchScore}%
+                          </div>
+                          <div className="text-xs text-slate-400">{t.matchScore}</div>
+                        </div>
+                      </div>
+                    </button>
+                    
+                    {/* Expanded Details */}
+                    {selectedJob?.role === job.role && (
+                      <div className="mt-2 p-4 bg-slate-50 dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 space-y-4">
+                        <div className="grid grid-cols-2 gap-4">
+                          <div>
+                            <h4 className="text-xs font-medium text-slate-500 mb-2">{t.reasons}</h4>
+                            <ul className="space-y-1">
+                              {job.reasons.map((reason, i) => (
+                                <li key={i} className="flex items-start gap-2 text-sm text-slate-600 dark:text-slate-400">
+                                  <Check className="w-4 h-4 text-green-500 mt-0.5 flex-shrink-0" />
+                                  {reason}
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                          <div>
+                            <h4 className="text-xs font-medium text-slate-500 mb-2">{t.gaps}</h4>
+                            <ul className="space-y-1">
+                              {job.gaps.map((gap, i) => (
+                                <li key={i} className="flex items-start gap-2 text-sm text-slate-600 dark:text-slate-400">
+                                  <Lightbulb className="w-4 h-4 text-amber-500 mt-0.5 flex-shrink-0" />
+                                  {gap}
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                        </div>
+                        
+                        <div>
+                          <h4 className="text-xs font-medium text-slate-500 mb-2">{t.recommendations}</h4>
+                          <div className="flex flex-wrap gap-2">
+                            {job.recommendations.map((rec, i) => (
+                              <span key={i} className="text-xs px-2 py-1 bg-teal-100 dark:bg-teal-900/30 text-teal-700 dark:text-teal-300 rounded-lg">
+                                {rec}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Career Path */}
+            {result.careerPath && (
+              <div>
+                <h3 className="font-semibold text-slate-900 dark:text-white mb-4 flex items-center gap-2">
+                  <MapPin className="w-5 h-5 text-teal-500" />
+                  {t.careerPath}
+                </h3>
+                
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-xl border border-blue-200 dark:border-blue-800">
+                    <div className="text-xs font-medium text-blue-600 dark:text-blue-400 mb-2">
+                      {t.shortTerm}
+                    </div>
+                    <p className="text-sm text-slate-700 dark:text-slate-300">
+                      {result.careerPath.shortTerm}
+                    </p>
+                  </div>
+                  <div className="p-4 bg-purple-50 dark:bg-purple-900/20 rounded-xl border border-purple-200 dark:border-purple-800">
+                    <div className="text-xs font-medium text-purple-600 dark:text-purple-400 mb-2">
+                      {t.mediumTerm}
+                    </div>
+                    <p className="text-sm text-slate-700 dark:text-slate-300">
+                      {result.careerPath.mediumTerm}
+                    </p>
+                  </div>
+                  <div className="p-4 bg-amber-50 dark:bg-amber-900/20 rounded-xl border border-amber-200 dark:border-amber-800">
+                    <div className="text-xs font-medium text-amber-600 dark:text-amber-400 mb-2">
+                      {t.longTerm}
+                    </div>
+                    <p className="text-sm text-slate-700 dark:text-slate-300">
+                      {result.careerPath.longTerm}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Skill Development */}
+            {result.skillDevelopment.length > 0 && (
+              <div>
+                <h3 className="font-semibold text-slate-900 dark:text-white mb-3 flex items-center gap-2">
+                  <Lightbulb className="w-5 h-5 text-amber-500" />
+                  {t.skillDevelopment}
+                </h3>
+                <div className="flex flex-wrap gap-2">
+                  {result.skillDevelopment.map((skill, i) => (
+                    <span key={i} className="px-3 py-1.5 bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 rounded-lg text-sm">
+                      {skill}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Market Insights */}
+            {result.marketInsights && (
+              <div className="p-4 bg-gradient-to-r from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800 rounded-xl">
+                <h3 className="font-semibold text-slate-900 dark:text-white mb-2 flex items-center gap-2">
+                  <TrendingUp className="w-5 h-5 text-teal-500" />
+                  {t.marketInsights}
+                </h3>
+                <p className="text-sm text-slate-600 dark:text-slate-400">
+                  {result.marketInsights}
+                </p>
+              </div>
+            )}
+
+            {/* Re-analyze Button */}
+            <button
+              onClick={analyzeProfile}
+              disabled={loading}
+              className="w-full py-3 border border-teal-500 text-teal-600 dark:text-teal-400 rounded-xl font-medium flex items-center justify-center gap-2 hover:bg-teal-50 dark:hover:bg-teal-900/20 transition-colors disabled:opacity-50"
+            >
+              <RefreshCw className={cn("w-4 h-4", loading && "animate-spin")} />
+              {language === 'my' ? 'ပြန်လည်ခွဲခြမ်းစိတ်ဖြာပါ' : 'Re-analyze Profile'}
+            </button>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+=== END FILE ===
+
+=== FILE: src/components/ai/AIInterviewPrep.tsx ===
+'use client';
+
+import { useState, useCallback } from 'react';
+import { 
+  MessageSquare, 
+  Send, 
+  RefreshCw, 
+  ChevronRight,
+  ChevronDown,
+  ChevronUp,
+  Lightbulb,
+  Check,
+  AlertCircle,
+  Mic,
+  FileText,
+  Clock,
+  Target
+} from 'lucide-react';
+import { cn } from '@/lib/utils';
+
+interface InterviewQuestion {
+  id: string;
+  question: string;
+  category: 'behavioral' | 'technical' | 'situational' | 'common';
+  difficulty: 'easy' | 'medium' | 'hard';
+  hints: string[];
+  sampleAnswer: string;
+  followUpQuestions?: string[];
+}
+
+interface AnswerFeedback {
+  score: number;
+  strengths: string[];
+  improvements: string[];
+  suggestedAnswer: string;
+  keyPoints: string[];
+  tone: string;
+  length: string;
+}
+
+interface AIInterviewPrepProps {
+  jobRole: string;
+  company?: string;
+  experienceLevel?: 'entry' | 'junior' | 'mid' | 'senior';
+  language?: 'en' | 'my';
+}
+
+export default function AIInterviewPrep({
+  jobRole,
+  company,
+  experienceLevel = 'mid',
+  language = 'en',
+}: AIInterviewPrepProps) {
+  const [loading, setLoading] = useState(false);
+  const [questions, setQuestions] = useState<InterviewQuestion[]>([]);
+  const [currentQuestion, setCurrentQuestion] = useState<InterviewQuestion | null>(null);
+  const [userAnswer, setUserAnswer] = useState('');
+  const [showHints, setShowHints] = useState(false);
+  const [showSampleAnswer, setShowSampleAnswer] = useState(false);
+  const [feedback, setFeedback] = useState<AnswerFeedback | null>(null);
+  const [feedbackLoading, setFeedbackLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [preparationTips, setPreparationTips] = useState<string[]>([]);
+  const [questionIndex, setQuestionIndex] = useState(0);
+
+  const generateQuestions = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    setFeedback(null);
+    setUserAnswer('');
+    
+    try {
+      const response = await fetch('/api/ai/interview-prep', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          jobRole,
+          company,
+          experienceLevel,
+          interviewType: 'mixed',
+          difficulty: 'medium',
+          count: 5,
+        }),
+      });
+      
+      const data = await response.json();
+      
+      if (data.success) {
+        setQuestions(data.questions);
+        setCurrentQuestion(data.questions[0]);
+        setPreparationTips(data.preparationTips || []);
+        setQuestionIndex(0);
+      } else {
+        setError(data.error || 'Failed to generate questions');
+      }
+    } catch (err) {
+      setError('Failed to generate questions');
+    } finally {
+      setLoading(false);
+    }
+  }, [jobRole, company, experienceLevel]);
+
+  const submitAnswer = useCallback(async () => {
+    if (!currentQuestion || !userAnswer.trim()) return;
+    
+    setFeedbackLoading(true);
+    
+    try {
+      const response = await fetch('/api/ai/interview-prep', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          question: currentQuestion.question,
+          userAnswer,
+          jobRole,
+        }),
+      });
+      
+      const data = await response.json();
+      
+      if (data.success) {
+        setFeedback(data.feedback);
+      }
+    } catch (err) {
+      console.error('Failed to get feedback:', err);
+    } finally {
+      setFeedbackLoading(false);
+    }
+  }, [currentQuestion, userAnswer, jobRole]);
+
+  const nextQuestion = useCallback(() => {
+    const nextIndex = questionIndex + 1;
+    if (nextIndex < questions.length) {
+      setQuestionIndex(nextIndex);
+      setCurrentQuestion(questions[nextIndex]);
+      setUserAnswer('');
+      setFeedback(null);
+      setShowHints(false);
+      setShowSampleAnswer(false);
+    }
+  }, [questionIndex, questions]);
+
+  const prevQuestion = useCallback(() => {
+    const prevIndex = questionIndex - 1;
+    if (prevIndex >= 0) {
+      setQuestionIndex(prevIndex);
+      setCurrentQuestion(questions[prevIndex]);
+      setUserAnswer('');
+      setFeedback(null);
+      setShowHints(false);
+      setShowSampleAnswer(false);
+    }
+  }, [questionIndex, questions]);
+
+  const getCategoryColor = (category: string) => {
+    switch (category) {
+      case 'behavioral': return 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400';
+      case 'technical': return 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400';
+      case 'situational': return 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400';
+      default: return 'bg-slate-100 text-slate-700 dark:bg-slate-700 dark:text-slate-300';
+    }
+  };
+
+  const getDifficultyColor = (difficulty: string) => {
+    switch (difficulty) {
+      case 'hard': return 'text-red-500';
+      case 'medium': return 'text-amber-500';
+      default: return 'text-green-500';
+    }
+  };
+
+  const getScoreColor = (score: number) => {
+    if (score >= 80) return 'text-green-500';
+    if (score >= 60) return 'text-amber-500';
+    return 'text-red-500';
+  };
+
+  const texts = {
+    en: {
+      title: 'AI Interview Prep',
+      subtitle: 'Practice with AI-generated questions',
+      startPractice: 'Start Practice',
+      generating: 'Generating questions...',
+      question: 'Question',
+      of: 'of',
+      hints: 'Need a hint?',
+      showHints: 'Show Hints',
+      hideHints: 'Hide Hints',
+      sampleAnswer: 'Sample Answer',
+      showAnswer: 'Show Sample Answer',
+      hideAnswer: 'Hide Sample Answer',
+      yourAnswer: 'Your Answer',
+      placeholder: 'Type your answer here...',
+      submitAnswer: 'Submit Answer',
+      submitting: 'Analyzing...',
+      feedback: 'AI Feedback',
+      strengths: 'Strengths',
+      improvements: 'Areas for Improvement',
+      suggestedAnswer: 'Suggested Answer',
+      keyPoints: 'Key Points to Include',
+      score: 'Score',
+      previous: 'Previous',
+      next: 'Next',
+      completed: 'Completed',
+      preparationTips: 'Preparation Tips',
+    },
+    my: {
+      title: 'AI အင်တာဗျူး ပြင်ဆင်မှု',
+      subtitle: 'AI မေးခွန်းများဖြင့် လေ့ကျင့်ပါ',
+      startPractice: 'လေ့ကျင့်မှုစတင်ပါ',
+      generating: 'မေးခွန်းများ ပြင်ဆင်နေသည်...',
+      question: 'မေးခွန်း',
+      of: '၏',
+      hints: 'အကူအညီလိုပါသလား?',
+      showHints: 'အကြံပြုချက်များပြပါ',
+      hideHints: 'အကြံပြုချက်များဖျောက်ပါ',
+      sampleAnswer: 'နမူနာအဖြေ',
+      showAnswer: 'နမူနာအဖြေပြပါ',
+      hideAnswer: 'နမူနာအဖြေဖျောက်ပါ',
+      yourAnswer: 'သင့်အဖြေ',
+      placeholder: 'သင့်အဖြေကို ဤနေရာတွင်ရိုက်ပါ...',
+      submitAnswer: 'အဖြေတင်သွင်းပါ',
+      submitting: 'ခွဲခြမ်းစိတ်ဖြာနေသည်...',
+      feedback: 'AI တုံ့ပြန်ချက်',
+      strengths: 'အားသာချက်များ',
+      improvements: 'တိုးတက်ရန်နေရာများ',
+      suggestedAnswer: 'အကြံပြုအဖြေ',
+      keyPoints: 'ထည့်သွင်းသင့်သော အချက်များ',
+      score: 'ရမှတ်',
+      previous: 'နောက်သို့',
+      next: 'ရှေ့သို့',
+      completed: 'ပြီးပြီ',
+      preparationTips: 'ပြင်ဆင်မှု အကြံပြုချက်များ',
+    },
+  };
+
+  const t = texts[language];
+
+  return (
+    <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 overflow-hidden">
+      {/* Header */}
+      <div className="bg-gradient-to-r from-purple-500 to-indigo-500 p-6 text-white">
+        <div className="flex items-center gap-3 mb-2">
+          <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center">
+            <MessageSquare className="w-5 h-5" />
+          </div>
+          <div>
+            <h2 className="text-xl font-bold">{t.title}</h2>
+            <p className="text-sm text-white/80">{t.subtitle}</p>
+          </div>
+        </div>
+        
+        {jobRole && (
+          <div className="mt-3 flex items-center gap-2 text-sm text-white/80">
+            <Target className="w-4 h-4" />
+            <span>{jobRole}</span>
+            {company && <span className="text-white/60">@ {company}</span>}
+          </div>
+        )}
+      </div>
+
+      <div className="p-6">
+        {/* Start Practice Button */}
+        {questions.length === 0 && (
+          <div className="text-center py-8">
+            <div className="w-20 h-20 bg-purple-100 dark:bg-purple-900/30 rounded-full flex items-center justify-center mx-auto mb-4">
+              <Mic className="w-10 h-10 text-purple-500" />
+            </div>
+            <p className="text-slate-600 dark:text-slate-400 mb-6">
+              {language === 'my'
+                ? 'သင့်ရာထူးအတွက် သင့်တော်သော မေးခွန်းများကို လေ့ကျင့်ပါမည်။'
+                : 'We\'ll generate practice questions tailored to your target role.'}
+            </p>
+            <button
+              onClick={generateQuestions}
+              disabled={loading}
+              className="px-6 py-3 bg-purple-500 hover:bg-purple-600 text-white rounded-xl font-medium flex items-center gap-2 mx-auto transition-colors disabled:opacity-50"
+            >
+              {loading ? (
+                <>
+                  <RefreshCw className="w-5 h-5 animate-spin" />
+                  {t.generating}
+                </>
+              ) : (
+                <>
+                  <FileText className="w-5 h-5" />
+                  {t.startPractice}
+                </>
+              )}
+            </button>
+            {error && (
+              <p className="mt-4 text-red-500 flex items-center justify-center gap-2">
+                <AlertCircle className="w-4 h-4" />
+                {error}
+              </p>
+            )}
+          </div>
+        )}
+
+        {/* Questions */}
+        {currentQuestion && (
+          <div className="space-y-6">
+            {/* Progress */}
+            <div className="flex items-center justify-between text-sm">
+              <span className="text-slate-500">
+                {t.question} {questionIndex + 1} {t.of} {questions.length}
+              </span>
+              <div className="flex gap-2">
+                <span className={cn(
+                  "px-2 py-1 rounded-full text-xs",
+                  getCategoryColor(currentQuestion.category)
+                )}>
+                  {currentQuestion.category}
+                </span>
+                <span className={cn("text-xs font-medium", getDifficultyColor(currentQuestion.difficulty))}>
+                  {currentQuestion.difficulty}
+                </span>
+              </div>
+            </div>
+
+            {/* Question */}
+            <div className="p-4 bg-slate-50 dark:bg-slate-900 rounded-xl">
+              <p className="text-lg font-medium text-slate-900 dark:text-white">
+                {currentQuestion.question}
+              </p>
+            </div>
+
+            {/* Hints */}
+            <div>
+              <button
+                onClick={() => setShowHints(!showHints)}
+                className="flex items-center gap-2 text-sm text-purple-600 dark:text-purple-400 hover:text-purple-700"
+              >
+                <Lightbulb className="w-4 h-4" />
+                {showHints ? t.hideHints : t.showHints}
+                {showHints ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+              </button>
+              
+              {showHints && (
+                <ul className="mt-2 space-y-1">
+                  {currentQuestion.hints.map((hint, i) => (
+                    <li key={i} className="flex items-start gap-2 text-sm text-slate-600 dark:text-slate-400">
+                      <ChevronRight className="w-4 h-4 text-purple-500 mt-0.5" />
+                      {hint}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+
+            {/* Answer Input */}
+            <div>
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                {t.yourAnswer}
+              </label>
+              <textarea
+                value={userAnswer}
+                onChange={(e) => setUserAnswer(e.target.value)}
+                placeholder={t.placeholder}
+                rows={5}
+                className="w-full px-4 py-3 border border-slate-200 dark:border-slate-700 rounded-xl bg-white dark:bg-slate-800 text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:border-purple-500 resize-none"
+              />
+            </div>
+
+            {/* Submit Button */}
+            <div className="flex gap-3">
+              <button
+                onClick={submitAnswer}
+                disabled={!userAnswer.trim() || feedbackLoading}
+                className="flex-1 py-3 bg-purple-500 hover:bg-purple-600 text-white rounded-xl font-medium flex items-center justify-center gap-2 transition-colors disabled:opacity-50"
+              >
+                {feedbackLoading ? (
+                  <>
+                    <RefreshCw className="w-5 h-5 animate-spin" />
+                    {t.submitting}
+                  </>
+                ) : (
+                  <>
+                    <Send className="w-5 h-5" />
+                    {t.submitAnswer}
+                  </>
+                )}
+              </button>
+            </div>
+
+            {/* Feedback */}
+            {feedback && (
+              <div className="p-4 bg-gradient-to-r from-purple-50 to-indigo-50 dark:from-purple-900/20 dark:to-indigo-900/20 rounded-xl border border-purple-200 dark:border-purple-800 space-y-4">
+                <div className="flex items-center justify-between">
+                  <h3 className="font-semibold text-purple-900 dark:text-purple-100">
+                    {t.feedback}
+                  </h3>
+                  <div className={cn("text-2xl font-bold", getScoreColor(feedback.score))}>
+                    {feedback.score}%
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <h4 className="text-xs font-medium text-green-600 dark:text-green-400 mb-2">
+                      {t.strengths}
+                    </h4>
+                    <ul className="space-y-1">
+                      {feedback.strengths.map((s, i) => (
+                        <li key={i} className="flex items-start gap-2 text-sm text-slate-600 dark:text-slate-400">
+                          <Check className="w-4 h-4 text-green-500 mt-0.5" />
+                          {s}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                  <div>
+                    <h4 className="text-xs font-medium text-amber-600 dark:text-amber-400 mb-2">
+                      {t.improvements}
+                    </h4>
+                    <ul className="space-y-1">
+                      {feedback.improvements.map((imp, i) => (
+                        <li key={i} className="flex items-start gap-2 text-sm text-slate-600 dark:text-slate-400">
+                          <Lightbulb className="w-4 h-4 text-amber-500 mt-0.5" />
+                          {imp}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                </div>
+
+                {feedback.keyPoints.length > 0 && (
+                  <div>
+                    <h4 className="text-xs font-medium text-slate-500 mb-2">{t.keyPoints}</h4>
+                    <div className="flex flex-wrap gap-2">
+                      {feedback.keyPoints.map((point, i) => (
+                        <span key={i} className="px-2 py-1 bg-white dark:bg-slate-800 rounded-lg text-xs text-slate-600 dark:text-slate-400">
+                          {point}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Sample Answer (revealed after feedback) */}
+            {(feedback || showSampleAnswer) && currentQuestion.sampleAnswer && (
+              <div>
+                <button
+                  onClick={() => setShowSampleAnswer(!showSampleAnswer)}
+                  className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-400 hover:text-slate-900"
+                >
+                  <FileText className="w-4 h-4" />
+                  {showSampleAnswer ? t.hideAnswer : t.showAnswer}
+                </button>
+                
+                {showSampleAnswer && (
+                  <div className="mt-2 p-4 bg-slate-50 dark:bg-slate-900 rounded-xl">
+                    <p className="text-sm text-slate-600 dark:text-slate-400">
+                      {currentQuestion.sampleAnswer}
+                    </p>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Navigation */}
+            <div className="flex items-center justify-between pt-4 border-t border-slate-200 dark:border-slate-700">
+              <button
+                onClick={prevQuestion}
+                disabled={questionIndex === 0}
+                className="px-4 py-2 text-slate-600 dark:text-slate-400 hover:text-slate-900 disabled:opacity-50 flex items-center gap-1"
+              >
+                <ChevronUp className="w-4 h-4 rotate-[-90deg]" />
+                {t.previous}
+              </button>
+              
+              <button
+                onClick={nextQuestion}
+                disabled={questionIndex === questions.length - 1}
+                className="px-4 py-2 text-purple-600 dark:text-purple-400 hover:text-purple-700 disabled:opacity-50 flex items-center gap-1"
+              >
+                {t.next}
+                <ChevronUp className="w-4 h-4 rotate-90" />
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Preparation Tips */}
+        {preparationTips.length > 0 && questions.length > 0 && (
+          <div className="mt-6 pt-6 border-t border-slate-200 dark:border-slate-700">
+            <h3 className="font-medium text-slate-900 dark:text-white mb-3 flex items-center gap-2">
+              <Clock className="w-4 h-4 text-purple-500" />
+              {t.preparationTips}
+            </h3>
+            <ul className="grid grid-cols-1 md:grid-cols-2 gap-2">
+              {preparationTips.map((tip, i) => (
+                <li key={i} className="flex items-start gap-2 text-sm text-slate-600 dark:text-slate-400">
+                  <Check className="w-4 h-4 text-purple-500 mt-0.5" />
+                  {tip}
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+=== END FILE ===
+
+=== FILE: src/components/ai/AICoverLetterGenerator.tsx ===
+'use client';
+
+import { useState, useCallback } from 'react';
+import { 
+  FileText, 
+  Sparkles, 
+  Copy, 
+  Check, 
+  RefreshCw,
+  Download,
+  ChevronDown,
+  AlertCircle,
+  Wand2
+} from 'lucide-react';
+import { cn } from '@/lib/utils';
+
+interface CoverLetterData {
+  name: string;
+  email: string;
+  phone?: string;
+  position: string;
+  company: string;
+  experience: number;
+  currentRole?: string;
+  skills: string[];
+  achievements: string[];
+  education?: string;
+  template?: 'professional' | 'creative' | 'careerChange' | 'entryLevel';
+  tone?: 'formal' | 'friendly' | 'enthusiastic';
+  includeMyanmar?: boolean;
+}
+
+interface CoverLetterResult {
+  coverLetter: string;
+  coverLetterMyanmar?: string;
+  highlights: string[];
+  tips: string[];
+}
+
+interface AICoverLetterGeneratorProps {
+  language?: 'en' | 'my';
+  initialData?: Partial<CoverLetterData>;
+}
+
+export default function AICoverLetterGenerator({
+  language = 'en',
+  initialData,
+}: AICoverLetterGeneratorProps) {
+  const [formData, setFormData] = useState<CoverLetterData>({
+    name: initialData?.name || '',

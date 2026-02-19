@@ -1,0 +1,4500 @@
+    email: initialData?.email || '',
+    phone: initialData?.phone || '',
+    position: initialData?.position || '',
+    company: initialData?.company || '',
+    experience: initialData?.experience || 0,
+    currentRole: initialData?.currentRole || '',
+    skills: initialData?.skills || [],
+    achievements: initialData?.achievements || [],
+    education: initialData?.education || '',
+    template: 'professional',
+    tone: 'formal',
+    includeMyanmar: language === 'my',
+  });
+
+  const [skillInput, setSkillInput] = useState('');
+  const [achievementInput, setAchievementInput] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState<CoverLetterResult | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
+  const [showTips, setShowTips] = useState(false);
+
+  const generateCoverLetter = useCallback(async () => {
+    if (!formData.name || !formData.position || !formData.company) {
+      setError(language === 'my' ? 'အမည်၊ ရာထူးနှင့် ကုမ္ပဏီလိုအပ်သည်' : 'Name, position, and company are required');
+      return;
+    }
+
+    setLoading(true);
+    setError(null);
+    
+    try {
+      const response = await fetch('/api/ai/cover-letter', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(formData),
+      });
+      
+      const data = await response.json();
+      
+      if (data.success) {
+        setResult(data);
+      } else {
+        setError(data.error || 'Failed to generate cover letter');
+      }
+    } catch (err) {
+      setError('Failed to generate cover letter');
+    } finally {
+      setLoading(false);
+    }
+  }, [formData, language]);
+
+  const addSkill = () => {
+    if (skillInput.trim() && !formData.skills.includes(skillInput.trim())) {
+      setFormData(prev => ({
+        ...prev,
+        skills: [...prev.skills, skillInput.trim()],
+      }));
+      setSkillInput('');
+    }
+  };
+
+  const removeSkill = (skill: string) => {
+    setFormData(prev => ({
+      ...prev,
+      skills: prev.skills.filter(s => s !== skill),
+    }));
+  };
+
+  const addAchievement = () => {
+    if (achievementInput.trim() && !formData.achievements.includes(achievementInput.trim())) {
+      setFormData(prev => ({
+        ...prev,
+        achievements: [...prev.achievements, achievementInput.trim()],
+      }));
+      setAchievementInput('');
+    }
+  };
+
+  const removeAchievement = (achievement: string) => {
+    setFormData(prev => ({
+      ...prev,
+      achievements: prev.achievements.filter(a => a !== achievement),
+    }));
+  };
+
+  const copyToClipboard = async (text: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch (err) {
+      console.error('Failed to copy:', err);
+    }
+  };
+
+  const downloadAsDoc = () => {
+    if (!result) return;
+    
+    const content = result.coverLetterMyanmar 
+      ? `${result.coverLetter}\n\n---\n\n${result.coverLetterMyanmar}`
+      : result.coverLetter;
+    
+    const blob = new Blob([content], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `cover-letter-${formData.company.toLowerCase().replace(/\s+/g, '-')}.txt`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
+  const texts = {
+    en: {
+      title: 'AI Cover Letter Generator',
+      subtitle: 'Create a compelling cover letter in seconds',
+      name: 'Your Name',
+      email: 'Email Address',
+      phone: 'Phone Number',
+      position: 'Target Position',
+      company: 'Company Name',
+      experience: 'Years of Experience',
+      currentRole: 'Current Role',
+      education: 'Education',
+      skills: 'Key Skills',
+      addSkill: 'Add Skill',
+      achievements: 'Key Achievements',
+      addAchievement: 'Add Achievement',
+      template: 'Template Style',
+      tone: 'Writing Tone',
+      includeMyanmar: 'Include Myanmar Translation',
+      generate: 'Generate Cover Letter',
+      generating: 'Generating...',
+      coverLetter: 'Your Cover Letter',
+      myanmarVersion: 'Myanmar Version',
+      highlights: 'Key Highlights',
+      tips: 'Pro Tips',
+      copy: 'Copy to Clipboard',
+      copied: 'Copied!',
+      download: 'Download',
+      regenerate: 'Regenerate',
+      templates: {
+        professional: 'Professional',
+        creative: 'Creative',
+        careerChange: 'Career Change',
+        entryLevel: 'Entry Level',
+      },
+      tones: {
+        formal: 'Formal',
+        friendly: 'Friendly',
+        enthusiastic: 'Enthusiastic',
+      },
+    },
+    my: {
+      title: 'AI စာတမ်းဖြင့်လျှောက်လွှာ ဖန်တီးသူ',
+      subtitle: 'စိတ်ဆွဲဖွယ် စာတမ်းဖြင့်လျှောက်လွှာကို စက္ကန့်အနည်းငယ်ဖြင့် ဖန်တီးပါ',
+      name: 'သင့်အမည်',
+      email: 'အီးမေးလ်လိပ်စာ',
+      phone: 'ဖုန်းနံပါတ်',
+      position: 'ရည်မှန်းရာထူး',
+      company: 'ကုမ္ပဏီအမည်',
+      experience: 'အတွေ့အကြုံနှစ်များ',
+      currentRole: 'လက်ရှိရာထူး',
+      education: 'ပညာရေး',
+      skills: 'အဓိကကျွမ်းကျင်မှုများ',
+      addSkill: 'ကျွမ်းကျင်မှုထည့်ပါ',
+      achievements: 'အောင်မြင်မှုများ',
+      addAchievement: 'အောင်မြင်မှုထည့်ပါ',
+      template: 'စတိုင်ပုံစံ',
+      tone: 'ရေးသားမှုအသံကျော',
+      includeMyanmar: 'မြန်မာဘာသာပြန်ဆိုမှုပါဝင်ပါ',
+      generate: 'စာတမ်းဖြင့်လျှောက်လွှာ ဖန်တီးပါ',
+      generating: 'ဖန်တီးနေသည်...',
+      coverLetter: 'သင့်စာတမ်းဖြင့်လျှောက်လွှာ',
+      myanmarVersion: 'မြန်မာပုံစံ',
+      highlights: 'အဓိကအချက်များ',
+      tips: 'အကြံပြုချက်များ',
+      copy: 'ကလစ်ဘုတ်သို့ကူးယူပါ',
+      copied: 'ကူးယူပြီးပြီ!',
+      download: 'ဒေါင်းလုဒ်ဆွဲပါ',
+      regenerate: 'ပြန်လည်ဖန်တီးပါ',
+      templates: {
+        professional: 'ပရော်ဖက်ရှင်နယ်',
+        creative: 'ဆန်းသစ်ဖန်တီးမှု',
+        careerChange: 'အလုပ်ပြောင်းရွှေ့မှု',
+        entryLevel: 'စတင်သူ',
+      },
+      tones: {
+        formal: 'တရားဝင်',
+        friendly: 'ခင်မင်ဖွယ်',
+        enthusiastic: 'စိတ်အားထက်သန်',
+      },
+    },
+  };
+
+  const t = texts[language];
+
+  return (
+    <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 overflow-hidden">
+      {/* Header */}
+      <div className="bg-gradient-to-r from-amber-500 to-orange-500 p-6 text-white">
+        <div className="flex items-center gap-3 mb-2">
+          <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center">
+            <FileText className="w-5 h-5" />
+          </div>
+          <div>
+            <h2 className="text-xl font-bold">{t.title}</h2>
+            <p className="text-sm text-white/80">{t.subtitle}</p>
+          </div>
+        </div>
+      </div>
+
+      <div className="p-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Form */}
+          <div className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+                  {t.name} *
+                </label>
+                <input
+                  type="text"
+                  value={formData.name}
+                  onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
+                  className="w-full px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:border-amber-500"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+                  {t.email} *
+                </label>
+                <input
+                  type="email"
+                  value={formData.email}
+                  onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
+                  className="w-full px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:border-amber-500"
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+                  {t.position} *
+                </label>
+                <input
+                  type="text"
+                  value={formData.position}
+                  onChange={(e) => setFormData(prev => ({ ...prev, position: e.target.value }))}
+                  className="w-full px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:border-amber-500"
+                  placeholder={language === 'my' ? 'ဥပမာ - Software Engineer' : 'e.g. Software Engineer'}
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+                  {t.company} *
+                </label>
+                <input
+                  type="text"
+                  value={formData.company}
+                  onChange={(e) => setFormData(prev => ({ ...prev, company: e.target.value }))}
+                  className="w-full px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:border-amber-500"
+                  placeholder={language === 'my' ? 'ဥပမာ - KBZ Bank' : 'e.g. KBZ Bank'}
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+                  {t.experience}
+                </label>
+                <input
+                  type="number"
+                  min="0"
+                  max="30"
+                  value={formData.experience}
+                  onChange={(e) => setFormData(prev => ({ ...prev, experience: parseInt(e.target.value) || 0 }))}
+                  className="w-full px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:border-amber-500"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+                  {t.currentRole}
+                </label>
+                <input
+                  type="text"
+                  value={formData.currentRole}
+                  onChange={(e) => setFormData(prev => ({ ...prev, currentRole: e.target.value }))}
+                  className="w-full px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:border-amber-500"
+                />
+              </div>
+            </div>
+
+            {/* Skills */}
+            <div>
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+                {t.skills}
+              </label>
+              <div className="flex gap-2 mb-2">
+                <input
+                  type="text"
+                  value={skillInput}
+                  onChange={(e) => setSkillInput(e.target.value)}
+                  onKeyPress={(e) => e.key === 'Enter' && addSkill()}
+                  className="flex-1 px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:border-amber-500"
+                  placeholder={language === 'my' ? 'ကျွမ်းကျင်မှုထည့်ပါ' : 'Add a skill'}
+                />
+                <button
+                  onClick={addSkill}
+                  className="px-4 py-2 bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 rounded-lg hover:bg-amber-200 dark:hover:bg-amber-900/50"
+                >
+                  {t.addSkill}
+                </button>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {formData.skills.map((skill, i) => (
+                  <span
+                    key={i}
+                    className="px-3 py-1 bg-slate-100 dark:bg-slate-700 rounded-full text-sm text-slate-600 dark:text-slate-300 flex items-center gap-1"
+                  >
+                    {skill}
+                    <button onClick={() => removeSkill(skill)} className="text-slate-400 hover:text-red-500">
+                      ×
+                    </button>
+                  </span>
+                ))}
+              </div>
+            </div>
+
+            {/* Achievements */}
+            <div>
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+                {t.achievements}
+              </label>
+              <div className="flex gap-2 mb-2">
+                <input
+                  type="text"
+                  value={achievementInput}
+                  onChange={(e) => setAchievementInput(e.target.value)}
+                  onKeyPress={(e) => e.key === 'Enter' && addAchievement()}
+                  className="flex-1 px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:border-amber-500"
+                  placeholder={language === 'my' ? 'အောင်မြင်မှုထည့်ပါ' : 'Add an achievement'}
+                />
+                <button
+                  onClick={addAchievement}
+                  className="px-4 py-2 bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 rounded-lg hover:bg-amber-200 dark:hover:bg-amber-900/50"
+                >
+                  {t.addAchievement}
+                </button>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {formData.achievements.map((achievement, i) => (
+                  <span
+                    key={i}
+                    className="px-3 py-1 bg-amber-100 dark:bg-amber-900/30 rounded-full text-sm text-amber-700 dark:text-amber-300 flex items-center gap-1"
+                  >
+                    {achievement}
+                    <button onClick={() => removeAchievement(achievement)} className="text-amber-400 hover:text-red-500">
+                      ×
+                    </button>
+                  </span>
+                ))}
+              </div>
+            </div>
+
+            {/* Template & Tone */}
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+                  {t.template}
+                </label>
+                <select
+                  value={formData.template}
+                  onChange={(e) => setFormData(prev => ({ ...prev, template: e.target.value as CoverLetterData['template'] }))}
+                  className="w-full px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:border-amber-500"
+                >
+                  {Object.entries(t.templates).map(([key, value]) => (
+                    <option key={key} value={key}>{value}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+                  {t.tone}
+                </label>
+                <select
+                  value={formData.tone}
+                  onChange={(e) => setFormData(prev => ({ ...prev, tone: e.target.value as CoverLetterData['tone'] }))}
+                  className="w-full px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:border-amber-500"
+                >
+                  {Object.entries(t.tones).map(([key, value]) => (
+                    <option key={key} value={key}>{value}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            {/* Myanmar toggle */}
+            <label className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-400">
+              <input
+                type="checkbox"
+                checked={formData.includeMyanmar}
+                onChange={(e) => setFormData(prev => ({ ...prev, includeMyanmar: e.target.checked }))}
+                className="w-4 h-4 text-amber-500 border-slate-300 rounded focus:ring-amber-500"
+              />
+              {t.includeMyanmar}
+            </label>
+
+            {/* Error */}
+            {error && (
+              <p className="text-red-500 flex items-center gap-2 text-sm">
+                <AlertCircle className="w-4 h-4" />
+                {error}
+              </p>
+            )}
+
+            {/* Generate Button */}
+            <button
+              onClick={generateCoverLetter}
+              disabled={loading || !formData.name || !formData.position || !formData.company}
+              className="w-full py-3 bg-amber-500 hover:bg-amber-600 text-white rounded-xl font-medium flex items-center justify-center gap-2 transition-colors disabled:opacity-50"
+            >
+              {loading ? (
+                <>
+                  <RefreshCw className="w-5 h-5 animate-spin" />
+                  {t.generating}
+                </>
+              ) : (
+                <>
+                  <Wand2 className="w-5 h-5" />
+                  {t.generate}
+                </>
+              )}
+            </button>
+          </div>
+
+          {/* Result */}
+          <div className="space-y-4">
+            {result ? (
+              <>
+                {/* Cover Letter */}
+                <div className="p-4 bg-slate-50 dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700">
+                  <div className="flex items-center justify-between mb-3">
+                    <h3 className="font-semibold text-slate-900 dark:text-white flex items-center gap-2">
+                      <FileText className="w-4 h-4 text-amber-500" />
+                      {t.coverLetter}
+                    </h3>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => copyToClipboard(result.coverLetter)}
+                        className="p-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
+                        title={t.copy}
+                      >
+                        {copied ? <Check className="w-4 h-4 text-green-500" /> : <Copy className="w-4 h-4" />}
+                      </button>
+                      <button
+                        onClick={downloadAsDoc}
+                        className="p-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
+                        title={t.download}
+                      >
+                        <Download className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
+                  <div className="prose prose-sm dark:prose-invert max-h-64 overflow-y-auto">
+                    <pre className="whitespace-pre-wrap text-sm text-slate-600 dark:text-slate-400 font-sans">
+                      {result.coverLetter}
+                    </pre>
+                  </div>
+                </div>
+
+                {/* Myanmar Version */}
+                {result.coverLetterMyanmar && (
+                  <div className="p-4 bg-amber-50 dark:bg-amber-900/20 rounded-xl border border-amber-200 dark:border-amber-800">
+                    <h3 className="font-semibold text-amber-900 dark:text-amber-100 mb-3 flex items-center gap-2">
+                      <FileText className="w-4 h-4" />
+                      {t.myanmarVersion}
+                    </h3>
+                    <div className="prose prose-sm dark:prose-invert max-h-64 overflow-y-auto">
+                      <pre className="whitespace-pre-wrap text-sm text-amber-800 dark:text-amber-200 font-sans">
+                        {result.coverLetterMyanmar}
+                      </pre>
+                    </div>
+                  </div>
+                )}
+
+                {/* Highlights */}
+                {result.highlights.length > 0 && (
+                  <div>
+                    <h4 className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                      {t.highlights}
+                    </h4>
+                    <div className="flex flex-wrap gap-2">
+                      {result.highlights.map((h, i) => (
+                        <span key={i} className="px-2 py-1 bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 rounded-lg text-xs">
+                          {h}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Tips Toggle */}
+                <button
+                  onClick={() => setShowTips(!showTips)}
+                  className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-400 hover:text-slate-900"
+                >
+                  <ChevronDown className={cn("w-4 h-4 transition-transform", showTips && "rotate-180")} />
+                  {t.tips}
+                </button>
+                
+                {showTips && result.tips.length > 0 && (
+                  <ul className="space-y-1">
+                    {result.tips.map((tip, i) => (
+                      <li key={i} className="flex items-start gap-2 text-sm text-slate-600 dark:text-slate-400">
+                        <Check className="w-4 h-4 text-amber-500 mt-0.5" />
+                        {tip}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+
+                {/* Regenerate */}
+                <button
+                  onClick={generateCoverLetter}
+                  disabled={loading}
+                  className="w-full py-2 border border-amber-500 text-amber-600 dark:text-amber-400 rounded-xl font-medium flex items-center justify-center gap-2 hover:bg-amber-50 dark:hover:bg-amber-900/20 transition-colors"
+                >
+                  <RefreshCw className={cn("w-4 h-4", loading && "animate-spin")} />
+                  {t.regenerate}
+                </button>
+              </>
+            ) : (
+              <div className="h-full flex items-center justify-center text-center py-12 text-slate-500">
+                <div>
+                  <FileText className="w-12 h-12 mx-auto mb-4 text-slate-300 dark:text-slate-600" />
+                  <p>{language === 'my' ? 'သင့်စာတမ်းဖြင့်လျှောက်လွှာ ဤနေရာတွင် ပေါ်လာမည်' : 'Your cover letter will appear here'}</p>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+=== END FILE ===
+
+################################################################################
+# SECTION: HR COMPONENTS
+################################################################################
+
+=== FILE: src/components/hr/HRAnalyticsDashboard.tsx ===
+'use client';
+
+import { useState, useEffect, useCallback } from 'react';
+import { 
+  BarChart3, 
+  TrendingUp, 
+  TrendingDown,
+  Users,
+  Clock,
+  DollarSign,
+  Target,
+  RefreshCw,
+  ChevronDown,
+  ChevronUp,
+  Lightbulb
+} from 'lucide-react';
+import { cn } from '@/lib/utils';
+
+interface KPI {
+  id: string;
+  name: string;
+  value: number;
+  unit: string;
+  change: number;
+  trend: 'improving' | 'stable' | 'needs_attention';
+  target: number;
+}
+
+interface TimeSeriesData {
+  month: string;
+  applications: number;
+  hires: number;
+  turnover: number;
+  satisfaction: number;
+}
+
+interface HRAnalyticsDashboardProps {
+  language?: 'en' | 'my';
+}
+
+export default function HRAnalyticsDashboard({
+  language = 'en',
+}: HRAnalyticsDashboardProps) {
+  const [loading, setLoading] = useState(true);
+  const [kpis, setKpis] = useState<KPI[]>([]);
+  const [timeSeries, setTimeSeries] = useState<TimeSeriesData[]>([]);
+  const [recommendations, setRecommendations] = useState<{ area: string; suggestion: string; impact: string }[]>([]);
+  const [expandedSection, setExpandedSection] = useState<string | null>(null);
+
+  const loadAnalytics = useCallback(async () => {
+    setLoading(true);
+    try {
+      const response = await fetch('/api/hr/analytics');
+      const data = await response.json();
+      
+      if (data.success) {
+        setKpis(data.kpis);
+        setTimeSeries(data.timeSeries);
+        setRecommendations(data.recommendations);
+      }
+    } catch (error) {
+      console.error('Failed to load analytics:', error);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadAnalytics();
+  }, [loadAnalytics]);
+
+  const getTrendIcon = (trend: string) => {
+    switch (trend) {
+      case 'improving': return <TrendingUp className="w-4 h-4 text-green-500" />;
+      case 'needs_attention': return <TrendingDown className="w-4 h-4 text-red-500" />;
+      default: return <div className="w-4 h-4 rounded-full bg-slate-300" />;
+    }
+  };
+
+  const getChangeColor = (change: number, trend: string) => {
+    if (trend === 'needs_attention') return 'text-red-500';
+    if (change > 0) return 'text-green-500';
+    if (change < 0) return 'text-red-500';
+    return 'text-slate-500';
+  };
+
+  const texts = {
+    en: {
+      title: 'HR Analytics Dashboard',
+      subtitle: 'Key metrics and insights',
+      timeToHire: 'Avg Time to Hire',
+      costPerHire: 'Cost per Hire',
+      turnoverRate: 'Turnover Rate',
+      retentionRate: 'Retention Rate',
+      acceptanceRate: 'Offer Acceptance Rate',
+      employeeSatisfaction: 'Employee Satisfaction',
+      days: 'days',
+      mmk: 'MMK',
+      percent: '%',
+      trendImproving: 'Improving',
+      trendStable: 'Stable',
+      trendNeedsAttention: 'Needs Attention',
+      target: 'Target',
+      change: 'change',
+      hiringTrends: 'Hiring Trends',
+      applications: 'Applications',
+      hires: 'Hires',
+      recommendations: 'AI Recommendations',
+      impact: 'Impact',
+      high: 'High',
+      medium: 'Medium',
+      low: 'Low',
+      refresh: 'Refresh',
+      lastUpdated: 'Last updated',
+    },
+    my: {
+      title: 'HR ခွဲခြမ်းစိတ်ဖြာမှု ဒက်ရှ်ဘုတ်',
+      subtitle: 'အဓိက ကိန်းဂဏန်းများနှင့် ဉာဏ်ရည်ဉာဏ်သွေးများ',
+      timeToHire: 'ပျမ်းမျှ အလုပ်ခန့်အပ်ရန် အချိန်',
+      costPerHire: 'တစ်ဦးခန့်အပ်ရန် ကုန်ကျစရိတ်',
+      turnoverRate: 'အလုပ်ထွက်နှုန်း',
+      retentionRate: 'လူထိန်းသိမ်းနှုန်း',
+      acceptanceRate: 'ခန့်အပ်မှု လက်ခံနှုန်း',
+      employeeSatisfaction: 'ဝန်ထမ်း ကျေနပ်မှု',
+      days: 'ရက်',
+      mmk: 'ကျပ်',
+      percent: '%',
+      trendImproving: 'တိုးတက်နေသည်',
+      trendStable: 'တည်ငြိမ်သည်',
+      trendNeedsAttention: 'ဂရုပြုရန်လိုသည်',
+      target: 'ရည်မှန်းချက်',
+      change: 'ပြောင်းလဲမှု',
+      hiringTrends: 'အလုပ်ခန့်အပ်မှု လမ်းကြောင်းများ',
+      applications: 'လျှောက်လွှာများ',
+      hires: 'ခန့်အပ်ပြီး',
+      recommendations: 'AI အကြံပြုချက်များ',
+      impact: 'သက်ရောက်မှု',
+      high: 'မြင့်မား',
+      medium: 'အလယ်အလတ်',
+      low: 'နိမ့်',
+      refresh: 'ပြန်လည်ဖော်ပြပါ',
+      lastUpdated: 'နောက်ဆုံးအပ်ဒိတ်',
+    },
+  };
+
+  const t = texts[language];
+
+  if (loading) {
+    return (
+      <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 p-6">
+        <div className="flex items-center justify-center py-12">
+          <RefreshCw className="w-8 h-8 animate-spin text-teal-500" />
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
+            <BarChart3 className="w-5 h-5 text-teal-500" />
+            {t.title}
+          </h2>
+          <p className="text-sm text-slate-500">{t.subtitle}</p>
+        </div>
+        <button
+          onClick={loadAnalytics}
+          className="px-4 py-2 bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-400 rounded-lg hover:bg-slate-200 flex items-center gap-2"
+        >
+          <RefreshCw className="w-4 h-4" />
+          {t.refresh}
+        </button>
+      </div>
+
+      {/* KPI Cards */}
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+        {kpis.map(kpi => (
+          <div key={kpi.id} className="p-4 bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-xs text-slate-500">
+                {t[kpi.id.replace(/-/g, '') as keyof typeof t] || kpi.name}
+              </span>
+              {getTrendIcon(kpi.trend)}
+            </div>
+            <div className="text-2xl font-bold text-slate-900 dark:text-white">
+              {kpi.unit === 'MMK' ? `${(kpi.value / 1000).toFixed(0)}K` : kpi.value}
+              <span className="text-sm font-normal text-slate-400 ml-1">{kpi.unit}</span>
+            </div>
+            <div className="flex items-center justify-between mt-2 text-xs">
+              <span className={cn(getChangeColor(kpi.change, kpi.trend))}>
+                {kpi.change > 0 ? '+' : ''}{kpi.change}%
+              </span>
+              <span className="text-slate-400">
+                {t.target}: {kpi.unit === 'MMK' ? `${(kpi.target / 1000).toFixed(0)}K` : kpi.target}
+              </span>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Hiring Trends Chart (Simple Bar Visualization) */}
+      <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-6">
+        <h3 className="font-semibold text-slate-900 dark:text-white mb-4 flex items-center gap-2">
+          <TrendingUp className="w-5 h-5 text-teal-500" />
+          {t.hiringTrends}
+        </h3>
+        
+        <div className="space-y-4">
+          {timeSeries.map((data, i) => (
+            <div key={i} className="flex items-end gap-4">
+              <div className="w-16 text-xs text-slate-500">{data.month}</div>
+              <div className="flex-1 flex gap-1 h-8">
+                <div 
+                  className="bg-teal-500 rounded-l"
+                  style={{ width: `${Math.min(data.applications / 2, 100)}%` }}
+                  title={`${t.applications}: ${data.applications}`}
+                />
+                <div 
+                  className="bg-purple-500"
+                  style={{ width: `${Math.min(data.hires * 5, 100)}%` }}
+                  title={`${t.hires}: ${data.hires}`}
+                />
+              </div>
+              <div className="w-20 text-right text-xs text-slate-500">
+                {data.applications} / {data.hires}
+              </div>
+            </div>
+          ))}
+        </div>
+        
+        <div className="flex gap-6 mt-4 pt-4 border-t border-slate-200 dark:border-slate-700">
+          <div className="flex items-center gap-2 text-sm">
+            <div className="w-3 h-3 bg-teal-500 rounded" />
+            <span className="text-slate-600 dark:text-slate-400">{t.applications}</span>
+          </div>
+          <div className="flex items-center gap-2 text-sm">
+            <div className="w-3 h-3 bg-purple-500 rounded" />
+            <span className="text-slate-600 dark:text-slate-400">{t.hires}</span>
+          </div>
+        </div>
+      </div>
+
+      {/* AI Recommendations */}
+      <div className="bg-gradient-to-r from-teal-50 to-cyan-50 dark:from-teal-900/20 dark:to-cyan-900/20 rounded-xl border border-teal-200 dark:border-teal-800 p-6">
+        <h3 className="font-semibold text-slate-900 dark:text-white mb-4 flex items-center gap-2">
+          <Lightbulb className="w-5 h-5 text-amber-500" />
+          {t.recommendations}
+        </h3>
+        
+        <div className="space-y-3">
+          {recommendations.map((rec, i) => (
+            <div key={i} className="flex items-start gap-3 p-3 bg-white dark:bg-slate-800 rounded-lg">
+              <div className={cn(
+                "px-2 py-1 rounded text-xs font-medium",
+                rec.impact === 'high' ? "bg-green-100 text-green-700" :
+                rec.impact === 'medium' ? "bg-amber-100 text-amber-700" :
+                "bg-slate-100 text-slate-700"
+              )}>
+                {t[rec.impact as keyof typeof t]}
+              </div>
+              <div className="flex-1">
+                <div className="font-medium text-slate-900 dark:text-white text-sm">{rec.area}</div>
+                <div className="text-slate-600 dark:text-slate-400 text-sm">{rec.suggestion}</div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+=== END FILE ===
+
+=== FILE: src/components/hr/HRCandidateScreening.tsx ===
+'use client';
+
+import { useState, useCallback } from 'react';
+import { 
+  Users, 
+  FileText, 
+  Calendar, 
+  Mail, 
+  CheckSquare, 
+  BarChart3,
+  Filter,
+  Search,
+  Download,
+  ChevronDown,
+  ChevronUp,
+  Check,
+  X,
+  Clock,
+  TrendingUp,
+  AlertCircle,
+  RefreshCw
+} from 'lucide-react';
+import { cn } from '@/lib/utils';
+
+interface Candidate {
+  id: string;
+  name: string;
+  email: string;
+  phone?: string;
+  skills: string[];
+  experience: number;
+  education: string;
+  appliedRole: string;
+  appliedDate: string;
+  status: 'new' | 'screening' | 'shortlisted' | 'interview' | 'offered' | 'rejected';
+  matchScore?: number;
+  notes?: string;
+}
+
+interface ScreeningStats {
+  totalCandidates: number;
+  screenedCandidates: number;
+  shortlistedCandidates: number;
+  averageMatchScore: number;
+}
+
+interface HRCandidateScreeningProps {
+  jobId?: string;
+  jobTitle?: string;
+  language?: 'en' | 'my';
+}
+
+export default function HRCandidateScreening({
+  jobId,
+  jobTitle,
+  language = 'en',
+}: HRCandidateScreeningProps) {
+  const [candidates, setCandidates] = useState<Candidate[]>([]);
+  const [stats, setStats] = useState<ScreeningStats | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [selectedCandidate, setSelectedCandidate] = useState<Candidate | null>(null);
+  const [filterStatus, setFilterStatus] = useState<string>('all');
+  const [searchQuery, setSearchQuery] = useState('');
+
+  // Mock data for demo
+  const mockCandidates: Candidate[] = [
+    {
+      id: 'c1',
+      name: 'Aung Myat',
+      email: 'aung.myat@email.com',
+      phone: '+95 912 345 678',
+      skills: ['JavaScript', 'React', 'Node.js', 'Python'],
+      experience: 3,
+      education: 'B.Sc. Computer Science, University of Yangon',
+      appliedRole: 'Software Engineer',
+      appliedDate: '2024-01-15',
+      status: 'new',
+      matchScore: 85,
+    },
+    {
+      id: 'c2',
+      name: 'Su Myat Khine',
+      email: 'sumyat.k@email.com',
+      phone: '+95 923 456 789',
+      skills: ['Marketing', 'Social Media', 'Content Writing', 'SEO'],
+      experience: 2,
+      education: 'B.A. Marketing, Yangon University of Economics',
+      appliedRole: 'Marketing Specialist',
+      appliedDate: '2024-01-14',
+      status: 'screening',
+      matchScore: 78,
+    },
+    {
+      id: 'c3',
+      name: 'Zaw Win',
+      email: 'zaw.win@email.com',
+      phone: '+95 934 567 890',
+      skills: ['Sales', 'CRM', 'Negotiation', 'Communication'],
+      experience: 5,
+      education: 'B.B.A, Mandalay University',
+      appliedRole: 'Sales Manager',
+      appliedDate: '2024-01-13',
+      status: 'shortlisted',
+      matchScore: 92,
+    },
+  ];
+
+  const loadCandidates = useCallback(async () => {
+    setLoading(true);
+    // In production, fetch from API
+    setTimeout(() => {
+      setCandidates(mockCandidates);
+      setStats({
+        totalCandidates: mockCandidates.length,
+        screenedCandidates: mockCandidates.filter(c => c.status !== 'new').length,
+        shortlistedCandidates: mockCandidates.filter(c => c.status === 'shortlisted').length,
+        averageMatchScore: Math.round(
+          mockCandidates.reduce((sum, c) => sum + (c.matchScore || 0), 0) / mockCandidates.length
+        ),
+      });
+      setLoading(false);
+    }, 500);
+  }, []);
+
+  const updateCandidateStatus = useCallback(async (candidateId: string, newStatus: Candidate['status']) => {
+    setCandidates(prev => 
+      prev.map(c => c.id === candidateId ? { ...c, status: newStatus } : c)
+    );
+    if (selectedCandidate?.id === candidateId) {
+      setSelectedCandidate(prev => prev ? { ...prev, status: newStatus } : null);
+    }
+  }, [selectedCandidate]);
+
+  const filteredCandidates = candidates.filter(c => {
+    if (filterStatus !== 'all' && c.status !== filterStatus) return false;
+    if (searchQuery && !c.name.toLowerCase().includes(searchQuery.toLowerCase()) &&
+        !c.email.toLowerCase().includes(searchQuery.toLowerCase())) return false;
+    return true;
+  });
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'new': return 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400';
+      case 'screening': return 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400';
+      case 'shortlisted': return 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400';
+      case 'interview': return 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400';
+      case 'offered': return 'bg-teal-100 text-teal-700 dark:bg-teal-900/30 dark:text-teal-400';
+      case 'rejected': return 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400';
+      default: return 'bg-slate-100 text-slate-700 dark:bg-slate-700 dark:text-slate-300';
+    }
+  };
+
+  const getMatchScoreColor = (score: number) => {
+    if (score >= 80) return 'text-green-500';
+    if (score >= 60) return 'text-amber-500';
+    return 'text-red-500';
+  };
+
+  const texts = {
+    en: {
+      title: 'Candidate Screening',
+      subtitle: 'Screen and manage job applicants',
+      search: 'Search candidates...',
+      filterAll: 'All',
+      filterNew: 'New',
+      filterScreening: 'Screening',
+      filterShortlisted: 'Shortlisted',
+      filterInterview: 'Interview',
+      filterOffered: 'Offered',
+      filterRejected: 'Rejected',
+      total: 'Total Candidates',
+      screened: 'Screened',
+      shortlisted: 'Shortlisted',
+      avgScore: 'Avg Match Score',
+      candidate: 'Candidate',
+      skills: 'Skills',
+      experience: 'Experience',
+      education: 'Education',
+      appliedRole: 'Applied Role',
+      appliedDate: 'Applied Date',
+      matchScore: 'Match Score',
+      status: 'Status',
+      actions: 'Actions',
+      shortlist: 'Shortlist',
+      reject: 'Reject',
+      schedule: 'Schedule Interview',
+      notes: 'Notes',
+      addNote: 'Add a note...',
+      export: 'Export',
+      refresh: 'Refresh',
+    },
+    my: {
+      title: 'ကိစ္စလက်ခံသူများ စိစစ်ခြင်း',
+      subtitle: 'အလုပ်လျှောက်လွှာတင်သူများကို စိစစ်၍ စီမံပါ',
+      search: 'ကိစ္စလက်ခံသူများ ရှာဖွေပါ...',
+      filterAll: 'အားလုံး',
+      filterNew: 'အသစ်',
+      filterScreening: 'စိစစ်နေသည်',
+      filterShortlisted: 'ရွေးချယ်ထားသည်',
+      filterInterview: 'အင်တာဗျူး',
+      filterOffered: 'ခန့်အပ်ပြီ',
+      filterRejected: 'ငြင်းပယ်ပြီ',
+      total: 'စုစုပေါင်း ကိစ္စလက်ခံသူများ',
+      screened: 'စိစစ်ပြီး',
+      shortlisted: 'ရွေးချယ်ထားသည်',
+      avgScore: 'ပျမ်းမျှ ကိုက်ညီမှုရမှတ်',
+      candidate: 'ကိစ္စလက်ခံသူ',
+      skills: 'ကျွမ်းကျင်မှုများ',
+      experience: 'အတွေ့အကြုံ',
+      education: 'ပညာရေး',
+      appliedRole: 'လျှောက်ထားသော ရာထူး',
+      appliedDate: 'လျှောက်လွှာတင်သည့်ရက်စွဲ',
+      matchScore: 'ကိုက်ညီမှုရမှတ်',
+      status: 'အဆင့်အတန်း',
+      actions: 'လုပ်ဆောင်ချက်များ',
+      shortlist: 'ရွေးချယ်ပါ',
+      reject: 'ငြင်းပယ်ပါ',
+      schedule: 'အင်တာဗျူး ချိန်းဆိုပါ',
+      notes: 'မှတ်ချက်များ',
+      addNote: 'မှတ်ချက်ထည့်ပါ...',
+      export: 'တင်ပို့ပါ',
+      refresh: 'ပြန်လည်ဖော်ပြပါ',
+    },
+  };
+
+  const t = texts[language];
+
+  return (
+    <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 overflow-hidden">
+      {/* Header */}
+      <div className="bg-gradient-to-r from-indigo-500 to-purple-500 p-6 text-white">
+        <div className="flex items-center gap-3 mb-2">
+          <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center">
+            <Users className="w-5 h-5" />
+          </div>
+          <div>
+            <h2 className="text-xl font-bold">{t.title}</h2>
+            <p className="text-sm text-white/80">{t.subtitle}</p>
+          </div>
+        </div>
+        {jobTitle && (
+          <div className="mt-2 text-sm text-white/80">
+            {jobTitle}
+          </div>
+        )}
+      </div>
+
+      <div className="p-6">
+        {/* Stats */}
+        {stats && (
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+            <div className="p-4 bg-slate-50 dark:bg-slate-900 rounded-xl">
+              <div className="text-2xl font-bold text-slate-900 dark:text-white">{stats.totalCandidates}</div>
+              <div className="text-sm text-slate-500">{t.total}</div>
+            </div>
+            <div className="p-4 bg-slate-50 dark:bg-slate-900 rounded-xl">
+              <div className="text-2xl font-bold text-slate-900 dark:text-white">{stats.screenedCandidates}</div>
+              <div className="text-sm text-slate-500">{t.screened}</div>
+            </div>
+            <div className="p-4 bg-slate-50 dark:bg-slate-900 rounded-xl">
+              <div className="text-2xl font-bold text-green-500">{stats.shortlistedCandidates}</div>
+              <div className="text-sm text-slate-500">{t.shortlisted}</div>
+            </div>
+            <div className="p-4 bg-slate-50 dark:bg-slate-900 rounded-xl">
+              <div className="text-2xl font-bold text-purple-500">{stats.avgScore}%</div>
+              <div className="text-sm text-slate-500">{t.avgScore}</div>
+            </div>
+          </div>
+        )}
+
+        {/* Search and Filter */}
+        <div className="flex flex-wrap gap-4 mb-6">
+          <div className="flex-1 min-w-[200px] relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+            <input
+              type="text"
+              placeholder={t.search}
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full pl-10 pr-4 py-2 border border-slate-200 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:border-indigo-500"
+            />
+          </div>
+          
+          <div className="flex gap-2">
+            {['all', 'new', 'screening', 'shortlisted', 'interview', 'offered', 'rejected'].map(status => (
+              <button
+                key={status}
+                onClick={() => setFilterStatus(status)}
+                className={cn(
+                  "px-3 py-2 text-sm rounded-lg transition-colors",
+                  filterStatus === status
+                    ? "bg-indigo-500 text-white"
+                    : "bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-200"
+                )}
+              >
+                {t[`filter${status.charAt(0).toUpperCase() + status.slice(1)}` as keyof typeof t]}
+              </button>
+            ))}
+          </div>
+
+          <div className="flex gap-2">
+            <button
+              onClick={loadCandidates}
+              disabled={loading}
+              className="px-4 py-2 bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-400 rounded-lg hover:bg-slate-200 flex items-center gap-2"
+            >
+              <RefreshCw className={cn("w-4 h-4", loading && "animate-spin")} />
+              {t.refresh}
+            </button>
+            <button className="px-4 py-2 bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 rounded-lg hover:bg-indigo-200 flex items-center gap-2">
+              <Download className="w-4 h-4" />
+              {t.export}
+            </button>
+          </div>
+        </div>
+
+        {/* Load Button */}
+        {candidates.length === 0 && (
+          <div className="text-center py-12">
+            <Users className="w-12 h-12 mx-auto mb-4 text-slate-300 dark:text-slate-600" />
+            <p className="text-slate-500 mb-4">
+              {language === 'my' ? 'ကိစ္စလက်ခံသူများကို ဖော်ပြရန် စိစစ်ပါ' : 'Load candidates to start screening'}
+            </p>
+            <button
+              onClick={loadCandidates}
+              disabled={loading}
+              className="px-6 py-3 bg-indigo-500 hover:bg-indigo-600 text-white rounded-xl font-medium flex items-center gap-2 mx-auto"
+            >
+              {loading ? (
+                <>
+                  <RefreshCw className="w-5 h-5 animate-spin" />
+                  {language === 'my' ? 'ဖော်ပြနေသည်...' : 'Loading...'}
+                </>
+              ) : (
+                <>
+                  <Filter className="w-5 h-5" />
+                  {language === 'my' ? 'စိစစ်ပါ' : 'Screen Candidates'}
+                </>
+              )}
+            </button>
+          </div>
+        )}
+
+        {/* Candidates List */}
+        {filteredCandidates.length > 0 && (
+          <div className="space-y-3">
+            {filteredCandidates.map(candidate => (
+              <div key={candidate.id}>
+                <button
+                  onClick={() => setSelectedCandidate(selectedCandidate?.id === candidate.id ? null : candidate)}
+                  className={cn(
+                    "w-full text-left p-4 rounded-xl border transition-all",
+                    selectedCandidate?.id === candidate.id
+                      ? "border-indigo-500 bg-indigo-50 dark:bg-indigo-900/20"
+                      : "border-slate-200 dark:border-slate-700 hover:border-indigo-300"
+                  )}
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 bg-indigo-100 dark:bg-indigo-900/30 rounded-full flex items-center justify-center text-indigo-600 dark:text-indigo-400 font-medium">
+                          {candidate.name.charAt(0)}
+                        </div>
+                        <div>
+                          <div className="font-medium text-slate-900 dark:text-white">{candidate.name}</div>
+                          <div className="text-sm text-slate-500">{candidate.email}</div>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <div className="flex items-center gap-4">
+                      <span className={cn(
+                        "px-2 py-1 rounded-full text-xs font-medium",
+                        getStatusColor(candidate.status)
+                      )}>
+                        {t[`filter${candidate.status.charAt(0).toUpperCase() + candidate.status.slice(1)}` as keyof typeof t]}
+                      </span>
+                      
+                      {candidate.matchScore && (
+                        <div className={cn("text-lg font-bold", getMatchScoreColor(candidate.matchScore))}>
+                          {candidate.matchScore}%
+                        </div>
+                      )}
+                      
+                      {selectedCandidate?.id === candidate.id ? (
+                        <ChevronUp className="w-5 h-5 text-slate-400" />
+                      ) : (
+                        <ChevronDown className="w-5 h-5 text-slate-400" />
+                      )}
+                    </div>
+                  </div>
+                </button>
+
+                {/* Expanded Details */}
+                {selectedCandidate?.id === candidate.id && (
+                  <div className="mt-2 p-4 bg-slate-50 dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                      <div>
+                        <div className="text-xs font-medium text-slate-500 mb-1">{t.skills}</div>
+                        <div className="flex flex-wrap gap-1">
+                          {candidate.skills.map((skill, i) => (
+                            <span key={i} className="px-2 py-1 bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 rounded-lg text-xs">
+                              {skill}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                      <div>
+                        <div className="text-xs font-medium text-slate-500 mb-1">{t.experience}</div>
+                        <div className="text-slate-700 dark:text-slate-300">
+                          {candidate.experience} {language === 'my' ? 'နှစ်' : 'years'}
+                        </div>
+                      </div>
+                      <div>
+                        <div className="text-xs font-medium text-slate-500 mb-1">{t.education}</div>
+                        <div className="text-slate-700 dark:text-slate-300">{candidate.education}</div>
+                      </div>
+                      <div>
+                        <div className="text-xs font-medium text-slate-500 mb-1">{t.appliedRole}</div>
+                        <div className="text-slate-700 dark:text-slate-300">{candidate.appliedRole}</div>
+                      </div>
+                    </div>
+
+                    {/* Actions */}
+                    <div className="flex flex-wrap gap-2 pt-4 border-t border-slate-200 dark:border-slate-700">
+                      {candidate.status === 'new' && (
+                        <button
+                          onClick={() => updateCandidateStatus(candidate.id, 'screening')}
+                          className="px-4 py-2 bg-yellow-100 text-yellow-700 rounded-lg text-sm font-medium hover:bg-yellow-200"
+                        >
+                          {t.filterScreening}
+                        </button>
+                      )}
+                      {(candidate.status === 'new' || candidate.status === 'screening') && (
+                        <button
+                          onClick={() => updateCandidateStatus(candidate.id, 'shortlisted')}
+                          className="px-4 py-2 bg-green-500 text-white rounded-lg text-sm font-medium hover:bg-green-600 flex items-center gap-1"
+                        >
+                          <Check className="w-4 h-4" />
+                          {t.shortlist}
+                        </button>
+                      )}
+                      {candidate.status === 'shortlisted' && (
+                        <button
+                          onClick={() => updateCandidateStatus(candidate.id, 'interview')}
+                          className="px-4 py-2 bg-purple-500 text-white rounded-lg text-sm font-medium hover:bg-purple-600 flex items-center gap-1"
+                        >
+                          <Calendar className="w-4 h-4" />
+                          {t.schedule}
+                        </button>
+                      )}
+                      {candidate.status !== 'rejected' && candidate.status !== 'offered' && (
+                        <button
+                          onClick={() => updateCandidateStatus(candidate.id, 'rejected')}
+                          className="px-4 py-2 bg-red-100 text-red-700 rounded-lg text-sm font-medium hover:bg-red-200 flex items-center gap-1"
+                        >
+                          <X className="w-4 h-4" />
+                          {t.reject}
+                        </button>
+                      )}
+                      {candidate.status === 'interview' && (
+                        <button
+                          onClick={() => updateCandidateStatus(candidate.id, 'offered')}
+                          className="px-4 py-2 bg-teal-500 text-white rounded-lg text-sm font-medium hover:bg-teal-600"
+                        >
+                          {t.filterOffered}
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+=== END FILE ===
+
+################################################################################
+# SECTION: PWA COMPONENTS
+################################################################################
+
+=== FILE: src/components/pwa/PWAInstallPrompt.tsx ===
+'use client';
+
+import { useState, useEffect, useCallback, useRef } from 'react';
+import { Download, X, Smartphone, Share, Plus, Check } from 'lucide-react';
+
+interface BeforeInstallPromptEvent extends Event {
+  prompt: () => Promise<void>;
+  userChoice: Promise<{ outcome: 'accepted' | 'dismissed' }>;
+}
+
+export default function PWAInstallPrompt() {
+  const [showPrompt, setShowPrompt] = useState(false);
+  const [showIOSInstructions, setShowIOSInstructions] = useState(false);
+  const installPromptRef = useRef<BeforeInstallPromptEvent | null>(null);
+  const installCountRef = useRef(0);
+
+  useEffect(() => {
+    // Check install prompt dismiss count
+    installCountRef.current = parseInt(localStorage.getItem('pwa-install-dismissed') || '0');
+    
+    // Check if already installed
+    const standalone = window.matchMedia('(display-mode: standalone)').matches;
+    const iosStandalone = ('standalone' in window.navigator) && 
+      (window.navigator as Navigator & { standalone: boolean }).standalone;
+    
+    if (standalone || iosStandalone) return;
+
+    // Check if iOS
+    const isIOSDevice = /iPad|iPhone|iPod/.test(navigator.userAgent);
+
+    // Listen for beforeinstallprompt event
+    const handleBeforeInstallPrompt = (e: Event) => {
+      e.preventDefault();
+      installPromptRef.current = e as BeforeInstallPromptEvent;
+      
+      if (installCountRef.current < 3) {
+        setTimeout(() => setShowPrompt(true), 3000);
+      }
+    };
+
+    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+
+    // For iOS, show prompt after delay
+    if (isIOSDevice && installCountRef.current < 3) {
+      setTimeout(() => setShowPrompt(true), 5000);
+    }
+
+    window.addEventListener('appinstalled', () => {
+      setShowPrompt(false);
+      installPromptRef.current = null;
+      localStorage.setItem('pwa-installed', 'true');
+    });
+
+    return () => {
+      window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+    };
+  }, []);
+
+  const handleInstallClick = useCallback(async () => {
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+    
+    if (isIOS) {
+      setShowIOSInstructions(true);
+      return;
+    }
+
+    if (!installPromptRef.current) return;
+
+    try {
+      await installPromptRef.current.prompt();
+      const { outcome } = await installPromptRef.current.userChoice;
+      
+      if (outcome === 'accepted') {
+        setShowPrompt(false);
+        localStorage.setItem('pwa-installed', 'true');
+      } else {
+        installCountRef.current += 1;
+        localStorage.setItem('pwa-install-dismissed', installCountRef.current.toString());
+      }
+      
+      installPromptRef.current = null;
+    } catch (error) {
+      console.error('Install prompt error:', error);
+    }
+  }, []);
+
+  const handleDismiss = useCallback(() => {
+    setShowPrompt(false);
+    installCountRef.current += 1;
+    localStorage.setItem('pwa-install-dismissed', installCountRef.current.toString());
+  }, []);
+
+  if (!showPrompt) return null;
+
+  return (
+    <>
+      <div className="fixed bottom-20 left-4 right-4 z-50 max-w-md mx-auto">
+        <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-700 overflow-hidden">
+          <div className="bg-gradient-to-r from-teal-500 to-teal-600 p-4 text-white">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center">
+                  <Smartphone className="w-6 h-6" />
+                </div>
+                <div>
+                  <h3 className="font-semibold">Install ReferTRM</h3>
+                  <p className="text-sm text-white/80">Add to home screen</p>
+                </div>
+              </div>
+              <button onClick={handleDismiss} className="p-2 hover:bg-white/20 rounded-lg">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+          </div>
+          
+          <div className="p-4">
+            <p className="text-sm text-slate-600 dark:text-slate-400 mb-4">
+              Install ReferTRM for a better experience:
+            </p>
+            <ul className="space-y-2 mb-4">
+              <li className="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-300">
+                <Check className="w-4 h-4 text-teal-500" />
+                Offline access to jobs
+              </li>
+              <li className="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-300">
+                <Check className="w-4 h-4 text-teal-500" />
+                Push notifications
+              </li>
+              <li className="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-300">
+                <Check className="w-4 h-4 text-teal-500" />
+                Faster loading
+              </li>
+            </ul>
+            
+            <button
+              onClick={handleInstallClick}
+              className="w-full py-3 bg-teal-500 hover:bg-teal-600 text-white rounded-xl font-medium flex items-center justify-center gap-2 transition-colors"
+            >
+              <Download className="w-5 h-5" />
+              Install Now
+            </button>
+            
+            <button onClick={handleDismiss} className="w-full py-2 text-sm text-slate-500 mt-2">
+              Not now
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {showIOSInstructions && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
+          <div className="bg-white dark:bg-slate-800 rounded-2xl max-w-sm w-full p-6">
+            <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-4">
+              Install on iOS
+            </h3>
+            <div className="space-y-4">
+              <div className="flex items-center gap-4 p-3 bg-slate-50 dark:bg-slate-700 rounded-xl">
+                <div className="w-10 h-10 bg-teal-100 dark:bg-teal-900/30 rounded-lg flex items-center justify-center">
+                  <Share className="w-5 h-5 text-teal-600 dark:text-teal-400" />
+                </div>
+                <div>
+                  <p className="font-medium text-slate-900 dark:text-white">Step 1</p>
+                  <p className="text-sm text-slate-500 dark:text-slate-400">Tap the Share button</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-4 p-3 bg-slate-50 dark:bg-slate-700 rounded-xl">
+                <div className="w-10 h-10 bg-teal-100 dark:bg-teal-900/30 rounded-lg flex items-center justify-center">
+                  <Plus className="w-5 h-5 text-teal-600 dark:text-teal-400" />
+                </div>
+                <div>
+                  <p className="font-medium text-slate-900 dark:text-white">Step 2</p>
+                  <p className="text-sm text-slate-500 dark:text-slate-400">Tap &quot;Add to Home Screen&quot;</p>
+                </div>
+              </div>
+            </div>
+            <button
+              onClick={() => { setShowIOSInstructions(false); handleDismiss(); }}
+              className="w-full mt-6 py-3 bg-teal-500 hover:bg-teal-600 text-white rounded-xl font-medium"
+            >
+              Got it!
+            </button>
+          </div>
+        </div>
+      )}
+    </>
+  );
+}
+=== END FILE ===
+
+=== FILE: src/components/pwa/ServiceWorkerRegistration.tsx ===
+'use client';
+
+import { useEffect } from 'react';
+
+export function useServiceWorker() {
+  useEffect(() => {
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', async () => {
+        try {
+          const registration = await navigator.serviceWorker.register('/sw.js', {
+            scope: '/',
+          });
+          
+          console.log('SW registered:', registration.scope);
+          
+          // Check for updates
+          registration.addEventListener('updatefound', () => {
+            const newWorker = registration.installing;
+            if (newWorker) {
+              newWorker.addEventListener('statechange', () => {
+                if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                  // New content available
+                  window.dispatchEvent(new CustomEvent('sw-update-available'));
+                }
+              });
+            }
+          });
+        } catch (error) {
+          console.error('SW registration failed:', error);
+        }
+      });
+    }
+  }, []);
+}
+
+export default function ServiceWorkerRegistration() {
+  useServiceWorker();
+  return null;
+}
+=== END FILE ===
+
+=== FILE: src/components/pwa/PushNotificationSetup.tsx ===
+'use client';
+
+import { useState, useEffect } from 'react';
+import { Bell, BellOff, Check, X, Smartphone } from 'lucide-react';
+
+interface PushNotificationSetupProps {
+  language?: 'en' | 'my';
+}
+
+export default function PushNotificationSetup({ language = 'en' }: PushNotificationSetupProps) {
+  const [isSupported, setIsSupported] = useState(false);
+  const [isSubscribed, setIsSubscribed] = useState(false);
+  const [permission, setPermission] = useState<NotificationPermission>('default');
+  const [loading, setLoading] = useState(false);
+  const [showSetup, setShowSetup] = useState(false);
+
+  useEffect(() => {
+    // Check if push notifications are supported
+    setIsSupported('Notification' in window && 'serviceWorker' in navigator && 'PushManager' in window);
+    
+    if ('Notification' in window) {
+      setPermission(Notification.permission);
+      setIsSubscribed(Notification.permission === 'granted');
+    }
+
+    // Check if user has dismissed setup
+    const dismissed = localStorage.getItem('push-setup-dismissed');
+    if (!dismissed && Notification.permission === 'default') {
+      setTimeout(() => setShowSetup(true), 10000);
+    }
+  }, []);
+
+  const requestPermission = async () => {
+    setLoading(true);
+    try {
+      const result = await Notification.requestPermission();
+      setPermission(result);
+      
+      if (result === 'granted') {
+        setIsSubscribed(true);
+        
+        // Subscribe to push notifications
+        const registration = await navigator.serviceWorker.ready;
+        const subscription = await registration.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey: urlBase64ToUint8Array(
+            // This would be your VAPID public key
+            'BEl62iUYgUivxIkv69yViEuiBIa-Ib9-SkvMeAtA3LFgDzkrxZJjSgSnfckjBJuBkr3qBUYIHBQFLXYp5Nksh8U'
+          ),
+        });
+        
+        // Send subscription to server
+        await fetch('/api/push/subscribe', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(subscription),
+        });
+        
+        setShowSetup(false);
+      }
+    } catch (error) {
+      console.error('Push notification setup error:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const unsubscribe = async () => {
+    setLoading(true);
+    try {
+      const registration = await navigator.serviceWorker.ready;
+      const subscription = await registration.pushManager.getSubscription();
+      
+      if (subscription) {
+        await subscription.unsubscribe();
+        
+        // Notify server
+        await fetch('/api/push/unsubscribe', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ endpoint: subscription.endpoint }),
+        });
+      }
+      
+      setIsSubscribed(false);
+    } catch (error) {
+      console.error('Unsubscribe error:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const dismissSetup = () => {
+    setShowSetup(false);
+    localStorage.setItem('push-setup-dismissed', 'true');
+  };
+
+  // Convert VAPID key
+  function urlBase64ToUint8Array(base64String: string): Uint8Array {
+    const padding = '='.repeat((4 - base64String.length % 4) % 4);
+    const base64 = (base64String + padding)
+      .replace(/-/g, '+')
+      .replace(/_/g, '/');
+    const rawData = window.atob(base64);
+    const outputArray = new Uint8Array(rawData.length);
+    for (let i = 0; i < rawData.length; ++i) {
+      outputArray[i] = rawData.charCodeAt(i);
+    }
+    return outputArray;
+  }
+
+  if (!isSupported) return null;
+
+  // Setup prompt
+  if (showSetup && permission === 'default') {
+    return (
+      <div className="fixed bottom-24 left-4 right-4 z-50 max-w-md mx-auto animate-slide-up">
+        <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-700 p-4">
+          <div className="flex items-start gap-3">
+            <div className="w-12 h-12 bg-teal-100 dark:bg-teal-900/30 rounded-xl flex items-center justify-center flex-shrink-0">
+              <Bell className="w-6 h-6 text-teal-600 dark:text-teal-400" />
+            </div>
+            <div className="flex-1">
+              <h3 className="font-semibold text-slate-900 dark:text-white mb-1">
+                {language === 'my' ? 'အသိပေးချက်များ ခွင့်ပြုပါ' : 'Enable Notifications'}
+              </h3>
+              <p className="text-sm text-slate-600 dark:text-slate-400 mb-3">
+                {language === 'my' 
+                  ? 'အလုပ်အသစ်များနှင့် လျှောက်လွှာအပ်ဒိတ်များကို အချိန်မီလက်ခံရယူပါ'
+                  : 'Get instant alerts for new jobs and application updates'
+                }
+              </p>
+              <div className="flex gap-2">
+                <button
+                  onClick={requestPermission}
+                  disabled={loading}
+                  className="flex-1 py-2 bg-teal-500 hover:bg-teal-600 text-white rounded-lg text-sm font-medium transition-colors disabled:opacity-50"
+                >
+                  {loading ? '...' : language === 'my' ? 'ခွင့်ပြုပါ' : 'Enable'}
+                </button>
+                <button
+                  onClick={dismissSetup}
+                  className="px-4 py-2 bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-400 rounded-lg text-sm font-medium hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors"
+                >
+                  {language === 'my' ? 'နောက်မှ' : 'Later'}
+                </button>
+              </div>
+            </div>
+            <button onClick={dismissSetup} className="text-slate-400 hover:text-slate-600">
+              <X className="w-5 h-5" />
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Toggle button (for settings page)
+  return (
+    <div className="flex items-center justify-between p-4 bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700">
+      <div className="flex items-center gap-3">
+        <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${
+          isSubscribed 
+            ? 'bg-teal-100 dark:bg-teal-900/30' 
+            : 'bg-slate-100 dark:bg-slate-700'
+        }`}>
+          {isSubscribed ? (
+            <Bell className="w-5 h-5 text-teal-600 dark:text-teal-400" />
+          ) : (
+            <BellOff className="w-5 h-5 text-slate-400" />
+          )}
+        </div>
+        <div>
+          <h4 className="font-medium text-slate-900 dark:text-white">
+            {language === 'my' ? 'ပုဒ်အသိပေးချက်များ' : 'Push Notifications'}
+          </h4>
+          <p className="text-sm text-slate-500 dark:text-slate-400">
+            {isSubscribed 
+              ? (language === 'my' ? 'ဖွင့်ထားသည်' : 'Enabled')
+              : (language === 'my' ? 'ပိတ်ထားသည်' : 'Disabled')
+            }
+          </p>
+        </div>
+      </div>
+      <button
+        onClick={isSubscribed ? unsubscribe : requestPermission}
+        disabled={loading}
+        className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+          isSubscribed
+            ? 'bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 hover:bg-red-200 dark:hover:bg-red-900/50'
+            : 'bg-teal-500 text-white hover:bg-teal-600'
+        }`}
+      >
+        {loading 
+          ? '...' 
+          : isSubscribed 
+            ? (language === 'my' ? 'ပိတ်ပါ' : 'Disable')
+            : (language === 'my' ? 'ဖွင့်ပါ' : 'Enable')
+        }
+      </button>
+    </div>
+  );
+}
+=== END FILE ===
+
+=== FILE: src/components/pwa/OfflineIndicator.tsx ===
+'use client';
+
+import { useEffect, useRef } from 'react';
+import { WifiOff, Cloud, CloudOff } from 'lucide-react';
+
+interface OfflineIndicatorProps {
+  language?: 'en' | 'my';
+}
+
+export default function OfflineIndicator({ language = 'en' }: OfflineIndicatorProps) {
+  const wasOfflineRef = useRef(false);
+  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  useEffect(() => {
+    const handleOnline = () => {
+      if (wasOfflineRef.current) {
+        // Show reconnected message
+        document.body.setAttribute('data-online-status', 'reconnected');
+        timeoutRef.current = setTimeout(() => {
+          document.body.setAttribute('data-online-status', 'online');
+        }, 3000);
+      }
+      wasOfflineRef.current = false;
+    };
+
+    const handleOffline = () => {
+      wasOfflineRef.current = true;
+      document.body.setAttribute('data-online-status', 'offline');
+    };
+
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+      if (timeoutRef.current) clearTimeout(timeoutRef.current);
+    };
+  }, []);
+
+  return null; // This component only sets up listeners
+}
+
+// Mini offline badge for header/sidebar
+export function OfflineBadge({ language = 'en' }: OfflineIndicatorProps) {
+  const isOnline = typeof window !== 'undefined' ? navigator.onLine : true;
+
+  if (isOnline) return null;
+
+  return (
+    <div className="flex items-center gap-1 px-2 py-1 bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 rounded-full text-xs">
+      <WifiOff className="w-3 h-3" />
+      <span>{language === 'my' ? 'အော့ဖ်လိုင်း' : 'Offline'}</span>
+    </div>
+  );
+}
+
+// Connection status indicator
+export function ConnectionStatus({ language = 'en' }: OfflineIndicatorProps) {
+  const isOnline = typeof window !== 'undefined' ? navigator.onLine : true;
+
+  return (
+    <div className="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400">
+      {isOnline ? (
+        <>
+          <Cloud className="w-3 h-3 text-teal-500" />
+          <span>{language === 'my' ? 'အွန်လိုင်း' : 'Online'}</span>
+        </>
+      ) : (
+        <>
+          <CloudOff className="w-3 h-3 text-amber-500" />
+          <span>{language === 'my' ? 'အော့ဖ်လိုင်း' : 'Offline'}</span>
+        </>
+      )}
+    </div>
+  );
+}
+=== END FILE ===
+
+=== FILE: src/components/pwa/MobileBottomNav.tsx ===
+'use client';
+
+import { useState, useCallback, useMemo } from 'react';
+import { useRouter, usePathname } from 'next/navigation';
+import { 
+  Home, 
+  Briefcase, 
+  MessageSquare, 
+  User, 
+  Bell,
+  Gift,
+  Menu,
+  X,
+  ChevronUp
+} from 'lucide-react';
+import { cn } from '@/lib/utils';
+import { useHapticFeedback } from '@/hooks/use-touch-gestures';
+import { OfflineMiniBadge } from './OfflineBanner';
+
+interface NavItem {
+  id: string;
+  label: string;
+  labelMy: string;
+  icon: React.ComponentType<{ className?: string }>;
+  path: string;
+  badge?: number;
+}
+
+const mainNavItems: NavItem[] = [
+  {
+    id: 'home',
+    label: 'Home',
+    labelMy: 'ပင်မ',
+    icon: Home,
+    path: '/dashboard',
+  },
+  {
+    id: 'jobs',
+    label: 'Jobs',
+    labelMy: 'အလုပ်',
+    icon: Briefcase,
+    path: '/dashboard/jobs',
+  },
+  {
+    id: 'messages',
+    label: 'Messages',
+    labelMy: 'စာများ',
+    icon: MessageSquare,
+    path: '/dashboard/messages',
+  },
+  {
+    id: 'rewards',
+    label: 'Rewards',
+    labelMy: 'ဆုများ',
+    icon: Gift,
+    path: '/dashboard/rewards',
+  },
+];
+
+interface MobileBottomNavProps {
+  language?: 'en' | 'my';
+  unreadMessages?: number;
+  unreadNotifications?: number;
+}
+
+export default function MobileBottomNav({ 
+  language = 'en',
+  unreadMessages = 0,
+  unreadNotifications = 0,
+}: MobileBottomNavProps) {
+  const router = useRouter();
+  const pathname = usePathname();
+  const haptic = useHapticFeedback();
+  
+  const [showMoreMenu, setShowMoreMenu] = useState(false);
+  
+  // Derive active item from pathname (no state needed)
+  const activeItem = useMemo(() => {
+    const matchingItem = mainNavItems.find(item => pathname?.includes(item.path));
+    return matchingItem?.id || 'home';
+  }, [pathname]);
+
+  const handleNavClick = useCallback((item: NavItem) => {
+    haptic.light();
+    router.push(item.path);
+  }, [haptic, router]);
+
+  const handleMoreClick = useCallback(() => {
+    haptic.medium();
+    setShowMoreMenu(prev => !prev);
+  }, [haptic]);
+
+  const moreItems: NavItem[] = [
+    {
+      id: 'notifications',
+      label: 'Notifications',
+      labelMy: 'အသိပေးချက်',
+      icon: Bell,
+      path: '/dashboard/notifications',
+      badge: unreadNotifications,
+    },
+    {
+      id: 'profile',
+      label: 'Profile',
+      labelMy: 'ပရိုဖိုင်',
+      icon: User,
+      path: '/dashboard/settings',
+    },
+  ];
+
+  return (
+    <>
+      {/* More menu overlay */}
+      {showMoreMenu && (
+        <div 
+          className="fixed inset-0 z-40 bg-black/50 animate-fade-in"
+          onClick={() => setShowMoreMenu(false)}
+        />
+      )}
+
+      {/* More menu sheet */}
+      <div 
+        className={cn(
+          "fixed bottom-16 left-0 right-0 z-50 bg-white dark:bg-slate-900 rounded-t-3xl shadow-2xl transform transition-transform duration-300",
+          showMoreMenu ? "translate-y-0" : "translate-y-full"
+        )}
+      >
+        <div className="p-4">
+          <div className="w-12 h-1 bg-slate-300 dark:bg-slate-700 rounded-full mx-auto mb-4" />
+          
+          <div className="grid grid-cols-2 gap-3">
+            {moreItems.map((item) => (
+              <button
+                key={item.id}
+                onClick={() => {
+                  handleNavClick(item);
+                  setShowMoreMenu(false);
+                }}
+                className={cn(
+                  "flex flex-col items-center gap-2 p-4 rounded-2xl transition-all",
+                  "active:scale-95",
+                  activeItem === item.id
+                    ? "bg-teal-50 dark:bg-teal-900/30 text-teal-600 dark:text-teal-400"
+                    : "bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-400"
+                )}
+              >
+                <div className="relative">
+                  <item.icon className="w-6 h-6" />
+                  {item.badge && item.badge > 0 && (
+                    <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 text-white text-xs rounded-full flex items-center justify-center">
+                      {item.badge > 9 ? '9+' : item.badge}
+                    </span>
+                  )}
+                </div>
+                <span className="text-sm font-medium">
+                  {language === 'my' ? item.labelMy : item.label}
+                </span>
+              </button>
+            ))}
+          </div>
+          
+          <div className="mt-4 pt-4 border-t border-slate-200 dark:border-slate-700">
+            <OfflineMiniBadge language={language} />
+          </div>
+        </div>
+      </div>
+
+      {/* Bottom navigation bar */}
+      <nav className="fixed bottom-0 left-0 right-0 z-40 bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 safe-area-bottom">
+        <div className="flex items-center justify-around h-16 max-w-lg mx-auto px-2">
+          {mainNavItems.map((item) => (
+            <button
+              key={item.id}
+              onClick={() => handleNavClick(item)}
+              className={cn(
+                "flex flex-col items-center justify-center gap-1 w-16 h-14 rounded-xl transition-all",
+                "active:scale-90 active:bg-slate-100 dark:active:bg-slate-800",
+                activeItem === item.id
+                  ? "text-teal-600 dark:text-teal-400"
+                  : "text-slate-500 dark:text-slate-400"
+              )}
+            >
+              <div className="relative">
+                <item.icon className={cn(
+                  "w-6 h-6 transition-transform",
+                  activeItem === item.id && "scale-110"
+                )} />
+                {item.badge && item.badge > 0 && (
+                  <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 text-white text-xs rounded-full flex items-center justify-center">
+                    {item.badge > 9 ? '9+' : item.badge}
+                  </span>
+                )}
+              </div>
+              <span className="text-xs font-medium">
+                {language === 'my' ? item.labelMy : item.label}
+              </span>
+              
+              {/* Active indicator */}
+              {activeItem === item.id && (
+                <div className="absolute bottom-1 w-1 h-1 bg-teal-500 rounded-full" />
+              )}
+            </button>
+          ))}
+          
+          {/* More button */}
+          <button
+            onClick={handleMoreClick}
+            className={cn(
+              "flex flex-col items-center justify-center gap-1 w-16 h-14 rounded-xl transition-all",
+              "active:scale-90 active:bg-slate-100 dark:active:bg-slate-800",
+              "text-slate-500 dark:text-slate-400",
+              showMoreMenu && "text-teal-600 dark:text-teal-400"
+            )}
+          >
+            {showMoreMenu ? (
+              <ChevronUp className="w-6 h-6" />
+            ) : (
+              <Menu className="w-6 h-6" />
+            )}
+            <span className="text-xs font-medium">
+              {language === 'my' ? 'ပိုမို' : 'More'}
+            </span>
+          </button>
+        </div>
+      </nav>
+
+      {/* Safe area spacer for iOS */}
+      <style jsx global>{`
+        .safe-area-bottom {
+          padding-bottom: env(safe-area-inset-bottom, 0);
+        }
+      `}</style>
+    </>
+  );
+}
+
+// Desktop sidebar version
+export function DesktopSidebar({ 
+  language = 'en',
+  unreadMessages = 0,
+  unreadNotifications = 0,
+}: MobileBottomNavProps) {
+  const router = useRouter();
+  const pathname = usePathname();
+  
+  // Derive active item from pathname
+  const activeItem = useMemo(() => {
+    const matchingItem = mainNavItems.find(item => pathname?.includes(item.path));
+    return matchingItem?.id || 'home';
+  }, [pathname]);
+
+  const allItems = [...mainNavItems, {
+    id: 'notifications',
+    label: 'Notifications',
+    labelMy: 'အသိပေးချက်',
+    icon: Bell,
+    path: '/dashboard/notifications',
+    badge: unreadNotifications,
+  }, {
+    id: 'profile',
+    label: 'Settings',
+    labelMy: 'ဆက်တင်များ',
+    icon: User,
+    path: '/dashboard/settings',
+  }];
+
+  return (
+    <aside className="hidden lg:flex flex-col w-64 h-screen bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800">
+      {/* Logo */}
+      <div className="p-6 border-b border-slate-200 dark:border-slate-800">
+        <h1 className="text-xl font-bold text-teal-600 dark:text-teal-400">
+          ReferTRM
+        </h1>
+      </div>
+
+      {/* Navigation */}
+      <nav className="flex-1 p-4 space-y-1">
+        {allItems.map((item) => (
+          <button
+            key={item.id}
+            onClick={() => router.push(item.path)}
+            className={cn(
+              "w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all",
+              "hover:bg-slate-100 dark:hover:bg-slate-800",
+              activeItem === item.id
+                ? "bg-teal-50 dark:bg-teal-900/30 text-teal-600 dark:text-teal-400"
+                : "text-slate-600 dark:text-slate-400"
+            )}
+          >
+            <item.icon className="w-5 h-5" />
+            <span className="font-medium">
+              {language === 'my' ? item.labelMy : item.label}
+            </span>
+            {item.badge && item.badge > 0 && (
+              <span className="ml-auto w-5 h-5 bg-red-500 text-white text-xs rounded-full flex items-center justify-center">
+                {item.badge > 9 ? '9+' : item.badge}
+              </span>
+            )}
+          </button>
+        ))}
+      </nav>
+
+      {/* Offline indicator */}
+      <div className="p-4 border-t border-slate-200 dark:border-slate-800">
+        <OfflineMiniBadge language={language} />
+      </div>
+    </aside>
+  );
+}
+=== END FILE ===
+
+################################################################################
+# SECTION: SOCIAL COMPONENTS
+################################################################################
+
+=== FILE: src/components/social/ActivityFeed.tsx ===
+'use client';
+
+import { useState, useEffect, useCallback } from 'react';
+import { 
+  Activity, 
+  Heart, 
+  MessageCircle, 
+  Share2, 
+  Briefcase, 
+  Users, 
+  Trophy,
+  GraduationCap,
+  Target,
+  UserPlus,
+  Star,
+  Clock,
+  ChevronDown,
+  ChevronUp,
+  RefreshCw,
+  Filter
+} from 'lucide-react';
+import { cn } from '@/lib/utils';
+
+interface ActivityItem {
+  id: string;
+  userId: string;
+  userName: string;
+  userAvatar?: string;
+  type: string;
+  title: string;
+  description: string;
+  metadata: Record<string, unknown>;
+  createdAt: string;
+  likes: number;
+  comments: number;
+  isLiked: boolean;
+}
+
+interface ActivityFeedProps {
+  userId?: string;
+  language?: 'en' | 'my';
+}
+
+export default function ActivityFeed({ userId, language = 'en' }: ActivityFeedProps) {
+  const [activities, setActivities] = useState<ActivityItem[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [selectedType, setSelectedType] = useState<string>('all');
+  const [expandedActivity, setExpandedActivity] = useState<string | null>(null);
+
+  const loadActivities = useCallback(async () => {
+    setLoading(true);
+    try {
+      const params = new URLSearchParams();
+      if (userId) params.append('userId', userId);
+      if (selectedType !== 'all') params.append('type', selectedType);
+      params.append('limit', '20');
+
+      const response = await fetch(`/api/social/activity?${params}`);
+      const data = await response.json();
+
+      if (data.success) {
+        setActivities(data.activities);
+      }
+    } catch (error) {
+      console.error('Failed to load activities:', error);
+    } finally {
+      setLoading(false);
+    }
+  }, [userId, selectedType]);
+
+  useEffect(() => {
+    loadActivities();
+  }, [loadActivities]);
+
+  const handleLike = async (activityId: string, isLiked: boolean) => {
+    // Optimistic update
+    setActivities(prev => 
+      prev.map(a => a.id === activityId 
+        ? { ...a, isLiked: !isLiked, likes: isLiked ? a.likes - 1 : a.likes + 1 }
+        : a
+      )
+    );
+  };
+
+  const getActivityIcon = (type: string) => {
+    switch (type) {
+      case 'job_applied': return <Briefcase className="w-5 h-5" />;
+      case 'referral_made': return <Users className="w-5 h-5" />;
+      case 'achievement_earned': return <Trophy className="w-5 h-5" />;
+      case 'course_completed': return <GraduationCap className="w-5 h-5" />;
+      case 'milestone_reached': return <Target className="w-5 h-5" />;
+      case 'connection_made': return <UserPlus className="w-5 h-5" />;
+      case 'review_posted': return <Star className="w-5 h-5" />;
+      default: return <Activity className="w-5 h-5" />;
+    }
+  };
+
+  const getActivityColor = (type: string) => {
+    switch (type) {
+      case 'job_applied': return 'text-blue-500 bg-blue-100 dark:bg-blue-900/30';
+      case 'referral_made': return 'text-green-500 bg-green-100 dark:bg-green-900/30';
+      case 'achievement_earned': return 'text-amber-500 bg-amber-100 dark:bg-amber-900/30';
+      case 'course_completed': return 'text-purple-500 bg-purple-100 dark:bg-purple-900/30';
+      case 'milestone_reached': return 'text-teal-500 bg-teal-100 dark:bg-teal-900/30';
+      case 'connection_made': return 'text-pink-500 bg-pink-100 dark:bg-pink-900/30';
+      default: return 'text-slate-500 bg-slate-100 dark:bg-slate-700';
+    }
+  };
+
+  const formatTimeAgo = (dateString: string) => {
+    const date = new Date(dateString);
+    const now = new Date();
+    const diff = now.getTime() - date.getTime();
+    
+    const minutes = Math.floor(diff / 60000);
+    const hours = Math.floor(minutes / 60);
+    const days = Math.floor(hours / 24);
+
+    if (days > 0) return language === 'my' ? `${days} ရက်ကြာ` : `${days}d ago`;
+    if (hours > 0) return language === 'my' ? `${hours} နာရီကြာ` : `${hours}h ago`;
+    if (minutes > 0) return language === 'my' ? `${minutes} မိနစ်ကြာ` : `${minutes}m ago`;
+    return language === 'my' ? 'ယခု' : 'Just now';
+  };
+
+  const texts = {
+    en: {
+      title: 'Activity Feed',
+      subtitle: 'See what others are doing',
+      all: 'All',
+      refresh: 'Refresh',
+      like: 'Like',
+      liked: 'Liked',
+      comment: 'Comment',
+      share: 'Share',
+    },
+    my: {
+      title: 'လုပ်ဆောင်ချက်များ',
+      subtitle: 'အခြားသူများ ဘာလုပ်နေကြသည်ကို ကြည့်ပါ',
+      all: 'အားလုံး',
+      refresh: 'ပြန်လည်ဖော်ပြပါ',
+      like: 'နှစ်သက်',
+      liked: 'နှစ်သက်ပြီ',
+      comment: 'မှတ်ချက်',
+      share: 'မျှဝေ',
+    },
+  };
+
+  const t = texts[language];
+
+  return (
+    <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 overflow-hidden">
+      {/* Header */}
+      <div className="p-4 border-b border-slate-200 dark:border-slate-700">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Activity className="w-5 h-5 text-teal-500" />
+            <h2 className="font-semibold text-slate-900 dark:text-white">{t.title}</h2>
+          </div>
+          <button
+            onClick={loadActivities}
+            disabled={loading}
+            className="p-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
+          >
+            <RefreshCw className={cn("w-4 h-4", loading && "animate-spin")} />
+          </button>
+        </div>
+      </div>
+
+      {/* Filter */}
+      <div className="p-4 border-b border-slate-200 dark:border-slate-700">
+        <div className="flex gap-2 overflow-x-auto pb-2">
+          <button
+            onClick={() => setSelectedType('all')}
+            className={cn(
+              "px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-colors",
+              selectedType === 'all'
+                ? "bg-teal-500 text-white"
+                : "bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-400"
+            )}
+          >
+            {t.all}
+          </button>
+          <button className="px-4 py-2 rounded-full text-sm bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-400 whitespace-nowrap flex items-center gap-2">
+            <Filter className="w-4 h-4" />
+            {language === 'my' ? 'စစ်ထုတ်ပါ' : 'Filter'}
+          </button>
+        </div>
+      </div>
+
+      {/* Activities */}
+      <div className="divide-y divide-slate-200 dark:divide-slate-700">
+        {loading ? (
+          <div className="flex items-center justify-center py-12">
+            <RefreshCw className="w-8 h-8 animate-spin text-teal-500" />
+          </div>
+        ) : activities.length === 0 ? (
+          <div className="text-center py-12 text-slate-500">
+            {language === 'my' ? 'လုပ်ဆောင်ချက်များ မရှိသေးပါ' : 'No activities yet'}
+          </div>
+        ) : (
+          activities.map(activity => (
+            <div key={activity.id} className="p-4">
+              <div className="flex gap-3">
+                {/* Icon */}
+                <div className={cn(
+                  "w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0",
+                  getActivityColor(activity.type)
+                )}>
+                  {getActivityIcon(activity.type)}
+                </div>
+
+                {/* Content */}
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-start justify-between">
+                    <div>
+                      <span className="font-medium text-slate-900 dark:text-white">
+                        {activity.userName}
+                      </span>
+                      <span className="text-slate-600 dark:text-slate-400">
+                        {' '}{activity.title}
+                      </span>
+                    </div>
+                    <span className="text-xs text-slate-400 flex items-center gap-1 flex-shrink-0">
+                      <Clock className="w-3 h-3" />
+                      {formatTimeAgo(activity.createdAt)}
+                    </span>
+                  </div>
+                  
+                  <p className="text-sm text-slate-600 dark:text-slate-400 mt-1">
+                    {activity.description}
+                  </p>
+
+                  {/* Actions */}
+                  <div className="flex items-center gap-4 mt-3">
+                    <button
+                      onClick={() => handleLike(activity.id, activity.isLiked)}
+                      className={cn(
+                        "flex items-center gap-1 text-sm",
+                        activity.isLiked ? "text-red-500" : "text-slate-400 hover:text-red-500"
+                      )}
+                    >
+                      <Heart className={cn("w-4 h-4", activity.isLiked && "fill-current")} />
+                      <span>{activity.likes}</span>
+                    </button>
+                    
+                    <button 
+                      onClick={() => setExpandedActivity(expandedActivity === activity.id ? null : activity.id)}
+                      className="flex items-center gap-1 text-sm text-slate-400 hover:text-blue-500"
+                    >
+                      <MessageCircle className="w-4 h-4" />
+                      <span>{activity.comments}</span>
+                    </button>
+                    
+                    <button className="flex items-center gap-1 text-sm text-slate-400 hover:text-teal-500">
+                      <Share2 className="w-4 h-4" />
+                    </button>
+                  </div>
+
+                  {/* Expanded Comments */}
+                  {expandedActivity === activity.id && (
+                    <div className="mt-3 pt-3 border-t border-slate-200 dark:border-slate-700">
+                      <div className="flex gap-2">
+                        <input
+                          type="text"
+                          placeholder={language === 'my' ? 'မှတ်ချက်ရေးပါ...' : 'Write a comment...'}
+                          className="flex-1 px-3 py-2 bg-slate-100 dark:bg-slate-700 rounded-lg text-sm text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none"
+                        />
+                        <button className="px-4 py-2 bg-teal-500 text-white rounded-lg text-sm font-medium">
+                          {language === 'my' ? 'ပို့ပါ' : 'Post'}
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          ))
+        )}
+      </div>
+    </div>
+  );
+}
+=== END FILE ===
+
+=== FILE: src/components/social/DiscussionBoard.tsx ===
+'use client';
+
+import { useState, useEffect, useCallback } from 'react';
+import { 
+  MessageSquare, 
+  Heart, 
+  Eye, 
+  MessageCircle,
+  Pin,
+  Flame,
+  Clock,
+  Search,
+  Plus,
+  ChevronRight,
+  RefreshCw,
+  Check
+} from 'lucide-react';
+import { cn } from '@/lib/utils';
+
+interface Discussion {
+  id: string;
+  title: string;
+  content: string;
+  category: string;
+  authorId: string;
+  authorName: string;
+  authorTitle?: string;
+  tags: string[];
+  views: number;
+  likes: number;
+  comments: number;
+  isLiked: boolean;
+  isPinned: boolean;
+  isHot: boolean;
+  createdAt: string;
+  lastActivityAt: string;
+}
+
+interface Category {
+  id: string;
+  name: string;
+  nameMy: string;
+  icon: string;
+}
+
+interface DiscussionBoardProps {
+  language?: 'en' | 'my';
+}
+
+export default function DiscussionBoard({ language = 'en' }: DiscussionBoardProps) {
+  const [discussions, setDiscussions] = useState<Discussion[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [selectedCategory, setSelectedCategory] = useState<string>('all');
+  const [sortBy, setSortBy] = useState<string>('latest');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [selectedDiscussion, setSelectedDiscussion] = useState<Discussion | null>(null);
+
+  const loadDiscussions = useCallback(async () => {
+    setLoading(true);
+    try {
+      const params = new URLSearchParams();
+      if (selectedCategory !== 'all') params.append('category', selectedCategory);
+      params.append('sort', sortBy);
+      if (searchQuery) params.append('search', searchQuery);
+      params.append('limit', '20');
+
+      const response = await fetch(`/api/social/discussions?${params}`);
+      const data = await response.json();
+
+      if (data.success) {
+        setDiscussions(data.discussions);
+        setCategories(data.categories);
+      }
+    } catch (error) {
+      console.error('Failed to load discussions:', error);
+    } finally {
+      setLoading(false);
+    }
+  }, [selectedCategory, sortBy, searchQuery]);
+
+  useEffect(() => {
+    loadDiscussions();
+  }, [loadDiscussions]);
+
+  const formatTimeAgo = (dateString: string) => {
+    const date = new Date(dateString);
+    const now = new Date();
+    const diff = now.getTime() - date.getTime();
+    
+    const hours = Math.floor(diff / 3600000);
+    const days = Math.floor(hours / 24);
+
+    if (days > 0) return language === 'my' ? `${days} ရက်ကြာ` : `${days}d`;
+    if (hours > 0) return language === 'my' ? `${hours} နာရီကြာ` : `${hours}h`;
+    return language === 'my' ? 'ယခု' : 'now';
+  };
+
+  const texts = {
+    en: {
+      title: 'Community Discussions',
+      subtitle: 'Join the conversation',
+      search: 'Search discussions...',
+      allCategories: 'All Categories',
+      latest: 'Latest',
+      popular: 'Popular',
+      trending: 'Trending',
+      newDiscussion: 'New Discussion',
+      views: 'views',
+      replies: 'replies',
+      pinned: 'Pinned',
+      hot: 'Hot',
+      refresh: 'Refresh',
+      back: 'Back',
+      lastActivity: 'Last activity',
+    },
+    my: {
+      title: 'အသိုင်းအဝိုင်း ဆွေးနွေးမှုများ',
+      subtitle: 'ဆွေးနွေးမှုတွင် ပါဝင်ပါ',
+      search: 'ဆွေးနွေးမှုများ ရှာဖွေပါ...',
+      allCategories: 'အမျိုးအစားအားလုံး',
+      latest: 'နောက်ဆုံး',
+      popular: 'ရေပန်းစား',
+      trending: 'လူကြိုက်များ',
+      newDiscussion: 'ဆွေးနွေးမှုအသစ်',
+      views: 'ကြည့်ရှုမှု',
+      replies: 'အဖြေများ',
+      pinned: 'အရေးကြီး',
+      hot: 'ပူပြင်း',
+      refresh: 'ပြန်လည်ဖော်ပြပါ',
+      back: 'နောက်သို့',
+      lastActivity: 'နောက်ဆုံးလှုပ်ရှားမှု',
+    },
+  };
+
+  const t = texts[language];
+
+  if (selectedDiscussion) {
+    return (
+      <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 overflow-hidden">
+        {/* Header */}
+        <div className="p-4 border-b border-slate-200 dark:border-slate-700">
+          <button
+            onClick={() => setSelectedDiscussion(null)}
+            className="flex items-center gap-2 text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
+          >
+            <ChevronRight className="w-4 h-4 rotate-180" />
+            {t.back}
+          </button>
+        </div>
+
+        {/* Discussion Detail */}
+        <div className="p-6">
+          <h1 className="text-xl font-bold text-slate-900 dark:text-white mb-4">
+            {selectedDiscussion.title}
+          </h1>
+          
+          <div className="flex items-center gap-4 mb-4 text-sm text-slate-500">
+            <span>{selectedDiscussion.authorName}</span>
+            <span>{selectedDiscussion.authorTitle}</span>
+            <span>{formatTimeAgo(selectedDiscussion.createdAt)}</span>
+          </div>
+
+          <p className="text-slate-600 dark:text-slate-400 mb-6">
+            {selectedDiscussion.content}
+          </p>
+
+          <div className="flex flex-wrap gap-2 mb-6">
+            {selectedDiscussion.tags.map((tag, i) => (
+              <span key={i} className="px-3 py-1 bg-slate-100 dark:bg-slate-700 rounded-full text-sm text-slate-600 dark:text-slate-400">
+                #{tag}
+              </span>
+            ))}
+          </div>
+
+          <div className="flex items-center gap-6 text-sm text-slate-500">
+            <span className="flex items-center gap-1">
+              <Eye className="w-4 h-4" />
+              {selectedDiscussion.views} {t.views}
+            </span>
+            <span className="flex items-center gap-1">
+              <Heart className="w-4 h-4" />
+              {selectedDiscussion.likes}
+            </span>
+            <span className="flex items-center gap-1">
+              <MessageCircle className="w-4 h-4" />
+              {selectedDiscussion.comments} {t.replies}
+            </span>
+          </div>
+        </div>
+
+        {/* Reply Input */}
+        <div className="p-4 border-t border-slate-200 dark:border-slate-700">
+          <div className="flex gap-2">
+            <textarea
+              placeholder={language === 'my' ? 'သင့်အဖြေကို ရေးပါ...' : 'Write your reply...'}
+              rows={3}
+              className="flex-1 px-4 py-3 border border-slate-200 dark:border-slate-700 rounded-xl bg-white dark:bg-slate-800 text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:border-teal-500 resize-none"
+            />
+          </div>
+          <div className="flex justify-end mt-2">
+            <button className="px-6 py-2 bg-teal-500 text-white rounded-xl font-medium hover:bg-teal-600">
+              {language === 'my' ? 'အဖြေပို့ပါ' : 'Post Reply'}
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 overflow-hidden">
+      {/* Header */}
+      <div className="p-4 border-b border-slate-200 dark:border-slate-700">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <MessageSquare className="w-5 h-5 text-teal-500" />
+            <h2 className="font-semibold text-slate-900 dark:text-white">{t.title}</h2>
+          </div>
+          <div className="flex gap-2">
+            <button
+              onClick={loadDiscussions}
+              disabled={loading}
+              className="p-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
+            >
+              <RefreshCw className={cn("w-4 h-4", loading && "animate-spin")} />
+            </button>
+            <button className="px-4 py-2 bg-teal-500 text-white rounded-lg text-sm font-medium flex items-center gap-2 hover:bg-teal-600">
+              <Plus className="w-4 h-4" />
+              {t.newDiscussion}
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Search and Filters */}
+      <div className="p-4 border-b border-slate-200 dark:border-slate-700 space-y-4">
+        {/* Search */}
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+          <input
+            type="text"
+            placeholder={t.search}
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full pl-10 pr-4 py-2 border border-slate-200 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:border-teal-500"
+          />
+        </div>
+
+        {/* Categories */}
+        <div className="flex gap-2 overflow-x-auto pb-2">
+          <button
+            onClick={() => setSelectedCategory('all')}
+            className={cn(
+              "px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-colors",
+              selectedCategory === 'all'
+                ? "bg-teal-500 text-white"
+                : "bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-400"
+            )}
+          >
+            {t.allCategories}
+          </button>
+          {categories.map(cat => (
+            <button
+              key={cat.id}
+              onClick={() => setSelectedCategory(cat.id)}
+              className={cn(
+                "px-4 py-2 rounded-full text-sm whitespace-nowrap transition-colors",
+                selectedCategory === cat.id
+                  ? "bg-teal-500 text-white"
+                  : "bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-400"
+              )}
+            >
+              {language === 'my' ? cat.nameMy : cat.name}
+            </button>
+          ))}
+        </div>
+
+        {/* Sort */}
+        <div className="flex gap-2">
+          {[
+            { id: 'latest', label: t.latest },
+            { id: 'popular', label: t.popular },
+            { id: 'trending', label: t.trending },
+          ].map(sort => (
+            <button
+              key={sort.id}
+              onClick={() => setSortBy(sort.id)}
+              className={cn(
+                "px-3 py-1.5 rounded-lg text-sm transition-colors",
+                sortBy === sort.id
+                  ? "bg-slate-200 dark:bg-slate-600 text-slate-900 dark:text-white"
+                  : "text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-700"
+              )}
+            >
+              {sort.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Discussions List */}
+      <div className="divide-y divide-slate-200 dark:divide-slate-700">
+        {loading ? (
+          <div className="flex items-center justify-center py-12">
+            <RefreshCw className="w-8 h-8 animate-spin text-teal-500" />
+          </div>
+        ) : discussions.length === 0 ? (
+          <div className="text-center py-12 text-slate-500">
+            {language === 'my' ? 'ဆွေးနွေးမှုများ မရှိသေးပါ' : 'No discussions yet'}
+          </div>
+        ) : (
+          discussions.map(discussion => (
+            <button
+              key={discussion.id}
+              onClick={() => setSelectedDiscussion(discussion)}
+              className="w-full text-left p-4 hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors"
+            >
+              <div className="flex items-start gap-4">
+                {/* Badges */}
+                <div className="flex flex-col gap-1 pt-1">
+                  {discussion.isPinned && (
+                    <div className="w-8 h-8 bg-amber-100 dark:bg-amber-900/30 rounded-lg flex items-center justify-center">
+                      <Pin className="w-4 h-4 text-amber-500" />
+                    </div>
+                  )}
+                  {discussion.isHot && !discussion.isPinned && (
+                    <div className="w-8 h-8 bg-red-100 dark:bg-red-900/30 rounded-lg flex items-center justify-center">
+                      <Flame className="w-4 h-4 text-red-500" />
+                    </div>
+                  )}
+                </div>
+
+                {/* Content */}
+                <div className="flex-1 min-w-0">
+                  <h3 className="font-medium text-slate-900 dark:text-white line-clamp-2">
+                    {discussion.title}
+                  </h3>
+                  
+                  <div className="flex items-center gap-2 mt-1 text-sm text-slate-500">
+                    <span>{discussion.authorName}</span>
+                    <span className="text-slate-300">|</span>
+                    <span className="flex items-center gap-1">
+                      <Clock className="w-3 h-3" />
+                      {formatTimeAgo(discussion.lastActivityAt)}
+                    </span>
+                  </div>
+
+                  <div className="flex flex-wrap gap-2 mt-2">
+                    {discussion.tags.slice(0, 3).map((tag, i) => (
+                      <span key={i} className="px-2 py-0.5 bg-slate-100 dark:bg-slate-700 rounded text-xs text-slate-500">
+                        #{tag}
+                      </span>
+                    ))}
+                  </div>
+
+                  <div className="flex items-center gap-4 mt-3 text-sm text-slate-400">
+                    <span className="flex items-center gap-1">
+                      <Eye className="w-4 h-4" />
+                      {discussion.views}
+                    </span>
+                    <span className={cn(
+                      "flex items-center gap-1",
+                      discussion.isLiked && "text-red-500"
+                    )}>
+                      <Heart className={cn("w-4 h-4", discussion.isLiked && "fill-current")} />
+                      {discussion.likes}
+                    </span>
+                    <span className="flex items-center gap-1">
+                      <MessageCircle className="w-4 h-4" />
+                      {discussion.comments}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </button>
+          ))
+        )}
+      </div>
+    </div>
+  );
+}
+=== END FILE ===
+
+################################################################################
+# SECTION: DATA FILES
+################################################################################
+
+=== FILE: src/data/jobs.ts ===
+// Real Job Listings from Excel Files (January & February 2026)
+// Source: Urgent Positions For January.xlsx, Urgent Positions For February 2026.xlsx
+
+export interface Job {
+  id: string;
+  title: string;
+  titleMm?: string;
+  company: string;
+  location: string;
+  salary: string;
+  salaryMin?: number;
+  salaryMax?: number;
+  reward: number; // Referral reward in thousands (MMK)
+  skills: string[];
+  type: 'Full-time' | 'Part-time' | 'Contract' | 'Remote';
+  level: 'Entry' | 'Mid' | 'Senior' | 'Lead';
+  urgent: boolean;
+  posted: string;
+  description?: string;
+}
+
+export const jobs: Job[] = [
+  {
+    id: '1',
+    title: 'Senior Supervisor',
+    company: 'RK Yangon Steel',
+    location: 'Thanlyin',
+    salary: '7.5 - 10 Lakhs',
+    salaryMin: 750000,
+    salaryMax: 1000000,
+    reward: 300,
+    skills: ['Leadership', 'Manufacturing', 'Management', 'Quality Control'],
+    type: 'Full-time',
+    level: 'Senior',
+    urgent: true,
+    posted: '2 days ago',
+    description: 'Lead manufacturing operations and supervise production teams at our steel plant.'
+  },
+  {
+    id: '2',
+    title: 'Warehouse Supervisor',
+    company: 'Universal Energy',
+    location: 'Thingangyun',
+    salary: 'Negotiable',
+    reward: 200,
+    skills: ['Inventory Management', 'Logistics', 'Team Leadership', 'SAP'],
+    type: 'Full-time',
+    level: 'Mid',
+    urgent: false,
+    posted: '1 day ago',
+    description: 'Oversee warehouse operations, inventory control, and logistics coordination.'
+  },
+  {
+    id: '3',
+    title: 'Content & Script Writer',
+    company: 'Shwe Taung Htun',
+    location: 'Mingalar Taung Nyunt',
+    salary: '4 - 6 Lakhs',
+    salaryMin: 400000,
+    salaryMax: 600000,
+    reward: 150,
+    skills: ['Content Writing', 'Creative Writing', 'Burmese', 'Social Media'],
+    type: 'Full-time',
+    level: 'Mid',
+    urgent: false,
+    posted: '3 days ago',
+    description: 'Create engaging content and scripts for marketing campaigns and social media.'
+  },
+  {
+    id: '4',
+    title: 'Site Engineer',
+    company: 'Sun Myat Tun',
+    location: 'Botahtaung',
+    salary: '7.5 Lakhs',
+    salaryMin: 750000,
+    salaryMax: 750000,
+    reward: 250,
+    skills: ['Civil Engineering', 'Construction', 'AutoCAD', 'Project Management'],
+    type: 'Full-time',
+    level: 'Senior',
+    urgent: true,
+    posted: '1 day ago',
+    description: 'Manage construction site operations and ensure quality standards.'
+  },
+  {
+    id: '5',
+    title: 'Data Collector',
+    company: 'NielsenIQ Myanmar',
+    location: 'Mandalay, Sagaing, Meikhtila',
+    salary: '3.5 Lakhs',
+    salaryMin: 350000,
+    salaryMax: 350000,
+    reward: 100,
+    skills: ['Data Collection', 'Research', 'Communication', 'Mobile Apps'],
+    type: 'Full-time',
+    level: 'Entry',
+    urgent: false,
+    posted: '4 days ago',
+    description: 'Collect market research data across multiple regions in Myanmar.'
+  },
+  {
+    id: '6',
+    title: 'Loan Officer',
+    company: 'Real Aid Microfinance',
+    location: 'Ayeyarwady',
+    salary: '4 - 5 Lakhs',
+    salaryMin: 400000,
+    salaryMax: 500000,
+    reward: 150,
+    skills: ['Finance', 'Customer Service', 'Sales', 'Risk Assessment'],
+    type: 'Full-time',
+    level: 'Mid',
+    urgent: false,
+    posted: '3 days ago',
+    description: 'Process loan applications and manage client relationships in the Ayeyarwady region.'
+  },
+  {
+    id: '7',
+    title: 'Cashier',
+    company: 'Real Aid Microfinance',
+    location: 'Ayeyarwady',
+    salary: 'Above 3 Lakhs',
+    salaryMin: 300000,
+    salaryMax: 400000,
+    reward: 80,
+    skills: ['Cash Handling', 'Customer Service', 'Basic Accounting', 'Excel'],
+    type: 'Full-time',
+    level: 'Entry',
+    urgent: false,
+    posted: '5 days ago',
+    description: 'Handle cash transactions and maintain accurate financial records.'
+  },
+  {
+    id: '8',
+    title: 'Brand Executive',
+    company: 'Unicharm Myanmar',
+    location: 'Yankin',
+    salary: '7 - 9 Lakhs',
+    salaryMin: 700000,
+    salaryMax: 900000,
+    reward: 250,
+    skills: ['Brand Management', 'Marketing', 'FMCG', 'Market Analysis'],
+    type: 'Full-time',
+    level: 'Mid',
+    urgent: true,
+    posted: '2 days ago',
+    description: 'Execute brand strategies and manage product portfolios for FMCG products.'
+  },
+  {
+    id: '9',
+    title: 'Assistant Brand Manager',
+    company: 'Unicharm Myanmar',
+    location: 'Yankin',
+    salary: '15 - 17 Lakhs',
+    salaryMin: 1500000,
+    salaryMax: 1700000,
+    reward: 400,
+    skills: ['Brand Strategy', 'Marketing', 'Team Leadership', 'Budget Management'],
+    type: 'Full-time',
+    level: 'Senior',
+    urgent: true,
+    posted: '1 day ago',
+    description: 'Lead brand development initiatives and manage marketing campaigns.'
+  },
+  {
+    id: '10',
+    title: 'Receptionist',
+    company: 'Myanmar Information Technology',
+    location: 'Insein',
+    salary: '3 - 4 Lakhs',
+    salaryMin: 300000,
+    salaryMax: 400000,
+    reward: 80,
+    skills: ['Communication', 'Microsoft Office', 'Customer Service', 'Phone Etiquette'],
+    type: 'Full-time',
+    level: 'Entry',
+    urgent: false,
+    posted: '1 week ago',
+    description: 'Manage front desk operations and provide administrative support.'
+  },
+  {
+    id: '11',
+    title: 'Assistant Accountant',
+    company: 'KBZ Life Insurance',
+    location: 'Bahan',
+    salary: '4 - 5 Lakhs',
+    salaryMin: 400000,
+    salaryMax: 500000,
+    reward: 150,
+    skills: ['Accounting', 'Excel', 'Financial Reporting', 'Attention to Detail'],
+    type: 'Full-time',
+    level: 'Entry',
+    urgent: false,
+    posted: '4 days ago',
+    description: 'Support accounting operations and prepare financial documents.'
+  },
+  {
+    id: '12',
+    title: 'Accountant',
+    company: 'Universal Energy',
+    location: 'Thingangyun',
+    salary: '6 - 7 Lakhs',
+    salaryMin: 600000,
+    salaryMax: 700000,
+    reward: 200,
+    skills: ['Accounting', 'Tax', 'Financial Analysis', 'SAP'],
+    type: 'Full-time',
+    level: 'Mid',
+    urgent: false,
+    posted: '3 days ago',
+    description: 'Manage financial records, prepare reports, and ensure compliance.'
+  },
+  {
+    id: '13',
+    title: 'Online Sale Executive',
+    company: 'Salpyar',
+    location: 'North Dagon',
+    salary: '2.4 Lakhs',
+    salaryMin: 240000,
+    salaryMax: 240000,
+    reward: 60,
+    skills: ['E-commerce', 'Sales', 'Social Media', 'Customer Service'],
+    type: 'Full-time',
+    level: 'Entry',
+    urgent: false,
+    posted: '1 week ago',
+    description: 'Manage online sales channels and customer inquiries.'
+  },
+  {
+    id: '14',
+    title: 'Graphic Designer',
+    company: 'WOW Sport',
+    location: 'Kamaryut',
+    salary: 'Around 10 Lakhs',
+    salaryMin: 1000000,
+    salaryMax: 1000000,
+    reward: 250,
+    skills: ['Adobe Creative Suite', 'Design', 'Illustration', 'Social Media Graphics'],
+    type: 'Full-time',
+    level: 'Mid',
+    urgent: false,
+    posted: '5 days ago',
+    description: 'Create visual designs for marketing materials and social media.'
+  },
+  {
+    id: '15',
+    title: 'Senior Sales Executive',
+    company: 'WOW Sport',
+    location: 'Kamaryut',
+    salary: '10 Lakhs',
+    salaryMin: 1000000,
+    salaryMax: 1000000,
+    reward: 280,
+    skills: ['Sales', 'Negotiation', 'Retail', 'Customer Relationship'],
+    type: 'Full-time',
+    level: 'Senior',
+    urgent: true,
+    posted: '2 days ago',
+    description: 'Drive sales growth and manage key customer relationships.'
+  },
+  {
+    id: '16',
+    title: 'Senior Agency Sales Representative',
+    company: 'AMI',
+    location: 'Kamaryut',
+    salary: '5 - 6.5 Lakhs',
+    salaryMin: 500000,
+    salaryMax: 650000,
+    reward: 180,
+    skills: ['Sales', 'Insurance', 'Relationship Building', 'Presentation'],
+    type: 'Full-time',
+    level: 'Mid',
+    urgent: false,
+    posted: '4 days ago',
+    description: 'Develop and manage insurance agency partnerships.'
+  },
+  {
+    id: '17',
+    title: 'Admin Supervisor',
+    company: 'TOMO',
+    location: 'South Dagon',
+    salary: '5 - 6 Lakhs',
+    salaryMin: 500000,
+    salaryMax: 600000,
+    reward: 170,
+    skills: ['Administration', 'Team Management', 'MS Office', 'Organization'],
+    type: 'Full-time',
+    level: 'Mid',
+    urgent: false,
+    posted: '3 days ago',
+    description: 'Supervise administrative operations and support team coordination.'
+  },
+  {
+    id: '18',
+    title: 'IT Supervisor',
+    company: 'Wave Plus',
+    location: 'Mingalardon',
+    salary: '6 Lakhs',
+    salaryMin: 600000,
+    salaryMax: 600000,
+    reward: 200,
+    skills: ['IT Support', 'Network Administration', 'Troubleshooting', 'Hardware'],
+    type: 'Full-time',
+    level: 'Mid',
+    urgent: true,
+    posted: '1 day ago',
+    description: 'Manage IT infrastructure and provide technical support.'
+  },
+  {
+    id: '19',
+    title: 'Sales Staff',
+    company: 'Yangoods',
+    location: 'Pyin Oo Lwin',
+    salary: '2.04 Lakhs',
+    salaryMin: 204000,
+    salaryMax: 204000,
+    reward: 50,
+    skills: ['Sales', 'Customer Service', 'Retail', 'Product Knowledge'],
+    type: 'Full-time',
+    level: 'Entry',
+    urgent: false,
+    posted: '1 week ago',
+    description: 'Assist customers and drive sales in retail environment.'
+  },
+  {
+    id: '20',
+    title: 'Senior Page Admin',
+    company: 'TOMO',
+    location: 'Tamwe',
+    salary: 'Negotiable',
+    reward: 200,
+    skills: ['Social Media Management', 'Content Creation', 'Analytics', 'Marketing'],
+    type: 'Full-time',
+    level: 'Senior',
+    urgent: false,
+    posted: '3 days ago',
+    description: 'Manage social media pages and develop content strategies.'
+  },
+  {
+    id: '21',
+    title: 'Junior Page Admin',
+    company: 'TOMO',
+    location: 'Tamwe',
+    salary: '3 - 3.5 Lakhs',
+    salaryMin: 300000,
+    salaryMax: 350000,
+    reward: 90,
+    skills: ['Social Media', 'Content Creation', 'Canva', 'Communication'],
+    type: 'Full-time',
+    level: 'Entry',
+    urgent: false,
+    posted: '4 days ago',
+    description: 'Support social media management and content creation.'
+  },
+  {
+    id: '22',
+    title: 'Junior Accountant',
+    company: 'Unicharm Myanmar',
+    location: 'Yankin',
+    salary: '3.5 - 4 Lakhs',
+    salaryMin: 350000,
+    salaryMax: 400000,
+    reward: 100,
+    skills: ['Accounting', 'Excel', 'Data Entry', 'Financial Records'],
+    type: 'Full-time',
+    level: 'Entry',
+    urgent: false,
+    posted: '5 days ago',
+    description: 'Support accounting team with daily financial operations.'
+  },
+  {
+    id: '23',
+    title: 'Accountant',
+    company: 'GK International Company',
+    location: 'Kamaryut',
+    salary: '6.5 - 8 Lakhs',
+    salaryMin: 650000,
+    salaryMax: 800000,
+    reward: 220,
+    skills: ['Accounting', 'Tax', 'Financial Reports', 'ERP'],
+    type: 'Full-time',
+    level: 'Mid',
+    urgent: false,
+    posted: '2 days ago',
+    description: 'Manage financial accounting and reporting functions.'
+  },
+  {
+    id: '24',
+    title: 'Assistant Project Coordinator',
+    company: 'GK International Company',
+    location: 'Kamaryut',
+    salary: '3.5 - 5 Lakhs',
+    salaryMin: 350000,
+    salaryMax: 500000,
+    reward: 130,
+    skills: ['Project Management', 'Coordination', 'Communication', 'Documentation'],
+    type: 'Full-time',
+    level: 'Entry',
+    urgent: false,
+    posted: '4 days ago',
+    description: 'Support project coordination and documentation.'
+  },
+  {
+    id: '25',
+    title: 'Interior Designer',
+    company: 'Delight Amatat',
+    location: 'Thingangyun',
+    salary: '10 - 15 Lakhs',
+    salaryMin: 1000000,
+    salaryMax: 1500000,
+    reward: 350,
+    skills: ['Interior Design', 'AutoCAD', '3D Modeling', 'SketchUp'],
+    type: 'Full-time',
+    level: 'Senior',
+    urgent: true,
+    posted: '1 day ago',
+    description: 'Design interior spaces and create detailed drawings.'
+  },
+  {
+    id: '26',
+    title: 'Quantity Surveyor',
+    company: 'Delight Amatat',
+    location: 'Thingangyun',
+    salary: '10 - 15 Lakhs',
+    salaryMin: 1000000,
+    salaryMax: 1500000,
+    reward: 350,
+    skills: ['Quantity Surveying', 'Construction', 'Cost Estimation', 'Measurement'],
+    type: 'Full-time',
+    level: 'Senior',
+    urgent: true,
+    posted: '1 day ago',
+    description: 'Prepare cost estimates and manage construction quantities.'
+  }
+];
+
+// Helper functions
+export function getJobsByLevel(level: Job['level']): Job[] {
+  return jobs.filter(job => job.level === level);
+}
+
+export function getJobsByCompany(company: string): Job[] {
+  return jobs.filter(job => job.company.toLowerCase().includes(company.toLowerCase()));
+}
+
+export function getUrgentJobs(): Job[] {
+  return jobs.filter(job => job.urgent);
+}
+
+export function getJobsByLocation(location: string): Job[] {
+  return jobs.filter(job => job.location.toLowerCase().includes(location.toLowerCase()));
+}
+
+export function getTotalRewards(): number {
+  return jobs.reduce((sum, job) => sum + job.reward, 0);
+}
+
+export function getJobStats() {
+  return {
+    total: jobs.length,
+    urgent: jobs.filter(j => j.urgent).length,
+    totalRewards: getTotalRewards(),
+    byLevel: {
+      Entry: jobs.filter(j => j.level === 'Entry').length,
+      Mid: jobs.filter(j => j.level === 'Mid').length,
+      Senior: jobs.filter(j => j.level === 'Senior').length,
+    },
+    companies: [...new Set(jobs.map(j => j.company))].length,
+  };
+}
+=== END FILE ===
+
+=== FILE: src/data/companies.ts ===
+// Real Myanmar Companies with Corporate Logos
+// Company logos use public URLs from their official sources or logo CDN
+
+export interface Company {
+  id: string;
+  name: string;
+  nameMm?: string;
+  logo: string; // Emoji fallback or URL to logo
+  logoUrl?: string; // Real corporate logo URL
+  industry: string;
+  location: string;
+  size: string;
+  rating: number;
+  reviewCount: number;
+  recommendPercent: number;
+  salaryMin: number;
+  salaryMax: number;
+  openJobs: number;
+  description: string;
+  ratings: {
+    workLifeBalance: number;
+    compensation: number;
+    jobSecurity: number;
+    management: number;
+    culture: number;
+  };
+  featured?: boolean;
+  verified?: boolean;
+  founded?: string;
+  website?: string;
+  voteCount?: number; // For People's Award voting
+  awardYear?: number; // Year they won People's Award
+  awardRank?: number; // Rank in People's Award
+}
+
+// Industries for filtering
+export const industries = [
+  'All',
+  'Banking & Finance',
+  'Technology',
+  'Telecommunications',
+  'FMCG',
+  'Manufacturing',
+  'Retail',
+  'Healthcare',
+  'Education',
+  'Insurance',
+  'Construction',
+  'Real Estate',
+  'Hospitality',
+  'Logistics',
+  'Energy',
+  'Agriculture',
+  'Media',
+  'Automotive',
+  'Consulting',
+  'NGO',
+];
+
+// 100+ Real Myanmar Companies
+export const companies: Company[] = [
+  // ===== BANKING & FINANCE =====
+  {
+    id: 'kbz-bank',
+    name: 'KBZ Bank',
+    nameMm: 'KBZ ဘဏ်',
+    logo: '🏦',
+    logoUrl: 'https://www.kbzbank.com/favicon.ico',
+    industry: 'Banking & Finance',
+    location: 'Yangon',
+    size: '5000+',
+    rating: 4.3,
+    reviewCount: 156,
+    recommendPercent: 85,
+    salaryMin: 400000,
+    salaryMax: 2500000,
+    openJobs: 8,
+    description: 'Myanmar\'s largest private bank, part of KBZ Group, offering comprehensive banking services nationwide.',
+    ratings: { workLifeBalance: 4.0, compensation: 4.5, jobSecurity: 4.5, management: 4.0, culture: 4.3 },
+    featured: true,
+    verified: true,
+    founded: '1994',
+    website: 'https://www.kbzbank.com',
+    voteCount: 4523,
+  },
+  {
+    id: 'cb-bank',
+    name: 'CB Bank',
+    nameMm: 'စီဘီဘဏ်',
+    logo: '🏦',
+    logoUrl: 'https://www.cbbank.com.mm/favicon.ico',
+    industry: 'Banking & Finance',
+    location: 'Yangon',
+    size: '3000+',
+    rating: 4.2,
+    reviewCount: 98,
+    recommendPercent: 82,
+    salaryMin: 380000,
+    salaryMax: 2200000,
+    openJobs: 5,
+    description: 'Leading commercial bank in Myanmar with innovative digital banking solutions.',
+    ratings: { workLifeBalance: 4.1, compensation: 4.3, jobSecurity: 4.2, management: 4.0, culture: 4.2 },
+    featured: true,
+    verified: true,
+    founded: '1992',
+    website: 'https://www.cbbank.com.mm',
+    voteCount: 3856,
+  },
+  {
+    id: 'aya-bank',
+    name: 'AYA Bank',
+    nameMm: 'အာရုံယူဘဏ်',
+    logo: '🏦',
+    industry: 'Banking & Finance',
+    location: 'Yangon',
+    size: '2000+',
+    rating: 4.1,
+    reviewCount: 87,
+    recommendPercent: 80,
+    salaryMin: 350000,
+    salaryMax: 2000000,
+    openJobs: 4,
+    description: 'A comprehensive banking institution with strong digital presence and customer service.',
+    ratings: { workLifeBalance: 4.0, compensation: 4.2, jobSecurity: 4.1, management: 3.9, culture: 4.1 },
+    verified: true,
+    founded: '2010',
+    voteCount: 2934,
+  },
+  {
+    id: 'mab-bank',
+    name: 'MAB Bank',
+    nameMm: 'ဧမအေဘီဘဏ်',
+    logo: '🏦',
+    industry: 'Banking & Finance',
+    location: 'Yangon',
+    size: '1000+',
+    rating: 3.9,
+    reviewCount: 65,
+    recommendPercent: 78,
+    salaryMin: 320000,
+    salaryMax: 1800000,
+    openJobs: 3,
+    description: 'Modern banking services with focus on SME and retail customers.',
+    ratings: { workLifeBalance: 3.8, compensation: 4.0, jobSecurity: 3.9, management: 3.8, culture: 4.0 },
+    verified: true,
+    founded: '2010',
+    voteCount: 1876,
+  },
+  {
+    id: 'uab-bank',
+    name: 'UAB Bank',
+    nameMm: 'ယူအေဘီဘဏ်',
+    logo: '🏦',
+    industry: 'Banking & Finance',
+    location: 'Yangon',
+    size: '800+',
+    rating: 3.8,
+    reviewCount: 52,
+    recommendPercent: 76,
+    salaryMin: 300000,
+    salaryMax: 1700000,
+    openJobs: 2,
+    description: 'Progressive bank offering innovative financial solutions.',
+    ratings: { workLifeBalance: 3.7, compensation: 3.9, jobSecurity: 3.8, management: 3.7, culture: 3.9 },
+    voteCount: 1543,
+  },
+  {
+    id: 'yoma-bank',
+    name: 'Yoma Bank',
+    nameMm: 'ရုပ်မဘဏ်',
+    logo: '🏦',
+    industry: 'Banking & Finance',
+    location: 'Yangon',
+    size: '1500+',
+    rating: 4.0,
+    reviewCount: 71,
+    recommendPercent: 79,
+    salaryMin: 340000,
+    salaryMax: 1900000,
+    openJobs: 4,
+    description: 'Part of Yoma Group, one of Myanmar\'s leading business conglomerates.',
+    ratings: { workLifeBalance: 3.9, compensation: 4.1, jobSecurity: 4.0, management: 3.9, culture: 4.0 },
+    verified: true,
+    founded: '1993',
+    voteCount: 2134,
+  },
+  {
+    id: 'agd-bank',
+    name: 'AGD Bank',
+    nameMm: 'အဂျီဒီဘဏ်',
+    logo: '🏦',
+    industry: 'Banking & Finance',
+    location: 'Yangon',
+    size: '500+',
+    rating: 3.7,
+    reviewCount: 43,
+    recommendPercent: 74,
+    salaryMin: 280000,
+    salaryMax: 1500000,
+    openJobs: 2,
+    description: 'Community-focused banking with agricultural and rural development focus.',
+    ratings: { workLifeBalance: 3.6, compensation: 3.8, jobSecurity: 3.7, management: 3.6, culture: 3.8 },
+    voteCount: 987,
+  },
+
+  // ===== TECHNOLOGY =====
+  {
+    id: 'wave-money',
+    name: 'Wave Money',
+    nameMm: 'ဝေဖ်ငွေပေးချေမှု',
+    logo: '📱',
+    logoUrl: 'https://wavemoney.com.mm/favicon.ico',
+    industry: 'Technology',
+    location: 'Yangon',
+    size: '1000+',
+    rating: 4.5,
+    reviewCount: 134,
+    recommendPercent: 91,
+    salaryMin: 500000,
+    salaryMax: 3000000,
+    openJobs: 6,
+    description: 'Myanmar\'s leading mobile financial services provider, revolutionizing digital payments.',
+    ratings: { workLifeBalance: 4.4, compensation: 4.6, jobSecurity: 4.3, management: 4.5, culture: 4.7 },
+    featured: true,
+    verified: true,
+    founded: '2016',
+    website: 'https://wavemoney.com.mm',
+    voteCount: 5632,
+    awardYear: 2024,
+    awardRank: 1,
+  },
+  {
+    id: 'kbz-pay',
+    name: 'KBZ Pay',
+    nameMm: 'KBZ ေပးချေ',
+    logo: '💳',
+    industry: 'Technology',
+    location: 'Yangon',
+    size: '500+',
+    rating: 4.3,
+    reviewCount: 98,
+    recommendPercent: 87,
+    salaryMin: 450000,
+    salaryMax: 2500000,
+    openJobs: 5,
+    description: 'Myanmar\'s most popular mobile wallet with millions of users nationwide.',
+    ratings: { workLifeBalance: 4.2, compensation: 4.4, jobSecurity: 4.3, management: 4.2, culture: 4.4 },
+    featured: true,
+    verified: true,
+    founded: '2018',
+    voteCount: 4876,
+    awardYear: 2024,
+    awardRank: 2,
+  },
+  {
+    id: 'cb-pay',
+    name: 'CB Pay',
+    nameMm: 'စီဘီေပးချေ',
+    logo: '💳',
+    industry: 'Technology',
+    location: 'Yangon',
+    size: '300+',
+    rating: 4.1,
+    reviewCount: 67,
+    recommendPercent: 83,
+    salaryMin: 400000,
+    salaryMax: 2200000,
+    openJobs: 3,
+    description: 'Digital payment platform by CB Bank with innovative features.',
+    ratings: { workLifeBalance: 4.0, compensation: 4.2, jobSecurity: 4.1, management: 4.0, culture: 4.2 },
+    verified: true,
+    voteCount: 3421,
+  },
+  {
+    id: 'true-money',
+    name: 'TrueMoney',
+    nameMm: 'TrueMoney',
+    logo: '💚',
+    industry: 'Technology',
+    location: 'Yangon',
+    size: '400+',
+    rating: 4.0,
+    reviewCount: 72,
+    recommendPercent: 81,
+    salaryMin: 380000,
+    salaryMax: 2000000,
+    openJobs: 4,
+    description: 'Regional e-wallet service with presence across Southeast Asia.',
+    ratings: { workLifeBalance: 3.9, compensation: 4.1, jobSecurity: 4.0, management: 3.9, culture: 4.1 },
+    verified: true,
+    voteCount: 2876,
+  },
+  {
+    id: 'myanma-ict',
+    name: 'Myanma ICT',
+    nameMm: 'မြန်မာ ICT',
+    logo: '💻',
+    industry: 'Technology',
+    location: 'Yangon',
+    size: '200+',
+    rating: 3.9,
+    reviewCount: 45,
+    recommendPercent: 78,
+    salaryMin: 400000,
+    salaryMax: 1800000,
+    openJobs: 3,
+    description: 'Local IT solutions provider serving businesses across Myanmar.',
+    ratings: { workLifeBalance: 3.8, compensation: 4.0, jobSecurity: 3.8, management: 3.7, culture: 4.0 },
+    voteCount: 1234,
+  },
+  {
+    id: 'fsm',
+    name: 'Frontiir',
+    nameMm: 'Frontiir',
+    logo: '🌐',
+    industry: 'Technology',
+    location: 'Yangon',
+    size: '300+',
+    rating: 4.2,
+    reviewCount: 56,
+    recommendPercent: 84,
+    salaryMin: 450000,
+    salaryMax: 2500000,
+    openJobs: 4,
+    description: 'Technology company behind Myanmar\'s popular internet services.',
+    ratings: { workLifeBalance: 4.1, compensation: 4.3, jobSecurity: 4.2, management: 4.1, culture: 4.3 },
+    verified: true,
+    voteCount: 2145,
+  },
+
+  // ===== TELECOMMUNICATIONS =====
+  {
+    id: 'mpt',
+    name: 'MPT',
+    nameMm: 'MPT',
+    logo: '📡',
+    logoUrl: 'https://www.mpt.com.mm/favicon.ico',
+    industry: 'Telecommunications',
+    location: 'Yangon',
+    size: '5000+',
+    rating: 4.0,
+    reviewCount: 189,
+    recommendPercent: 80,
+    salaryMin: 350000,
+    salaryMax: 2800000,
+    openJobs: 7,
+    description: 'Myanmar\'s largest telecommunications provider with nationwide coverage.',
+    ratings: { workLifeBalance: 3.9, compensation: 4.2, jobSecurity: 4.1, management: 3.9, culture: 4.0 },
+    featured: true,
+    verified: true,
+    founded: '1885',
+    website: 'https://www.mpt.com.mm',
+    voteCount: 5432,
+    awardYear: 2024,
+    awardRank: 3,
+  },
+  {
+    id: 'telenor-myanmar',
+    name: 'Telenor Myanmar',
+    nameMm: 'တယ်လီနော',
+    logo: '📱',
+    industry: 'Telecommunications',
+    location: 'Yangon',
+    size: '2000+',
+    rating: 4.2,
+    reviewCount: 145,
+    recommendPercent: 84,
+    salaryMin: 400000,
+    salaryMax: 3000000,
+    openJobs: 5,
+    description: 'International telecommunications company with strong presence in Myanmar.',
+    ratings: { workLifeBalance: 4.1, compensation: 4.4, jobSecurity: 4.0, management: 4.2, culture: 4.3 },
+    featured: true,
+    verified: true,
+    founded: '2013',
+    voteCount: 4321,
+  },
+  {
+    id: 'ooredoo-myanmar',
+    name: 'Ooredoo Myanmar',
+    nameMm: 'အိုရီဒူ',
+    logo: '📡',
+    industry: 'Telecommunications',
+    location: 'Yangon',
+    size: '1500+',
+    rating: 4.1,
+    reviewCount: 112,
+    recommendPercent: 82,
+    salaryMin: 380000,
+    salaryMax: 2700000,
+    openJobs: 4,
+    description: 'Qatar-based telecommunications provider with innovative services.',
+    ratings: { workLifeBalance: 4.0, compensation: 4.3, jobSecurity: 4.0, management: 4.0, culture: 4.2 },
+    verified: true,
+    founded: '2013',
+    voteCount: 3654,
+  },
+  {
+    id: 'mytel',
+    name: 'Mytel',
+    nameMm: 'မိုင်တယ်',
+    logo: '📡',
+    industry: 'Telecommunications',
+    location: 'Yangon',
+    size: '2000+',
+    rating: 3.8,
+    reviewCount: 87,
+    recommendPercent: 76,
+    salaryMin: 320000,
+    salaryMax: 2200000,
+    openJobs: 5,
+    description: 'Vietnam-backed telecommunications company with growing network.',
+    ratings: { workLifeBalance: 3.7, compensation: 4.0, jobSecurity: 3.8, management: 3.7, culture: 3.9 },
+    verified: true,
+    voteCount: 2876,
+  },
+
+  // ===== FMCG =====
+  {
+    id: 'unicharm-myanmar',
+    name: 'Unicharm Myanmar',
+    nameMm: 'ယူနီချမ်မြန်မာ',
+    logo: '🧴',
+    industry: 'FMCG',
+    location: 'Yangon',
+    size: '500+',
+    rating: 4.2,
+    reviewCount: 78,
+    recommendPercent: 85,
+    salaryMin: 350000,
+    salaryMax: 1700000,
+    openJobs: 4,
+    description: 'Leading consumer goods company known for personal care products.',
+    ratings: { workLifeBalance: 4.0, compensation: 4.3, jobSecurity: 4.2, management: 4.0, culture: 4.4 },
+    featured: true,
+    verified: true,
+    voteCount: 3212,
+  },
+  {
+    id: 'unilever-myanmar',
+    name: 'Unilever Myanmar',
+    nameMm: 'ယူနီလီဗာမြန်မာ',
+    logo: '🧼',
+    industry: 'FMCG',
+    location: 'Yangon',
+    size: '400+',
+    rating: 4.4,
+    reviewCount: 92,
+    recommendPercent: 89,
+    salaryMin: 400000,
+    salaryMax: 2500000,
+    openJobs: 5,
+    description: 'Global consumer goods giant with strong presence in Myanmar market.',
+    ratings: { workLifeBalance: 4.3, compensation: 4.5, jobSecurity: 4.4, management: 4.3, culture: 4.5 },
+    featured: true,
+    verified: true,
+    voteCount: 4567,
+  },
+  {
+    id: 'p-g-myanmar',
+    name: 'P&G Myanmar',
+    nameMm: 'ပီ&ဂျီမြန်မာ',
+    logo: '🧴',
+    industry: 'FMCG',
+    location: 'Yangon',
+    size: '200+',
+    rating: 4.3,
+    reviewCount: 67,
+    recommendPercent: 87,
+    salaryMin: 420000,
+    salaryMax: 2600000,
+    openJobs: 3,
+    description: 'Procter & Gamble\'s operations in Myanmar with premium consumer brands.',
+    ratings: { workLifeBalance: 4.2, compensation: 4.5, jobSecurity: 4.3, management: 4.2, culture: 4.4 },
+    verified: true,
+    voteCount: 3543,
+  },
+  {
+    id: 'nestle-myanmar',
+    name: 'Nestle Myanmar',
+    nameMm: 'နက်စလေမြန်မာ',
+    logo: '☕',
+    industry: 'FMCG',
+    location: 'Yangon',
+    size: '300+',
+    rating: 4.2,
+    reviewCount: 71,
+    recommendPercent: 85,
+    salaryMin: 380000,
+    salaryMax: 2300000,
+    openJobs: 4,
+    description: 'World\'s largest food and beverage company in Myanmar.',
+    ratings: { workLifeBalance: 4.1, compensation: 4.4, jobSecurity: 4.2, management: 4.1, culture: 4.3 },
+    verified: true,
+    voteCount: 3321,
+  },
+  {
+    id: 'coca-cola-myanmar',
+    name: 'Coca-Cola Pinya Beverages',
+    nameMm: 'ကိုကာကိုလာပင်းယ',
+    logo: '🥤',
+    industry: 'FMCG',
+    location: 'Yangon',
+    size: '600+',
+    rating: 4.1,
+    reviewCount: 83,
+    recommendPercent: 83,
+    salaryMin: 360000,
+    salaryMax: 2100000,
+    openJobs: 5,
+    description: 'Official Coca-Cola bottler and distributor in Myanmar.',
+    ratings: { workLifeBalance: 4.0, compensation: 4.2, jobSecurity: 4.1, management: 4.0, culture: 4.2 },
+    verified: true,
+    voteCount: 3187,
+  },
+  {
+    id: 'laska-myanmar',
+    name: 'Laska Myanmar',
+    nameMm: 'လက်စကာမြန်မာ',
+    logo: '🥛',
+    industry: 'FMCG',
+    location: 'Yangon',
+    size: '200+',
+    rating: 3.9,
+    reviewCount: 45,
+    recommendPercent: 78,
+    salaryMin: 300000,
+    salaryMax: 1500000,
+    openJobs: 3,
+    description: 'Local FMCG company producing food and beverage products.',
+    ratings: { workLifeBalance: 3.8, compensation: 4.0, jobSecurity: 3.9, management: 3.8, culture: 4.0 },
+    voteCount: 1876,
+  },
+
+  // ===== MANUFACTURING =====
+  {
+    id: 'mpe',
+    name: 'Myanmar Petroleum',
+    nameMm: 'မြန်မာပတ်ထရိုလီယံ',
+    logo: '⛽',
+    industry: 'Manufacturing',
+    location: 'Yangon',
+    size: '1000+',
+    rating: 4.0,
+    reviewCount: 67,
+    recommendPercent: 80,
+    salaryMin: 350000,
+    salaryMax: 2000000,
+    openJobs: 4,
+    description: 'Major petroleum products manufacturer and distributor.',
+    ratings: { workLifeBalance: 3.9, compensation: 4.2, jobSecurity: 4.1, management: 3.9, culture: 4.0 },
+    verified: true,
+    voteCount: 2345,
+  },
+  {
+    id: 'mm-pulp',
+    name: 'Myanmar Pulp & Paper',
+    nameMm: 'မြန်မာစက္ကူ',
+    logo: '📄',
+    industry: 'Manufacturing',
+    location: 'Yangon',
+    size: '500+',
+    rating: 3.8,
+    reviewCount: 43,
+    recommendPercent: 76,
+    salaryMin: 280000,
+    salaryMax: 1400000,
+    openJobs: 2,
+    description: 'Leading paper and pulp manufacturer in Myanmar.',
+    ratings: { workLifeBalance: 3.7, compensation: 3.9, jobSecurity: 3.8, management: 3.7, culture: 3.9 },
+    voteCount: 1234,
+  },
+  {
+    id: 'diamond-peak',
+    name: 'Diamond Peak',
+    nameMm: 'စိန်ထိပ်',
+    logo: '🏭',
+    industry: 'Manufacturing',
+    location: 'Yangon',
+    size: '300+',
+    rating: 3.9,
+    reviewCount: 38,
+    recommendPercent: 77,
+    salaryMin: 300000,
+    salaryMax: 1600000,
+    openJobs: 3,
+    description: 'Consumer goods manufacturer with diverse product portfolio.',
+    ratings: { workLifeBalance: 3.8, compensation: 4.0, jobSecurity: 3.9, management: 3.8, culture: 4.0 },
+    voteCount: 1543,
+  },
+  {
+    id: 'great-wall',
+    name: 'Great Wall Industries',
+    nameMm: 'ဂရိတ်ဝေါလ်',
+    logo: '🏭',
+    industry: 'Manufacturing',
+    location: 'Mandalay',
+    size: '400+',
+    rating: 3.7,
+    reviewCount: 35,
+    recommendPercent: 74,
+    salaryMin: 260000,
+    salaryMax: 1300000,
+    openJobs: 2,
+    description: 'Industrial manufacturing company producing consumer goods.',
+    ratings: { workLifeBalance: 3.6, compensation: 3.8, jobSecurity: 3.7, management: 3.6, culture: 3.8 },
+    voteCount: 1123,
+  },
+
+  // ===== RETAIL =====
+  {
+    id: 'city-mart',
+    name: 'City Mart Holdings',
+    nameMm: 'စီးတီးမတ်',
+    logo: '🛒',
+    logoUrl: 'https://www.citymart.com.mm/favicon.ico',
+    industry: 'Retail',
+    location: 'Yangon',
+    size: '3000+',
+    rating: 4.1,
+    reviewCount: 134,
+    recommendPercent: 82,
+    salaryMin: 250000,
+    salaryMax: 1500000,
+    openJobs: 8,
+    description: 'Myanmar\'s largest retail chain with supermarkets, convenience stores, and more.',
+    ratings: { workLifeBalance: 4.0, compensation: 4.2, jobSecurity: 4.1, management: 4.0, culture: 4.2 },
+    featured: true,
+    verified: true,
+    founded: '1996',
+    website: 'https://www.citymart.com.mm',
+    voteCount: 3987,
+  },
+  {
+    id: 'ocean-supercenter',
+    name: 'Ocean Supercenter',
+    nameMm: 'ရေပြင်စူပါစင်တာ',
+    logo: '🏬',
+    industry: 'Retail',
+    location: 'Yangon',
+    size: '2000+',
+    rating: 4.0,
+    reviewCount: 98,
+    recommendPercent: 80,
+    salaryMin: 240000,
+    salaryMax: 1400000,
+    openJobs: 6,
+    description: 'Popular hypermarket chain with stores across major cities.',
+    ratings: { workLifeBalance: 3.9, compensation: 4.1, jobSecurity: 4.0, management: 3.9, culture: 4.1 },
+    verified: true,
+    voteCount: 2876,
+  },
+  {
+    id: 'capital-hypermarket',
+    name: 'Capital Hypermarket',
+    nameMm: 'ကယ်ပီတယ်စူပါမာကက်',
+    logo: '🛒',
+    industry: 'Retail',
+    location: 'Yangon',
+    size: '1500+',
+    rating: 3.9,
+    reviewCount: 76,
+    recommendPercent: 78,
+    salaryMin: 230000,
+    salaryMax: 1300000,
+    openJobs: 5,
+    description: 'Growing retail chain offering wide variety of products.',
+    ratings: { workLifeBalance: 3.8, compensation: 4.0, jobSecurity: 3.9, management: 3.8, culture: 4.0 },
+    voteCount: 2234,
+  },
+  {
+    id: 'wow-sport',
+    name: 'WOW Sport',
+    nameMm: 'WOW အားကစား',
+    logo: '⚽',
+    industry: 'Retail',
+    location: 'Yangon',
+    size: '500+',
+    rating: 3.8,
+    reviewCount: 52,
+    recommendPercent: 75,
+    salaryMin: 280000,
+    salaryMax: 1200000,
+    openJobs: 3,
+    description: 'Leading sports retail chain with multiple locations.',
+    ratings: { workLifeBalance: 3.7, compensation: 3.9, jobSecurity: 3.8, management: 3.7, culture: 3.9 },
+    verified: true,
+    voteCount: 1876,
+  },
+  {
+    id: 'mandalar-mobile',
+    name: 'Mandalar Mobile',
+    nameMm: 'မန္တလာမိုဘိုင်း',
+    logo: '📱',
+    industry: 'Retail',
+    location: 'Mandalay',
+    size: '400+',
+    rating: 3.7,
+    reviewCount: 45,
+    recommendPercent: 74,
+    salaryMin: 250000,
+    salaryMax: 1100000,
+    openJobs: 2,
+    description: 'Mobile phone and accessories retail chain.',
+    ratings: { workLifeBalance: 3.6, compensation: 3.8, jobSecurity: 3.7, management: 3.6, culture: 3.8 },
+    voteCount: 1432,
+  },
+
+  // ===== HEALTHCARE =====
+  {
+    id: 'pun-hlaing-hospital',
+    name: 'Pun Hlaing Hospital',
+    nameMm: 'ပွင့်လှိုင်ဆေးရုံ',
+    logo: '🏥',
+    industry: 'Healthcare',
+    location: 'Yangon',
+    size: '500+',
+    rating: 4.3,
+    reviewCount: 89,
+    recommendPercent: 87,
+    salaryMin: 350000,
+    salaryMax: 3000000,
+    openJobs: 6,
+    description: 'Myanmar\'s premier international standard hospital.',
+    ratings: { workLifeBalance: 4.1, compensation: 4.4, jobSecurity: 4.3, management: 4.2, culture: 4.4 },
+    featured: true,
+    verified: true,
+    voteCount: 3654,
+  },
+  {
+    id: 'asia-royal-hospital',
+    name: 'Asia Royal Hospital',
+    nameMm: 'အေရှားရွိုင်ယယ်ဆေးရုံ',
+    logo: '🏥',
+    industry: 'Healthcare',
+    location: 'Yangon',
+    size: '400+',
+    rating: 4.2,
+    reviewCount: 76,
+    recommendPercent: 85,
+    salaryMin: 320000,
+    salaryMax: 2800000,
+    openJobs: 5,
+    description: 'Leading private hospital with comprehensive medical services.',
+    ratings: { workLifeBalance: 4.0, compensation: 4.3, jobSecurity: 4.2, management: 4.1, culture: 4.3 },
+    verified: true,
+    voteCount: 3123,
+  },
+  {
+    id: 'shwe-gon-dagon-hospital',
+    name: 'Shwe Gon Dagon Hospital',
+    nameMm: 'ရွှေဂုံဒဂုံဆေးရုံ',
+    logo: '🏥',
+    industry: 'Healthcare',
+    location: 'Yangon',
+    size: '300+',
+    rating: 4.0,
+    reviewCount: 58,
+    recommendPercent: 82,
+    salaryMin: 280000,
+    salaryMax: 2200000,
+    openJobs: 4,
+    description: 'Well-established private healthcare facility.',
+    ratings: { workLifeBalance: 3.9, compensation: 4.1, jobSecurity: 4.0, management: 3.9, culture: 4.1 },
+    voteCount: 2345,
+  },
+  {
+    id: 'parami-hospital',
+    name: 'Parami Hospital',
+    nameMm: 'ပရမီဆေးရုံ',
+    logo: '🏥',
+    industry: 'Healthcare',
+    location: 'Yangon',
+    size: '200+',
+    rating: 3.9,
+    reviewCount: 45,
+    recommendPercent: 79,
+    salaryMin: 260000,
+    salaryMax: 1800000,
+    openJobs: 3,
+    description: 'Modern healthcare facility with specialized services.',
+    ratings: { workLifeBalance: 3.8, compensation: 4.0, jobSecurity: 3.9, management: 3.8, culture: 4.0 },
+    voteCount: 1876,
+  },
+
+  // ===== EDUCATION =====
+  {
+    id: 'yangon-university',
+    name: 'Yangon University',
+    nameMm: 'ရန်ကုန်တက္ကသိုလ်',
+    logo: '🎓',
+    industry: 'Education',
+    location: 'Yangon',
+    size: '1000+',
+    rating: 4.1,
+    reviewCount: 156,
+    recommendPercent: 84,
+    salaryMin: 250000,
+    salaryMax: 1200000,
+    openJobs: 5,
+    description: 'Myanmar\'s oldest and most prestigious university.',
+    ratings: { workLifeBalance: 4.2, compensation: 3.8, jobSecurity: 4.3, management: 4.0, culture: 4.2 },
+    verified: true,
+    founded: '1920',
+    voteCount: 4231,
+  },
+  {
+    id: 'myanmar-maritime-university',
+    name: 'Myanmar Maritime University',
+    nameMm: 'မြန်မာနိုင်ငံပင်လယ်ရေကြောင်းတက္ကသိုလ်',
+    logo: '🎓',
+    industry: 'Education',
+    location: 'Yangon',
+    size: '300+',
+    rating: 4.0,
+    reviewCount: 67,
+    recommendPercent: 82,
+    salaryMin: 280000,
+    salaryMax: 1400000,
+    openJobs: 3,
+    description: 'Specialized university for maritime studies.',
+    ratings: { workLifeBalance: 4.1, compensation: 3.9, jobSecurity: 4.2, management: 4.0, culture: 4.0 },
+    verified: true,
+    voteCount: 2345,
+  },
+  {
+    id: 'uct',
+    name: 'University of Computer Studies',
+    nameMm: 'နည်းပညာတက္ကသိုလ်',
+    logo: '💻',
+    industry: 'Education',
+    location: 'Yangon',
+    size: '200+',
+    rating: 3.9,
+    reviewCount: 89,
+    recommendPercent: 79,
+    salaryMin: 250000,
+    salaryMax: 1100000,
+    openJobs: 4,
+    description: 'Leading institution for computer science education.',
+    ratings: { workLifeBalance: 4.0, compensation: 3.8, jobSecurity: 4.1, management: 3.8, culture: 4.0 },
+    verified: true,
+    voteCount: 2765,
+  },
+  {
+    id: 'brain-work',
+    name: 'Brain Work Education',
+    nameMm: 'ဘရိန်းဝပ်ပညာရေး',
+    logo: '📚',
+    industry: 'Education',
+    location: 'Yangon',
+    size: '100+',
+    rating: 4.2,
+    reviewCount: 45,
+    recommendPercent: 86,
+    salaryMin: 300000,
+    salaryMax: 1000000,
+    openJobs: 2,
+    description: 'Private education institution specializing in language and professional training.',
+    ratings: { workLifeBalance: 4.1, compensation: 4.0, jobSecurity: 4.0, management: 4.2, culture: 4.3 },
+    voteCount: 1543,
+  },
+
+  // ===== INSURANCE =====
+  {
+    id: 'kbz-life',
+    name: 'KBZ Life Insurance',
+    nameMm: 'KBZ လူမှုဖူလုံရေး',
+    logo: '🛡️',
+    industry: 'Insurance',
+    location: 'Yangon',
+    size: '1000+',
+    rating: 4.0,
+    reviewCount: 78,
+    recommendPercent: 81,
+    salaryMin: 300000,
+    salaryMax: 1800000,
+    openJobs: 4,
+    description: 'Myanmar\'s leading life insurance provider.',
+    ratings: { workLifeBalance: 3.9, compensation: 4.2, jobSecurity: 4.1, management: 3.9, culture: 4.1 },
+    verified: true,
+    voteCount: 2876,
+  },
+  {
+    id: 'dawei-insurance',
+    name: 'Dawei Insurance',
+    nameMm: 'ဒေသန္တရီအာမခံ',
+    logo: '🛡️',
+    industry: 'Insurance',
+    location: 'Yangon',
+    size: '300+',
+    rating: 3.8,
+    reviewCount: 34,
+    recommendPercent: 76,
+    salaryMin: 280000,
+    salaryMax: 1400000,
+    openJobs: 2,
+    description: 'Growing insurance company with diverse products.',
+    ratings: { workLifeBalance: 3.7, compensation: 3.9, jobSecurity: 3.8, management: 3.7, culture: 3.9 },
+    voteCount: 1234,
+  },
+  {
+    id: 'aung-myint-mo',
+    name: 'Aung Myint Mo Insurance',
+    nameMm: 'အောင်မြင့်မိုရ်အာမခံ',
+    logo: '🛡️',
+    industry: 'Insurance',
+    location: 'Yangon',
+    size: '200+',
+    rating: 3.7,
+    reviewCount: 28,
+    recommendPercent: 74,
+    salaryMin: 260000,
+    salaryMax: 1200000,
+    openJobs: 2,
+    description: 'Local insurance provider with personal lines focus.',
+    ratings: { workLifeBalance: 3.6, compensation: 3.8, jobSecurity: 3.7, management: 3.6, culture: 3.8 },
+    voteCount: 987,
+  },
+
+  // ===== CONSTRUCTION =====
+  {
+    id: 'delight-amatat',
+    name: 'Delight Amatat',
+    nameMm: 'ဒိလိုက်အမတတ်',
+    logo: '🏗️',
+    industry: 'Construction',
+    location: 'Yangon',
+    size: '300+',
+    rating: 4.1,
+    reviewCount: 45,
+    recommendPercent: 83,
+    salaryMin: 400000,
+    salaryMax: 2000000,
+    openJobs: 4,
+    description: 'Premium interior design and construction company.',
+    ratings: { workLifeBalance: 3.9, compensation: 4.3, jobSecurity: 4.0, management: 4.0, culture: 4.1 },
+    featured: true,
+    voteCount: 2345,
+  },
+  {
+    id: 'sp-construction',
+    name: 'SP Construction',
+    nameMm: 'အက်စ်ပီတည်ဆောက်ရေး',
+    logo: '🏗️',
+    industry: 'Construction',
+    location: 'Yangon',
+    size: '500+',
+    rating: 3.9,
+    reviewCount: 56,
+    recommendPercent: 78,
+    salaryMin: 350000,
+    salaryMax: 1800000,
+    openJobs: 5,
+    description: 'Major construction company with infrastructure projects.',
+    ratings: { workLifeBalance: 3.7, compensation: 4.1, jobSecurity: 3.9, management: 3.8, culture: 3.9 },
+    voteCount: 2134,
+  },
+  {
+    id: 'max-construction',
+    name: 'MAX Construction',
+    nameMm: 'မက်စ်တည်ဆောက်ရေး',
+    logo: '🏗️',
+    industry: 'Construction',
+    location: 'Yangon',
+    size: '400+',
+    rating: 3.8,
+    reviewCount: 42,
+    recommendPercent: 76,
+    salaryMin: 320000,
+    salaryMax: 1600000,
+    openJobs: 3,
+    description: 'Building construction and real estate development.',
+    ratings: { workLifeBalance: 3.6, compensation: 4.0, jobSecurity: 3.8, management: 3.7, culture: 3.9 },
+    voteCount: 1765,
+  },
+
+  // ===== REAL ESTATE =====
+  {
+    id: 'yoma-land',
+    name: 'Yoma Land',
+    nameMm: 'ရုပ်မမြေ',
+    logo: '🏢',
+    industry: 'Real Estate',
+    location: 'Yangon',
+    size: '300+',
+    rating: 4.2,
+    reviewCount: 67,
+    recommendPercent: 85,
+    salaryMin: 400000,
+    salaryMax: 2500000,
+    openJobs: 4,
+    description: 'Myanmar\'s premier real estate developer with landmark projects.',
+    ratings: { workLifeBalance: 4.0, compensation: 4.4, jobSecurity: 4.2, management: 4.1, culture: 4.3 },
+    featured: true,
+    verified: true,
+    voteCount: 3234,
+  },
+  {
+    id: 'fmi',
+    name: 'First Myanmar Investment',
+    nameMm: 'ပထမဆုံးမြန်မာရင်းနှီးမြှုပ်နှံမှု',
+    logo: '🏢',
+    industry: 'Real Estate',
+    location: 'Yangon',
+    size: '200+',
+    rating: 4.0,
+    reviewCount: 54,
+    recommendPercent: 82,
+    salaryMin: 380000,
+    salaryMax: 2300000,
+    openJobs: 3,
+    description: 'Leading investment company with diverse real estate portfolio.',
+    ratings: { workLifeBalance: 3.9, compensation: 4.3, jobSecurity: 4.1, management: 3.9, culture: 4.1 },
+    verified: true,
+    voteCount: 2567,
+  },
+  {
+    id: 'dagon-international',
+    name: 'Dagon International',
+    nameMm: 'ဒဂုံနိုင်ငံတကာ',
+    logo: '🏢',
+    industry: 'Real Estate',
+    location: 'Yangon',
+    size: '150+',
+    rating: 3.8,
+    reviewCount: 38,
+    recommendPercent: 77,
+    salaryMin: 350000,
+    salaryMax: 1800000,
+    openJobs: 2,
+    description: 'Property development and management company.',
+    ratings: { workLifeBalance: 3.7, compensation: 4.0, jobSecurity: 3.8, management: 3.7, culture: 3.9 },
+    voteCount: 1654,
+  },
+
+  // ===== HOSPITALITY =====
+  {
+    id: 'hotel-emporium',
+    name: 'Hotel Emporium',
+    nameMm: 'ဟိုတယ်အမ်ပိုရီယမ်',
+    logo: '🏨',
+    industry: 'Hospitality',
+    location: 'Yangon',
+    size: '400+',
+    rating: 4.1,
+    reviewCount: 72,
+    recommendPercent: 83,
+    salaryMin: 280000,
+    salaryMax: 1500000,
+    openJobs: 5,
+    description: 'Luxury hotel management company in Myanmar.',
+    ratings: { workLifeBalance: 4.0, compensation: 4.2, jobSecurity: 4.1, management: 4.0, culture: 4.2 },
+    verified: true,
+    voteCount: 2543,
+  },
+  {
+    id: 'chatrium-hotel',
+    name: 'Chatrium Hotel',
+    nameMm: 'ချာတီယမ်ဟိုတယ်',
+    logo: '🏨',
+    industry: 'Hospitality',
+    location: 'Yangon',
+    size: '300+',
+    rating: 4.2,
+    reviewCount: 58,
+    recommendPercent: 85,
+    salaryMin: 300000,
+    salaryMax: 1600000,
+    openJobs: 4,
+    description: 'International 5-star hotel brand in Myanmar.',
+    ratings: { workLifeBalance: 4.1, compensation: 4.3, jobSecurity: 4.2, management: 4.1, culture: 4.3 },
+    verified: true,
+    voteCount: 2345,
+  },
+  {
+    id: 'sedona-hotel',
+    name: 'Sedona Hotel',
+    nameMm: 'ဆီဒိုနာဟိုတယ်',
+    logo: '🏨',
+    industry: 'Hospitality',
+    location: 'Yangon',
+    size: '250+',
+    rating: 4.0,
+    reviewCount: 47,
+    recommendPercent: 81,
+    salaryMin: 270000,
+    salaryMax: 1400000,
+    openJobs: 3,
+    description: 'Premier hotel with excellent service standards.',
+    ratings: { workLifeBalance: 3.9, compensation: 4.1, jobSecurity: 4.0, management: 3.9, culture: 4.1 },
+    verified: true,
+    voteCount: 1987,
+  },
+  {
+    id: 'ginki-restaurant',
+    name: 'Ginki Japanese Restaurant',
+    nameMm: 'ဂင်ကီဂျပန်စားသောက်ဆိုင်',
+    logo: '🍣',
+    industry: 'Hospitality',
+    location: 'Yangon',
+    size: '50+',
+    rating: 3.9,
+    reviewCount: 23,
+    recommendPercent: 80,
+    salaryMin: 250000,
+    salaryMax: 900000,
+    openJobs: 2,
+    description: 'Authentic Japanese dining experience.',
+    ratings: { workLifeBalance: 3.8, compensation: 4.0, jobSecurity: 3.9, management: 3.8, culture: 4.0 },
+    voteCount: 876,
+  },
+
+  // ===== LOGISTICS =====
+  {
+    id: 'dhl-myanmar',
+    name: 'DHL Myanmar',
+    nameMm: 'DHL မြန်မာ',
+    logo: '📦',
+    industry: 'Logistics',
+    location: 'Yangon',
+    size: '200+',
+    rating: 4.3,
+    reviewCount: 56,
+    recommendPercent: 88,
+    salaryMin: 350000,
+    salaryMax: 2000000,
+    openJobs: 4,
+    description: 'Global logistics leader with comprehensive services in Myanmar.',
+    ratings: { workLifeBalance: 4.1, compensation: 4.5, jobSecurity: 4.3, management: 4.2, culture: 4.4 },
+    featured: true,
+    verified: true,
+    voteCount: 3432,
+  },
+  {
+    id: 'kerry-logistics',
+    name: 'Kerry Logistics',
+    nameMm: 'ကယ်ရီလော်ဂျစ်စတစ်',
+    logo: '📦',
+    industry: 'Logistics',
+    location: 'Yangon',
+    size: '150+',
+    rating: 4.1,
+    reviewCount: 43,
+    recommendPercent: 84,
+    salaryMin: 320000,
+    salaryMax: 1800000,
+    openJobs: 3,
+    description: 'Asian logistics specialist with regional network.',
+    ratings: { workLifeBalance: 4.0, compensation: 4.3, jobSecurity: 4.1, management: 4.0, culture: 4.2 },
+    verified: true,
+    voteCount: 2567,
+  },
+  {
+    id: 'myanma-post',
+    name: 'Myanma Post',
+    nameMm: 'မြန်မာစာတိုက်',
+    logo: '📬',
+    industry: 'Logistics',
+    location: 'Yangon',
+    size: '500+',
+    rating: 3.7,
+    reviewCount: 67,
+    recommendPercent: 73,
+    salaryMin: 220000,
+    salaryMax: 1000000,
+    openJobs: 4,
+    description: 'National postal service provider.',
+    ratings: { workLifeBalance: 3.6, compensation: 3.8, jobSecurity: 3.8, management: 3.6, culture: 3.8 },
+    verified: true,
+    voteCount: 1876,
+  },
+  {
+    id: 'myawaddy-transport',
+    name: 'Myawaddy Transport',
+    nameMm: 'မြဝတီသယ်ယူပို့ဆောင်ရေး',
+    logo: '🚚',
+    industry: 'Logistics',
+    location: 'Yangon',
+    size: '200+',
+    rating: 3.8,
+    reviewCount: 34,
+    recommendPercent: 76,
+    salaryMin: 260000,
+    salaryMax: 1200000,
+    openJobs: 3,
+    description: 'Local transportation and logistics company.',
+    ratings: { workLifeBalance: 3.6, compensation: 3.9, jobSecurity: 3.8, management: 3.7, culture: 3.8 },
+    voteCount: 1234,
+  },
+
+  // ===== ENERGY =====
+  {
+    id: 'moge',
+    name: 'MOGE',
+    nameMm: 'မြန်မာရေနံနှင့်သဘာဝဓာတ်ငွေ့',
+    logo: '⛽',
+    industry: 'Energy',
+    location: 'Yangon',

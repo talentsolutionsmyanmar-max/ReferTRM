@@ -1,0 +1,598 @@
+// ReferTRM - Complete Data Model for World-Class Platform
+// Myanmar Referral Hiring Platform with Glassdoor + Community Features
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+// ============ USER MANAGEMENT ============
+
+model User {
+  id            String    @id @default(cuid())
+  email         String?   @unique
+  phone         String?   @unique
+  name          String?
+  password      String?   // Hashed password for email auth
+  
+  // Auth providers
+  authProvider   String   @default("email") // email, phone, google, anonymous
+  firebaseUid    String?  @unique
+  
+  // Profile
+  avatarUrl     String?
+  avatarType    String?   @default("neutral") // male, female, neutral
+  avatarSkin    String?   @default("default") // premium skin ID
+  zodiac        String?   // User's zodiac sign
+  traits        Json?     // Personality traits from quiz
+  
+  // Points & Streaks
+  points        Int       @default(0)
+  totalPointsEarned Int   @default(0) // Lifetime points
+  streak        Int       @default(0)
+  maxStreak     Int       @default(0)
+  lastLoginAt   DateTime?
+  lastStreakAt  DateTime?
+  lastBonusClaim DateTime? // Daily bonus last claimed
+  
+  // Referral
+  referralCode  String    @unique @default(cuid())
+  referredBy    String?
+  referralBonus Float     @default(0.15) // 15% bonus
+  totalReferrals Int      @default(0)
+  successfulReferrals Int @default(0)
+  totalEarned   Float     @default(0) // Total MMK earned
+  
+  // Level & Experience
+  level         String    @default("Amateur") // Amateur, Professional, Expert, Master
+  experience    Int       @default(0)
+  
+  // Settings
+  lowDataMode   Boolean   @default(false)
+  textMode      Boolean   @default(false)
+  notifications Boolean   @default(true)
+  language      String    @default("en") // en, mm (Burmese)
+  
+  // Trust Score (Glassdoor-like)
+  trustScore    Float     @default(0)
+  totalReviews  Int       @default(0)
+  avgRating     Float     @default(0)
+  
+  // Timestamps
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  
+  // Relations
+  progress      ModuleProgress[]
+  certificates  Certificate[]
+  pointTransactions PointTransaction[]
+  shopPurchases ShopPurchase[]
+  referralsGiven Referral[]   @relation("Referrer")
+  referralsReceived Referral[] @relation("Referred")
+  applications  JobApplication[]
+  companyReviews CompanyReview[]
+  referrerReviewsReceived ReferrerReview[] @relation("ReviewedReferrer")
+  referrerReviewsGiven ReferrerReview[] @relation("Reviewer")
+  forumPosts    ForumPost[]
+  forumComments ForumComment[]
+  pointTips     PointTip[] @relation("Tipper")
+  tipsReceived  PointTip[] @relation("TipReceiver")
+  meetupRSVPs   MeetupRSVP[]
+}
+
+// ============ JOBS & COMPANIES (Glassdoor-like) ============
+
+model Company {
+  id          String   @id @default(cuid())
+  name        String
+  nameMm      String?  // Burmese name
+  slug        String   @unique // URL-friendly name
+  logo        String?
+  coverImage  String?
+  description String?
+  descriptionMm String?
+  website     String?
+  industry    String?
+  companySize String?  // 1-50, 51-200, 201-500, 500+
+  founded     String?
+  headquarters String?
+  location    String?
+  
+  // Subscription
+  plan        String   @default("free") // free, bronze, silver, gold, diamond
+  hiresUsed   Int      @default(0)
+  hiresLimit  Int      @default(3)
+  
+  // Glassdoor-like ratings
+  overallRating Float   @default(0)
+  workLifeBalance Float @default(0)
+  compensation   Float  @default(0)
+  jobSecurity    Float  @default(0)
+  management     Float  @default(0)
+  culture        Float  @default(0)
+  totalReviews   Int    @default(0)
+  recommendPercent Int  @default(0) // % who recommend to friend
+  approveCEO     Int    @default(0) // % approve CEO
+  
+  // Salary insights
+  salaryInsights Json?  // Aggregated salary data by role
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  jobs        Job[]
+  reviews     CompanyReview[]
+  salaries    SalaryInsight[]
+  photos      CompanyPhoto[]
+}
+
+model CompanyReview {
+  id          String   @id @default(cuid())
+  companyId   String
+  company     Company  @relation(fields: [companyId], references: [id])
+  userId      String
+  user        User     @relation(fields: [userId], references: [id])
+  
+  // Review content
+  title       String
+  summary     String   // Pros
+  cons        String?
+  advice      String?  // Advice to management
+  
+  // Ratings (1-5)
+  rating      Float    // Overall
+  workLifeBalance Float?
+  compensation   Float?
+  jobSecurity    Float?
+  management     Float?
+  culture        Float?
+  
+  // Employment details
+  jobTitle    String?
+  employmentType String? // current, former
+  yearsAtCompany String?
+  location    String?
+  
+  // Status
+  status      String   @default("pending") // pending, approved, rejected
+  helpfulCount Int     @default(0)
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  @@unique([companyId, userId]) // One review per user per company
+}
+
+model CompanyPhoto {
+  id          String   @id @default(cuid())
+  companyId   String
+  company     Company  @relation(fields: [companyId], references: [id])
+  url         String
+  caption     String?
+  uploadedBy  String?
+  approved    Boolean  @default(false)
+  
+  createdAt   DateTime @default(now())
+}
+
+model SalaryInsight {
+  id          String   @id @default(cuid())
+  companyId   String
+  company     Company  @relation(fields: [companyId], references: [id])
+  
+  jobTitle    String
+  jobTitleMm  String?
+  location    String?
+  
+  salaryMin   Float    // in MMK Lakhs
+  salaryMax   Float
+  salaryAvg   Float
+  currency    String   @default("MMK")
+  
+  // Additional info
+  experience  String?  // Entry, Mid, Senior
+  employmentType String? // Full-time, Part-time, Contract
+  
+  submittedBy String?
+  submissions Int      @default(1)
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Job {
+  id          String   @id @default(cuid())
+  title       String
+  titleMm     String?  // Burmese title
+  slug        String   @unique
+  companyId   String
+  company     Company  @relation(fields: [companyId], references: [id])
+  
+  description String?
+  descriptionMm String?
+  requirements String?
+  location    String
+  locationMm  String?
+  
+  salaryMin   Float?   // in MMK (Lakhs)
+  salaryMax   Float?
+  salaryDisplay String? // e.g., "7.5 Lakhs to 10 Lakhs"
+  
+  reward      Float    // Referral reward in thousands MMK
+  successFee  Float    @default(50000) // Company success fee
+  
+  type        String   @default("Full-time") // Full-time, Part-time, Contract
+  level       String   @default("Mid") // Entry, Mid, Senior
+  skills      String?  // JSON array of skills
+  
+  status      String   @default("active") // active, closed, draft
+  urgent      Boolean  @default(false)
+  featured    Boolean  @default(false)
+  views       Int      @default(0)
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  expiresAt   DateTime?
+  
+  applications JobApplication[]
+}
+
+model JobApplication {
+  id          String   @id @default(cuid())
+  jobId       String
+  job         Job      @relation(fields: [jobId], references: [id])
+  referrerId  String
+  referrer    User     @relation(fields: [referrerId], references: [id])
+  
+  candidateName   String
+  candidatePhone  String?
+  candidateEmail  String?
+  candidateCv     String?  // URL to CV file
+  
+  status      String   @default("pending") // pending, reviewed, interviewed, hired, rejected
+  hiredAt     DateTime?
+  
+  rewardPaid  Boolean  @default(false)
+  rewardAmount Float?
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Referral {
+  id          String   @id @default(cuid())
+  referrerId  String
+  referrer    User     @relation("Referrer", fields: [referrerId], references: [id])
+  referredId  String
+  referred    User     @relation("Referred", fields: [referredId], references: [id])
+  
+  level       Int      @default(1) // 1 = direct, 2 = second level, etc.
+  bonusEarned Float?
+  
+  createdAt   DateTime @default(now())
+}
+
+// ============ REFERRER REPUTATION SYSTEM ============
+
+model ReferrerReview {
+  id          String   @id @default(cuid())
+  referrerId  String
+  referrer    User     @relation("ReviewedReferrer", fields: [referrerId], references: [id])
+  reviewerId  String
+  reviewer    User     @relation("Reviewer", fields: [reviewerId], references: [id])
+  
+  // Review content
+  title       String
+  content     String
+  
+  // Ratings (1-5)
+  rating      Float    // Overall
+  responsiveness Float? // How quickly they respond
+  helpfulness    Float? // How helpful they are
+  professionalism Float? // Professional behavior
+  
+  // Context
+  interactionType String? // referral, advice, mentorship
+  
+  status      String   @default("pending") // pending, approved
+  helpfulCount Int     @default(0)
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+// ============ LEARNING & TRACKS ============
+
+model LearningTrack {
+  id          String   @id @default(cuid())
+  title       String
+  titleMm     String?
+  description String
+  descriptionMm String?
+  
+  icon        String?
+  color       String?  // Gradient colors
+  
+  modules     Module[]
+  order       Int      @default(0)
+  active      Boolean  @default(true)
+  
+  // Bonus
+  referralBonus Float  @default(0.15) // +15% on completion
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Module {
+  id          String   @id @default(cuid())
+  trackId     String
+  track       LearningTrack @relation(fields: [trackId], references: [id])
+  
+  title       String
+  titleMm     String?
+  description String?
+  content     String?  // Markdown content
+  videoUrl    String?
+  audioUrl    String?  // Burmese audio guide
+  
+  duration    Int      // in minutes
+  points      Int      @default(10)
+  order       Int      @default(0)
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  progress    ModuleProgress[]
+}
+
+model ModuleProgress {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id])
+  moduleId    String
+  module      Module   @relation(fields: [moduleId], references: [id])
+  
+  status      String   @default("locked") // locked, in_progress, completed
+  progress    Int      @default(0) // 0-100
+  completedAt DateTime?
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  @@unique([userId, moduleId])
+}
+
+model Certificate {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id])
+  trackId     String
+  
+  title       String
+  issuedAt    DateTime @default(now())
+  certificateUrl String?
+  
+  @@unique([userId, trackId])
+}
+
+// ============ POINTS & SHOP ============
+
+model PointTransaction {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id])
+  
+  amount      Int      // Positive for earning, negative for spending
+  type        String   // login, module_complete, streak_bonus, referral, shop_purchase, tip, meetup
+  description String?
+  
+  relatedId   String?  // Related entity ID (module, shop item, etc.)
+  
+  createdAt   DateTime @default(now())
+}
+
+model ShopItem {
+  id          String   @id @default(cuid())
+  name        String
+  nameMm      String?
+  description String?
+  descriptionMm String?
+  image       String?
+  
+  cost        Int      // Points required
+  category    String   // avatar, feature, premium, skin
+  unlockKey   String?  // What feature it unlocks
+  rarity      String   @default("common") // common, rare, epic, legendary
+  
+  active      Boolean  @default(true)
+  createdAt   DateTime @default(now())
+}
+
+model ShopPurchase {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id])
+  itemId      String
+  
+  purchasedAt DateTime @default(now())
+}
+
+// ============ LEADERBOARD ============
+
+model LeaderboardEntry {
+  id          String   @id @default(cuid())
+  userId      String
+  period      String   // daily, weekly, monthly, all_time
+  category    String   // points, referrals, streak
+  
+  value       Int
+  rank        Int
+  
+  updatedAt   DateTime @updatedAt
+  
+  @@unique([userId, period, category])
+}
+
+// ============ COMMUNITY FEATURES ============
+
+model ForumCategory {
+  id          String   @id @default(cuid())
+  name        String
+  nameMm      String?
+  description String?
+  icon        String?
+  order       Int      @default(0)
+  
+  posts       ForumPost[]
+  
+  createdAt   DateTime @default(now())
+}
+
+model ForumPost {
+  id          String   @id @default(cuid())
+  categoryId  String?
+  category    ForumCategory? @relation(fields: [categoryId], references: [id])
+  authorId    String
+  author      User     @relation(fields: [authorId], references: [id])
+  
+  title       String
+  content     String
+  isPinned    Boolean  @default(false)
+  isLocked    Boolean  @default(false)
+  
+  views       Int      @default(0)
+  likes       Int      @default(0)
+  
+  comments    ForumComment[]
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model ForumComment {
+  id          String   @id @default(cuid())
+  postId      String
+  post        ForumPost @relation(fields: [postId], references: [id])
+  authorId    String
+  author      User     @relation(fields: [authorId], references: [id])
+  
+  content     String
+  likes       Int      @default(0)
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model PointTip {
+  id          String   @id @default(cuid())
+  tipperId    String
+  tipper      User     @relation("Tipper", fields: [tipperId], references: [id])
+  receiverId  String
+  receiver    User     @relation("TipReceiver", fields: [receiverId], references: [id])
+  
+  amount      Int
+  reason      String?
+  postId      String?  // Optional: post that earned the tip
+  commentId   String?  // Optional: comment that earned the tip
+  
+  createdAt   DateTime @default(now())
+}
+
+model VirtualMeetup {
+  id          String   @id @default(cuid())
+  title       String
+  titleMm     String?
+  description String?
+  
+  hostId      String
+  coHostIds   String?  // JSON array of co-host user IDs
+  
+  scheduledAt DateTime
+  duration    Int      // minutes
+  platform    String   @default("zoom") // zoom, telegram, google_meet
+  meetingUrl  String?
+  
+  maxAttendees Int?
+  pointCost   Int      @default(0) // Points required to attend
+  pointReward Int      @default(0) // Points earned by attending
+  
+  status      String   @default("scheduled") // scheduled, live, completed, cancelled
+  
+  rsvps       MeetupRSVP[]
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model MeetupRSVP {
+  id          String   @id @default(cuid())
+  meetupId    String
+  meetup      VirtualMeetup @relation(fields: [meetupId], references: [id])
+  userId      String
+  user        User     @relation(fields: [userId], references: [id])
+  
+  status      String   @default("registered") // registered, attended, no_show
+  pointsDeducted Int   @default(0)
+  pointsEarned Int     @default(0)
+  
+  createdAt   DateTime @default(now())
+  
+  @@unique([meetupId, userId])
+}
+
+// ============ MONTHLY PRIZE POOL ============
+
+model PrizePool {
+  id          String   @id @default(cuid())
+  month       String   // "2024-01" format
+  totalAmount Float    // MMK
+  
+  // Distribution
+  firstPlace  Float    // Percentage or fixed amount
+  secondPlace Float?
+  thirdPlace  Float?
+  
+  status      String   @default("active") // active, distributed
+  
+  winners     PrizeWinner[]
+  
+  createdAt   DateTime @default(now())
+}
+
+model PrizeWinner {
+  id          String   @id @default(cuid())
+  poolId      String
+  pool        PrizePool @relation(fields: [poolId], references: [id])
+  userId      String
+  
+  rank        Int
+  prizeAmount Float
+  category    String   // referrals, points, streak
+  
+  awardedAt   DateTime?
+  
+  createdAt   DateTime @default(now())
+}
+
+// ============ CV LEADS (Imported from Excel) ============
+
+model Lead {
+  id               Int      @id @default(autoincrement())
+  name             String?
+  email            String?
+  phone            String?
+  currentPosition  String?  @map("current_position")
+  skills           String?
+  status           String   @default("active")
+  source           String?
+  notes            String?
+  createdAt        DateTime @default(now()) @map("created_at")
+
+  @@map("leads")
+}

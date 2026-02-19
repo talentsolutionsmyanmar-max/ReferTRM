@@ -1,0 +1,3000 @@
+################################################################################
+# REFERTRM - COMPLETE MIGRATION PACKAGE FOR CLAUDE AI
+# Generated: Wed Feb 18 12:39:35 UTC 2026
+# Total Files: 149 TypeScript files
+# Project: ReferTRM - Myanmar's #1 Referral Hiring Platform
+################################################################################
+
+################################################################################
+# SECTION: CONFIGURATION FILES
+################################################################################
+
+=== FILE: package.json ===
+{
+  "name": "refertrm",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "prisma generate && next build",
+    "start": "next start",
+    "lint": "eslint .",
+    "postinstall": "prisma generate"
+  },
+  "dependencies": {
+    "@hookform/resolvers": "^3.3.4",
+    "@prisma/client": "^5.15.0",
+    "@radix-ui/react-accordion": "^1.2.12",
+    "@radix-ui/react-alert-dialog": "^1.1.15",
+    "@radix-ui/react-aspect-ratio": "^1.1.8",
+    "@radix-ui/react-avatar": "^1.0.4",
+    "@radix-ui/react-checkbox": "^1.0.4",
+    "@radix-ui/react-context-menu": "^2.2.16",
+    "@radix-ui/react-dialog": "^1.0.5",
+    "@radix-ui/react-dropdown-menu": "^2.0.6",
+    "@radix-ui/react-hover-card": "^1.1.15",
+    "@radix-ui/react-label": "^2.0.2",
+    "@radix-ui/react-menubar": "^1.1.16",
+    "@radix-ui/react-navigation-menu": "^1.2.14",
+    "@radix-ui/react-popover": "^1.0.7",
+    "@radix-ui/react-progress": "^1.1.8",
+    "@radix-ui/react-scroll-area": "^1.2.10",
+    "@radix-ui/react-select": "^2.0.0",
+    "@radix-ui/react-separator": "^1.0.3",
+    "@radix-ui/react-slider": "^1.3.6",
+    "@radix-ui/react-slot": "^1.0.2",
+    "@radix-ui/react-switch": "^1.0.3",
+    "@radix-ui/react-tabs": "^1.1.13",
+    "@radix-ui/react-toast": "^1.1.5",
+    "@radix-ui/react-toggle": "^1.1.10",
+    "@radix-ui/react-toggle-group": "^1.1.11",
+    "@radix-ui/react-tooltip": "^1.0.7",
+    "@supabase/supabase-js": "^2.39.0",
+    "class-variance-authority": "^0.7.0",
+    "clsx": "^2.1.0",
+    "date-fns": "^3.3.1",
+    "framer-motion": "^12.34.1",
+    "lucide-react": "^0.312.0",
+    "next": "14.2.0",
+    "next-themes": "^0.2.1",
+    "prisma": "^5.15.0",
+    "react": "^18.2.0",
+    "react-day-picker": "^9.13.2",
+    "react-dom": "^18.2.0",
+    "react-hook-form": "^7.50.0",
+    "recharts": "^2.12.0",
+    "sonner": "^1.4.0",
+    "tailwind-merge": "^2.2.0",
+    "tailwindcss-animate": "^1.0.7",
+    "tw-animate-css": "^1.4.0",
+    "z-ai-web-dev-sdk": "^0.0.16",
+    "zod": "^3.22.4",
+    "zustand": "^4.5.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.0",
+    "@types/react": "^18.2.48",
+    "@types/react-dom": "^18.2.18",
+    "autoprefixer": "^10.4.17",
+    "eslint": "^8.56.0",
+    "eslint-config-next": "14.2.0",
+    "postcss": "^8.4.33",
+    "tailwindcss": "^3.4.1",
+    "typescript": "^5.3.3"
+  }
+}
+=== END FILE ===
+
+=== FILE: tsconfig.json ===
+{
+  "compilerOptions": {
+    "target": "ES2017",
+    "lib": [
+      "dom",
+      "dom.iterable",
+      "esnext"
+    ],
+    "allowJs": true,
+    "skipLibCheck": true,
+    "strict": true,
+    "noEmit": true,
+    "noImplicitAny": false,
+    "esModuleInterop": true,
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "jsx": "preserve",
+    "incremental": true,
+    "plugins": [
+      {
+        "name": "next"
+      }
+    ],
+    "paths": {
+      "@/*": [
+        "./src/*"
+      ]
+    }
+  },
+  "include": [
+    "next-env.d.ts",
+    "**/*.ts",
+    "**/*.tsx",
+    ".next/types/**/*.ts",
+    ".next/dev/types/**/*.ts"
+  ],
+  "exclude": [
+    "node_modules"
+  ]
+}
+=== END FILE ===
+
+=== FILE: next.config.js ===
+/** @type {import('next').NextConfig} */
+const nextConfig = {
+  output: "standalone",
+  typescript: {
+    ignoreBuildErrors: true,
+  },
+  reactStrictMode: false,
+  images: {
+    unoptimized: true,
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: '**',
+      },
+    ],
+  },
+};
+
+module.exports = nextConfig;
+=== END FILE ===
+
+=== FILE: tailwind.config.ts ===
+import type { Config } from "tailwindcss";
+import tailwindcssAnimate from "tailwindcss-animate";
+
+const config: Config = {
+    darkMode: "class",
+    content: [
+    "./pages/**/*.{js,ts,jsx,tsx,mdx}",
+    "./components/**/*.{js,ts,jsx,tsx,mdx}",
+    "./app/**/*.{js,ts,jsx,tsx,mdx}",
+  ],
+  theme: {
+  	extend: {
+  		colors: {
+  			background: 'hsl(var(--background))',
+  			foreground: 'hsl(var(--foreground))',
+  			card: {
+  				DEFAULT: 'hsl(var(--card))',
+  				foreground: 'hsl(var(--card-foreground))'
+  			},
+  			popover: {
+  				DEFAULT: 'hsl(var(--popover))',
+  				foreground: 'hsl(var(--popover-foreground))'
+  			},
+  			primary: {
+  				DEFAULT: 'hsl(var(--primary))',
+  				foreground: 'hsl(var(--primary-foreground))'
+  			},
+  			secondary: {
+  				DEFAULT: 'hsl(var(--secondary))',
+  				foreground: 'hsl(var(--secondary-foreground))'
+  			},
+  			muted: {
+  				DEFAULT: 'hsl(var(--muted))',
+  				foreground: 'hsl(var(--muted-foreground))'
+  			},
+  			accent: {
+  				DEFAULT: 'hsl(var(--accent))',
+  				foreground: 'hsl(var(--accent-foreground))'
+  			},
+  			destructive: {
+  				DEFAULT: 'hsl(var(--destructive))',
+  				foreground: 'hsl(var(--destructive-foreground))'
+  			},
+  			border: 'hsl(var(--border))',
+  			input: 'hsl(var(--input))',
+  			ring: 'hsl(var(--ring))',
+  			chart: {
+  				'1': 'hsl(var(--chart-1))',
+  				'2': 'hsl(var(--chart-2))',
+  				'3': 'hsl(var(--chart-3))',
+  				'4': 'hsl(var(--chart-4))',
+  				'5': 'hsl(var(--chart-5))'
+  			}
+  		},
+  		borderRadius: {
+  			lg: 'var(--radius)',
+  			md: 'calc(var(--radius) - 2px)',
+  			sm: 'calc(var(--radius) - 4px)'
+  		}
+  	}
+  },
+  plugins: [tailwindcssAnimate],
+};
+export default config;
+=== END FILE ===
+
+=== FILE: .env.example ===
+# ReferTRM Environment Configuration
+# Copy this file to .env and fill in your values
+
+# ===========================================
+# SUPABASE DATABASE (PostgreSQL)
+# ===========================================
+# Get from: Supabase Dashboard > Settings > Database > Connection string
+DATABASE_URL="postgresql://postgres:[YOUR-PASSWORD]@db.[YOUR-PROJECT-REF].supabase.co:5432/postgres"
+DIRECT_URL="postgresql://postgres:[YOUR-PASSWORD]@db.[YOUR-PROJECT-REF].supabase.co:5432/postgres"
+
+# ===========================================
+# SUPABASE AUTH
+# ===========================================
+# Get from: Supabase Dashboard > Settings > API
+NEXT_PUBLIC_SUPABASE_URL="https://[YOUR-PROJECT-REF].supabase.co"
+NEXT_PUBLIC_SUPABASE_ANON_KEY="[YOUR-ANON-KEY]"
+=== END FILE ===
+
+=== FILE: postcss.config.js ===
+module.exports = {
+  plugins: {
+    tailwindcss: {},
+    autoprefixer: {},
+  },
+}
+=== END FILE ===
+
+=== FILE: vercel.json ===
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "framework": "nextjs",
+  "buildCommand": "bun run build",
+  "devCommand": "bun run dev",
+  "installCommand": "bun install",
+  "regions": ["sin1"],
+  "functions": {
+    "src/app/api/**/*": {
+      "memory": 1024,
+      "maxDuration": 30
+    }
+  },
+  "headers": [
+    {
+      "source": "/(.*)",
+      "headers": [
+        {
+          "key": "X-Content-Type-Options",
+          "value": "nosniff"
+        },
+        {
+          "key": "X-Frame-Options",
+          "value": "DENY"
+        },
+        {
+          "key": "X-XSS-Protection",
+          "value": "1; mode=block"
+        }
+      ]
+    },
+    {
+      "source": "/fonts/(.*)",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=31536000, immutable"
+        }
+      ]
+    },
+    {
+      "source": "/(.*)\\.(jpg|jpeg|png|gif|ico|svg|webp)",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=86400, stale-while-revalidate=604800"
+        }
+      ]
+    }
+  ],
+  "rewrites": [
+    {
+      "source": "/api/:path*",
+      "destination": "/api/:path*"
+    }
+  ]
+}
+=== END FILE ===
+
+################################################################################
+# SECTION: DATABASE SCHEMA
+################################################################################
+
+=== FILE: prisma/schema.prisma ===
+// ReferTRM - MVP Schema (8 Core Tables)
+// SQLite for local dev / PostgreSQL for production
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// ============ CORE TABLES (MVP) ============
+
+// 1. USERS - All user data
+model User {
+  id            String    @id @default(cuid())
+
+  // Auth (Supabase)
+  email         String?   @unique
+  phone         String?   @unique
+  name          String?
+
+  // Profile
+  avatarUrl     String?
+  avatarType    String    @default("neutral")
+
+  // Points & Gamification
+  points        Int       @default(0)
+  totalPoints   Int       @default(0)
+  streak        Int       @default(0)
+  maxStreak     Int       @default(0)
+  level         String    @default("Amateur")
+
+  // Referral
+  referralCode  String    @unique @default(cuid())
+  totalReferrals Int      @default(0)
+  totalEarned   Float     @default(0)
+
+  // Settings
+  language      String    @default("en")
+
+  // Timestamps
+  lastLoginAt   DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  // Relations
+  referrals     Referral[]      @relation("UserReferrals")
+  applications  Application[]
+
+  @@map("users")
+}
+
+// 2. COMPANIES - Company profiles
+model Company {
+  id          String   @id @default(cuid())
+  name        String
+  slug        String   @unique
+  logo        String?
+  industry    String?
+  location    String?
+  website     String?
+  verified    Boolean  @default(false)
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  jobs        Job[]
+
+  @@map("companies")
+}
+
+// 3. JOBS - Job listings
+model Job {
+  id          String   @id @default(cuid())
+  title       String
+  slug        String   @unique
+  companyId   String?
+  company     Company? @relation(fields: [companyId], references: [id])
+
+  location    String
+  salaryMin   Float?
+  salaryMax   Float?
+  reward      Float    @default(0)
+
+  type        String   @default("Full-time")
+  level       String   @default("Mid")
+  skills      String
+
+  status      String   @default("active")
+  urgent      Boolean  @default(false)
+  views       Int      @default(0)
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  expiresAt   DateTime?
+
+  applications Application[]
+
+  @@map("jobs")
+}
+
+// 4. REFERRALS - Referral tracking
+model Referral {
+  id          String   @id @default(cuid())
+
+  referrerId  String
+  referrer    User     @relation("UserReferrals", fields: [referrerId], references: [id])
+
+  candidateName   String
+  candidateEmail  String?
+  candidatePhone  String?
+
+  jobId       String?
+  jobTitle    String?
+  companyName String?
+
+  status      String   @default("pending")
+  rewardAmount Float?
+  rewardPaid  Boolean  @default(false)
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("referrals")
+}
+
+// 5. APPLICATIONS - Job applications
+model Application {
+  id          String   @id @default(cuid())
+
+  jobId       String
+  job         Job      @relation(fields: [jobId], references: [id])
+
+  userId      String
+  user        User     @relation(fields: [userId], references: [id])
+
+  status      String   @default("pending")
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("applications")
+}
+
+// 6. POINT_TRANSACTIONS - Points history
+model PointTransaction {
+  id          String   @id @default(cuid())
+
+  userId      String
+  amount      Int
+  type        String
+  description String?
+
+  createdAt   DateTime @default(now())
+
+  @@map("point_transactions")
+}
+
+// 7. MODULES - Learning modules
+model Module {
+  id          String   @id @default(cuid())
+
+  title       String
+  description String?
+  content     String?
+  points      Int      @default(10)
+  order       Int      @default(0)
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("modules")
+}
+
+// 8. CERTIFICATES - User certificates
+model Certificate {
+  id          String   @id @default(cuid())
+
+  userId      String
+  moduleId    String
+  title       String
+
+  issuedAt    DateTime @default(now())
+
+  @@unique([userId, moduleId])
+  @@map("certificates")
+}
+=== END FILE ===
+
+=== FILE: supabase_refertrum_tables.sql ===
+-- ============================================
+-- ReferTRM Database Setup for Supabase
+-- Run this in Supabase SQL Editor
+-- ============================================
+
+-- 1. Enable UUID extension (if not already enabled)
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+
+-- 2. Create USERS table
+CREATE TABLE IF NOT EXISTS users (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  email VARCHAR(255) UNIQUE,
+  phone VARCHAR(50),
+  name VARCHAR(255),
+  avatar_url TEXT,
+  avatar_type VARCHAR(50) DEFAULT 'neutral',
+  avatar VARCHAR(50) DEFAULT '🧑',
+  points INTEGER DEFAULT 50,
+  total_points_earned INTEGER DEFAULT 50,
+  streak INTEGER DEFAULT 1,
+  max_streak INTEGER DEFAULT 1,
+  referral_code VARCHAR(20) UNIQUE DEFAULT ('REF' || UPPER(SUBSTRING(MD5(RANDOM()::TEXT) FROM 1 FOR 6))),
+  total_referrals INTEGER DEFAULT 0,
+  successful_referrals INTEGER DEFAULT 0,
+  total_earned DECIMAL(12,2) DEFAULT 0,
+  level VARCHAR(50) DEFAULT 'Amateur',
+  completed_modules TEXT[] DEFAULT '{}',
+  purchased_items TEXT[] DEFAULT '{}',
+  last_login_at TIMESTAMP WITH TIME ZONE,
+  last_bonus_claim TIMESTAMP WITH TIME ZONE,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- 3. Create COMPANIES table
+CREATE TABLE IF NOT EXISTS companies (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  name VARCHAR(255) NOT NULL,
+  name_mm VARCHAR(255),
+  industry VARCHAR(100),
+  location VARCHAR(255),
+  website VARCHAR(255),
+  logo_url TEXT,
+  description TEXT,
+  verified BOOLEAN DEFAULT FALSE,
+  rating DECIMAL(3,2) DEFAULT 0,
+  total_reviews INTEGER DEFAULT 0,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- 4. Create JOBS table
+CREATE TABLE IF NOT EXISTS jobs (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  title VARCHAR(255) NOT NULL,
+  title_mm VARCHAR(255),
+  company VARCHAR(255) NOT NULL,
+  company_id UUID REFERENCES companies(id),
+  location VARCHAR(255),
+  salary VARCHAR(100),
+  salary_min INTEGER,
+  salary_max INTEGER,
+  reward INTEGER DEFAULT 0,
+  reward_full INTEGER,
+  skills TEXT[] DEFAULT '{}',
+  type VARCHAR(50) DEFAULT 'Full-time',
+  level VARCHAR(50) DEFAULT 'Mid',
+  urgent BOOLEAN DEFAULT TRUE,
+  description TEXT,
+  requirements TEXT[],
+  benefits TEXT[],
+  status VARCHAR(50) DEFAULT 'active',
+  posted_by UUID,
+  posted_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  expires_at TIMESTAMP WITH TIME ZONE
+);
+
+-- 5. Create REFERRALS table
+CREATE TABLE IF NOT EXISTS referrals (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  referrer_id UUID NOT NULL,
+  referrer_code VARCHAR(20),
+  candidate_name VARCHAR(255) NOT NULL,
+  candidate_email VARCHAR(255),
+  candidate_phone VARCHAR(50),
+  job_id UUID REFERENCES jobs(id),
+  job_title VARCHAR(255),
+  company_id UUID REFERENCES companies(id),
+  company_name VARCHAR(255),
+  status VARCHAR(50) DEFAULT 'pending',
+  reward_amount DECIMAL(12,2) DEFAULT 0,
+  reward_paid BOOLEAN DEFAULT FALSE,
+  notes TEXT,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- 6. Create LEADS table (for CV Lead Tracker data)
+CREATE TABLE IF NOT EXISTS leads (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  name VARCHAR(255),
+  email VARCHAR(255),
+  phone VARCHAR(50),
+  current_company VARCHAR(255),
+  current_position VARCHAR(255),
+  skills TEXT[],
+  experience_years INTEGER,
+  expected_salary INTEGER,
+  preferred_location VARCHAR(255),
+  status VARCHAR(50) DEFAULT 'active',
+  source VARCHAR(100),
+  notes TEXT,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- 7. Enable Row Level Security
+ALTER TABLE users ENABLE ROW LEVEL SECURITY;
+ALTER TABLE companies ENABLE ROW LEVEL SECURITY;
+ALTER TABLE jobs ENABLE ROW LEVEL SECURITY;
+ALTER TABLE referrals ENABLE ROW LEVEL SECURITY;
+ALTER TABLE leads ENABLE ROW LEVEL SECURITY;
+
+-- 8. Create RLS Policies for users table
+CREATE POLICY "Users can view own profile" ON users
+  FOR SELECT USING (auth.uid()::text = id::text);
+
+CREATE POLICY "Users can update own profile" ON users
+  FOR UPDATE USING (auth.uid()::text = id::text);
+
+CREATE POLICY "Anyone can insert user" ON users
+  FOR INSERT WITH CHECK (true);
+
+-- 9. Create RLS Policies for public tables
+CREATE POLICY "Anyone can view companies" ON companies
+  FOR SELECT USING (true);
+
+CREATE POLICY "Anyone can view active jobs" ON jobs
+  FOR SELECT USING (status = 'active');
+
+CREATE POLICY "Anyone can view referrals" ON referrals
+  FOR SELECT USING (true);
+
+CREATE POLICY "Anyone can insert referrals" ON referrals
+  FOR INSERT WITH CHECK (true);
+
+CREATE POLICY "Anyone can view leads" ON leads
+  FOR SELECT USING (true);
+
+-- 10. Create indexes for better performance
+CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
+CREATE INDEX IF NOT EXISTS idx_users_referral_code ON users(referral_code);
+CREATE INDEX IF NOT EXISTS idx_jobs_company ON jobs(company);
+CREATE INDEX IF NOT EXISTS idx_jobs_status ON jobs(status);
+CREATE INDEX IF NOT EXISTS idx_referrals_referrer ON referrals(referrer_id);
+CREATE INDEX IF NOT EXISTS idx_referrals_status ON referrals(status);
+
+-- ============================================
+-- INSERT COMPANIES DATA
+-- ============================================
+
+INSERT INTO companies (name, industry, location) VALUES
+('RK Yangon Steel', 'Manufacturing', 'Thanlyin'),
+('Universal Energy', 'Energy', 'Thingangyun'),
+('Shwe Taung Htun', 'Media', 'Mingalar Taung Nyunt'),
+('Sun Myat Tun', 'Construction', 'Botahtaung'),
+('NielsenIQ Myanmar', 'Market Research', 'Yangon'),
+('Real Aid Microfinance', 'Finance', 'Ayeyarwady'),
+('Unicharm Myanmar', 'Consumer Goods', 'Yankin'),
+('Myanmar Information Technology', 'Technology', 'Insein'),
+('KBZ Life Insurance', 'Insurance', 'Bahan'),
+('Salpyar', 'E-commerce', 'North Dagon'),
+('WOW Sport', 'Retail', 'Kamaryut'),
+('AMI', 'Marketing', 'Kamaryut'),
+('TOMO', 'Technology', 'South Dagon'),
+('Wave Plus', 'Telecommunications', 'Mingalardon'),
+('Yangoods', 'Retail', 'Pyin Oo Lwin'),
+('GK International Company', 'Trading', 'Kamaryut'),
+('Delight Amatat', 'Interior Design', 'Thingangyun')
+ON CONFLICT DO NOTHING;
+
+-- ============================================
+-- INSERT JOBS DATA (26 Urgent Positions)
+-- ============================================
+
+INSERT INTO jobs (title, company, location, salary, salary_min, salary_max, reward, urgent, status) VALUES
+('Senior Supervisor', 'RK Yangon Steel', 'Thanlyin', '7.5 Lakhs to 10 Lakhs', 750000, 1000000, 100000, true, 'active'),
+('Warehouse Supervisor', 'Universal Energy', 'Thingangyun', 'Negotiable', 0, 0, 80000, true, 'active'),
+('Content & Script Writer', 'Shwe Taung Htun', 'Mingalar Taung Nyunt', '4 Lakhs to 6 Lakhs', 400000, 600000, 60000, true, 'active'),
+('Site Engineer', 'Sun Myat Tun', 'Botahtaung', '7.5 Lakhs', 750000, 750000, 90000, true, 'active'),
+('Data Collector', 'NielsenIQ Myanmar', 'Mdy,Sagaing,Meikhtila', '3.5 Lakhs', 350000, 350000, 50000, true, 'active'),
+('Loan Officer', 'Real Aid Microfinance', 'Ayeyarwady', '4 Lakhs to 5 Lakhs', 400000, 500000, 60000, true, 'active'),
+('Cashier', 'Real Aid Microfinance', 'Ayeyarwady', 'Above 3 Lakhs', 300000, 400000, 40000, true, 'active'),
+('Brand Executive', 'Unicharm Myanmar', 'Yankin', '7 Lakhs to 9 Lakhs', 700000, 900000, 80000, true, 'active'),
+('Assistant Brand Manager', 'Unicharm Myanmar', 'Yankin', '15 Lakhs to 17 Lakhs', 1500000, 1700000, 150000, true, 'active'),
+('Receptionist', 'Myanmar Information Technology', 'Insein', '3 Lakhs to 4 Lakhs', 300000, 400000, 40000, true, 'active'),
+('Assistant Accountant', 'KBZ Life Insurance', 'Bahan', '4 Lakhs to 5 Lakhs', 400000, 500000, 50000, true, 'active'),
+('Accountant', 'Universal Energy', 'Thingangyun', '6 Lakhs to 7 Lakhs', 600000, 700000, 70000, true, 'active'),
+('Online Sale', 'Salpyar', 'North Dagon', '2.4 Lakhs', 240000, 240000, 30000, true, 'active'),
+('Graphic Designer', 'WOW Sport', 'Kamaryut', 'Around 10 Lakhs', 900000, 1100000, 100000, true, 'active'),
+('Senior Sales Executive', 'WOW Sport', 'Kamaryut', '10 Lakhs', 1000000, 1000000, 100000, true, 'active'),
+('Senior Agency Sales Representative', 'AMI', 'Kamaryut', '5 Lakhs to 6.5 Lakhs', 500000, 650000, 70000, true, 'active'),
+('Admin Supervisor', 'TOMO', 'South Dagon', '5 Lakhs to 6 Lakhs', 500000, 600000, 60000, true, 'active'),
+('IT Supervisor', 'Wave Plus', 'Mingalardon', '6 Lakhs', 600000, 600000, 70000, true, 'active'),
+('Sales Staff', 'Yangoods', 'Pyin Oo Lwin', '2.04 Lakhs', 204000, 204000, 25000, true, 'active'),
+('Senior Page Admin', 'TOMO', 'Tamwe', 'Negotiable', 0, 0, 60000, true, 'active'),
+('Junior Page Admin', 'TOMO', 'Tamwe', '3 Lakhs to 3.5 Lakhs', 300000, 350000, 40000, true, 'active'),
+('Junior Accountant', 'Unicharm Myanmar', 'Yankin', '3.5 Lakhs to 4 Lakhs', 350000, 400000, 45000, true, 'active'),
+('Accountant', 'GK International Company', 'Kamaryut', '6.5 Lakhs to 8 Lakhs', 650000, 800000, 80000, true, 'active'),
+('Assistant Project Coordinator', 'GK International Company', 'Kamaryut', '3.5 Lakhs to 5 Lakhs', 350000, 500000, 50000, true, 'active'),
+('Interior Designer', 'Delight Amatat', 'Thingangyun', '10 Lakhs to 15 Lakhs', 1000000, 1500000, 120000, true, 'active'),
+('Quantity Surveyor', 'Delight Amatat', 'Thingangyun', '10 Lakhs to 15 Lakhs', 1000000, 1500000, 120000, true, 'active');
+
+-- ============================================
+-- DONE! Your ReferTRM database is ready.
+-- ============================================
+-- Copy this entire SQL and run it in:
+-- Supabase Dashboard > SQL Editor > New Query
+-- ============================================
+=== END FILE ===
+
+################################################################################
+# SECTION: CORE LIBRARY FILES
+################################################################################
+
+=== FILE: src/lib/supabase.ts ===
+// Supabase Configuration for ReferTRM
+import { createClient } from '@supabase/supabase-js';
+
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
+
+// Check if Supabase is configured
+export function isSupabaseConfigured(): boolean {
+  return Boolean(supabaseUrl && supabaseAnonKey);
+}
+
+// Create Supabase client with auto-refresh
+export const supabase = isSupabaseConfigured()
+  ? createClient(supabaseUrl, supabaseAnonKey, {
+      auth: {
+        autoRefreshToken: true,
+        persistSession: true,
+        detectSessionInUrl: true
+      }
+    })
+  : null;
+
+// User profile interface (matches new schema)
+export interface UserProfile {
+  id: string;
+  email: string | null;
+  phone: string | null;
+  name: string | null;
+  avatar_url: string | null;
+  avatar_type: string;
+  points: number;
+  total_points: number;
+  streak: number;
+  max_streak: number;
+  referral_code: string;
+  total_referrals: number;
+  total_earned: number;
+  level: string;
+  language: string;
+  last_login_at: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+// Generate referral code
+function generateReferralCode(): string {
+  return 'REF' + Math.random().toString(36).substring(2, 8).toUpperCase();
+}
+
+// Sign up with email and password
+export async function signUpWithEmail(email: string, password: string, name: string) {
+  if (!supabase) {
+    throw new Error('Supabase is not configured');
+  }
+
+  const { data, error } = await supabase.auth.signUp({
+    email,
+    password,
+    options: {
+      data: { name },
+    },
+  });
+
+  if (error) throw error;
+
+  if (data.user) {
+    await createUserProfile(data.user.id, { email, name });
+  }
+
+  return data.user;
+}
+
+// Sign in with email and password
+export async function signInWithEmail(email: string, password: string) {
+  if (!supabase) {
+    throw new Error('Supabase is not configured');
+  }
+
+  const { data, error } = await supabase.auth.signInWithPassword({
+    email,
+    password,
+  });
+
+  if (error) throw error;
+
+  if (data.user) {
+    await updateUserProfile(data.user.id, { last_login_at: new Date().toISOString() });
+  }
+
+  return data.user;
+}
+
+// Sign in as guest (anonymous)
+export async function signInAsGuest() {
+  if (!supabase) {
+    throw new Error('Supabase is not configured');
+  }
+
+  const { data, error } = await supabase.auth.signInAnonymously();
+
+  if (error) throw error;
+
+  if (data.user) {
+    await createUserProfile(data.user.id, { name: 'Guest User' });
+  }
+
+  return data.user;
+}
+
+// Sign out
+export async function signOut() {
+  if (!supabase) return;
+  await supabase.auth.signOut();
+}
+
+// Get current user
+export async function getCurrentUser() {
+  if (!supabase) return null;
+  const { data } = await supabase.auth.getUser();
+  return data.user;
+}
+
+// Create user profile
+export async function createUserProfile(uid: string, data: Partial<UserProfile> = {}): Promise<void> {
+  if (!supabase) return;
+
+  const now = new Date().toISOString();
+
+  const profile = {
+    id: uid,
+    email: data.email || null,
+    phone: data.phone || null,
+    name: data.name || null,
+    avatar_url: data.avatar_url || null,
+    avatar_type: data.avatar_type || 'neutral',
+    points: data.points || 50,
+    total_points: data.total_points || 50,
+    streak: data.streak || 1,
+    max_streak: data.max_streak || 1,
+    referral_code: data.referral_code || generateReferralCode(),
+    total_referrals: 0,
+    total_earned: 0,
+    level: data.level || 'Amateur',
+    language: data.language || 'en',
+    last_login_at: now,
+    created_at: now,
+    updated_at: now,
+  };
+
+  const { error } = await supabase
+    .from('users')
+    .upsert(profile, { onConflict: 'id' });
+
+  if (error) throw error;
+}
+
+// Get user profile
+export async function getUserProfile(uid: string): Promise<UserProfile | null> {
+  if (!supabase) return null;
+
+  const { data, error } = await supabase
+    .from('users')
+    .select('*')
+    .eq('id', uid)
+    .single();
+
+  if (error) {
+    if (error.code === 'PGRST116') {
+      await createUserProfile(uid, { name: 'User' });
+      const { data: newData } = await supabase
+        .from('users')
+        .select('*')
+        .eq('id', uid)
+        .single();
+      return newData as UserProfile;
+    }
+    return null;
+  }
+
+  return data as UserProfile;
+}
+
+// Update user profile
+export async function updateUserProfile(uid: string, data: Partial<UserProfile>): Promise<void> {
+  if (!supabase) return;
+
+  const { error } = await supabase
+    .from('users')
+    .update({ ...data, updated_at: new Date().toISOString() })
+    .eq('id', uid);
+
+  if (error) throw error;
+}
+
+// Reset password
+export async function resetPassword(email: string) {
+  if (!supabase) return;
+  const { error } = await supabase.auth.resetPasswordForEmail(email);
+  if (error) throw error;
+}
+
+// Get leaderboard
+export async function getLeaderboard(limitCount: number = 10): Promise<UserProfile[]> {
+  if (!supabase) return [];
+
+  const { data, error } = await supabase
+    .from('users')
+    .select('*')
+    .order('total_points', { ascending: false })
+    .limit(limitCount);
+
+  if (error) return [];
+  return data as UserProfile[];
+}
+
+// Referral interface
+export interface Referral {
+  id: string;
+  referrer_id: string;
+  candidate_name: string;
+  candidate_email: string;
+  candidate_phone?: string;
+  job_id?: string;
+  job_title?: string;
+  company_name?: string;
+  status: string;
+  reward_amount?: number;
+  reward_paid: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+// Create referral
+export async function createReferral(data: {
+  referrer_id: string;
+  candidate_name: string;
+  candidate_email: string;
+  candidate_phone?: string;
+  job_id?: string;
+  job_title?: string;
+  company_name?: string;
+  reward_amount?: number;
+}): Promise<string> {
+  if (!supabase) throw new Error('Supabase not configured');
+
+  const { data: result, error } = await supabase
+    .from('referrals')
+    .insert({
+      ...data,
+      status: 'pending',
+      reward_paid: false,
+    })
+    .select('id')
+    .single();
+
+  if (error) throw error;
+  return result.id;
+}
+
+// Get user referrals
+export async function getUserReferrals(userId: string): Promise<Referral[]> {
+  if (!supabase) return [];
+
+  const { data, error } = await supabase
+    .from('referrals')
+    .select('*')
+    .eq('referrer_id', userId)
+    .order('created_at', { ascending: false });
+
+  if (error) return [];
+  return data as Referral[];
+}
+
+// Job Listing interface
+export interface JobListing {
+  id: string;
+  title: string;
+  slug: string;
+  location: string;
+  salary_min?: number;
+  salary_max?: number;
+  reward: number;
+  type: string;
+  level: string;
+  skills: string;
+  status: string;
+  urgent: boolean;
+  created_at: string;
+}
+
+// Get active jobs
+export async function getActiveJobs(): Promise<JobListing[]> {
+  if (!supabase) return [];
+
+  const { data, error } = await supabase
+    .from('jobs')
+    .select('*')
+    .eq('status', 'active')
+    .order('created_at', { ascending: false });
+
+  if (error) return [];
+  return data as JobListing[];
+}
+=== END FILE ===
+
+=== FILE: src/lib/prisma.ts ===
+// Prisma Client Singleton for ReferTRM
+// This ensures only one PrismaClient instance is created in development
+
+import { PrismaClient } from '@prisma/client';
+
+const globalForPrisma = globalThis as unknown as {
+  prisma: PrismaClient | undefined;
+};
+
+export const prisma = globalForPrisma.prisma ?? new PrismaClient({
+  log: process.env.NODE_ENV === 'development' ? ['query', 'error', 'warn'] : ['error'],
+});
+
+if (process.env.NODE_ENV !== 'production') {
+  globalForPrisma.prisma = prisma;
+}
+
+export default prisma;
+=== END FILE ===
+
+=== FILE: src/lib/utils.ts ===
+import { clsx, type ClassValue } from "clsx"
+import { twMerge } from "tailwind-merge"
+
+export function cn(...inputs: ClassValue[]) {
+  return twMerge(clsx(inputs))
+}
+=== END FILE ===
+
+=== FILE: src/lib/db.ts ===
+import { PrismaClient } from '@prisma/client'
+
+const globalForPrisma = globalThis as unknown as {
+  prisma: PrismaClient | undefined
+}
+
+export const db =
+  globalForPrisma.prisma ??
+  new PrismaClient({
+    log: ['query'],
+  })
+
+if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = db=== END FILE ===
+
+=== FILE: src/lib/pwa.ts ===
+'use client';
+
+import { useState, useEffect, useCallback } from 'react';
+
+interface PWAStatus {
+  isInstalled: boolean;
+  isStandalone: boolean;
+  canInstall: boolean;
+  hasOfflineSupport: boolean;
+  needsUpdate: boolean;
+}
+
+interface BeforeInstallPromptEvent extends Event {
+  readonly platforms: string[];
+  readonly userChoice: Promise<{
+    outcome: 'accepted' | 'dismissed';
+    platform: string;
+  }>;
+  prompt(): Promise<void>;
+}
+
+// Helper functions - called once during initial render
+function getInitialStandalone(): boolean {
+  if (typeof window === 'undefined') return false;
+  return window.matchMedia('(display-mode: standalone)').matches ||
+    ('standalone' in navigator && (navigator as Navigator & { standalone: boolean }).standalone);
+}
+
+function getInitialOfflineSupport(): boolean {
+  if (typeof window === 'undefined') return false;
+  return 'serviceWorker' in navigator;
+}
+
+export function usePWA() {
+  const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
+  
+  // Initialize with lazy initializers
+  const [status, setStatus] = useState<PWAStatus>(() => ({
+    isInstalled: getInitialStandalone(),
+    isStandalone: getInitialStandalone(),
+    canInstall: false,
+    hasOfflineSupport: getInitialOfflineSupport(),
+    needsUpdate: false,
+  }));
+
+  // Listen for beforeinstallprompt
+  useEffect(() => {
+    const handleBeforeInstallPrompt = (e: Event) => {
+      e.preventDefault();
+      setDeferredPrompt(e as BeforeInstallPromptEvent);
+      setStatus(prev => ({ ...prev, canInstall: true }));
+    };
+
+    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+    
+    return () => {
+      window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+    };
+  }, []);
+
+  // Listen for app installed
+  useEffect(() => {
+    const handleAppInstalled = () => {
+      setDeferredPrompt(null);
+      setStatus(prev => ({
+        ...prev,
+        isInstalled: true,
+        canInstall: false,
+      }));
+    };
+
+    window.addEventListener('appinstalled', handleAppInstalled);
+    
+    return () => {
+      window.removeEventListener('appinstalled', handleAppInstalled);
+    };
+  }, []);
+
+  // Check for service worker updates
+  useEffect(() => {
+    if (!('serviceWorker' in navigator)) return;
+
+    let mounted = true;
+    
+    navigator.serviceWorker.ready.then((registration) => {
+      if (!mounted) return;
+      
+      const handleUpdateFound = () => {
+        const newWorker = registration.installing;
+        if (newWorker) {
+          newWorker.addEventListener('statechange', () => {
+            if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+              if (mounted) {
+                setStatus(prev => ({ ...prev, needsUpdate: true }));
+              }
+            }
+          });
+        }
+      };
+
+      registration.addEventListener('updatefound', handleUpdateFound);
+    });
+
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  const install = useCallback(async () => {
+    if (!deferredPrompt) return false;
+
+    await deferredPrompt.prompt();
+    const { outcome } = await deferredPrompt.userChoice;
+
+    if (outcome === 'accepted') {
+      setDeferredPrompt(null);
+      setStatus(prev => ({
+        ...prev,
+        isInstalled: true,
+        canInstall: false,
+      }));
+      return true;
+    }
+
+    return false;
+  }, [deferredPrompt]);
+
+  const updateServiceWorker = useCallback(() => {
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.getRegistration().then((registration) => {
+        if (registration?.waiting) {
+          registration.waiting.postMessage({ type: 'SKIP_WAITING' });
+          window.location.reload();
+        }
+      });
+    }
+  }, []);
+
+  return {
+    ...status,
+    install,
+    updateServiceWorker,
+  };
+}
+=== END FILE ===
+
+=== FILE: src/lib/offline-db.ts ===
+'use client';
+
+/**
+ * IndexedDB Helper for Offline Job Storage
+ * Enables users to browse saved jobs offline
+ */
+
+const DB_NAME = 'refertrm-offline';
+const DB_VERSION = 1;
+
+// Store names
+export const STORES = {
+  JOBS: 'jobs',
+  APPLICATIONS: 'applications',
+  MESSAGES: 'messages',
+  USER_DATA: 'userData',
+  SYNC_QUEUE: 'syncQueue',
+} as const;
+
+// Open database connection
+export function openDB(): Promise<IDBDatabase> {
+  return new Promise((resolve, reject) => {
+    const request = indexedDB.open(DB_NAME, DB_VERSION);
+    
+    request.onerror = () => reject(request.error);
+    request.onsuccess = () => resolve(request.result);
+    
+    request.onupgradeneeded = (event) => {
+      const db = (event.target as IDBOpenDBRequest).result;
+      
+      // Jobs store - for offline job browsing
+      if (!db.objectStoreNames.contains(STORES.JOBS)) {
+        const jobStore = db.createObjectStore(STORES.JOBS, { keyPath: 'id' });
+        jobStore.createIndex('category', 'category', { unique: false });
+        jobStore.createIndex('company', 'company', { unique: false });
+        jobStore.createIndex('savedAt', 'savedAt', { unique: false });
+      }
+      
+      // Applications store - for offline application tracking
+      if (!db.objectStoreNames.contains(STORES.APPLICATIONS)) {
+        const appStore = db.createObjectStore(STORES.APPLICATIONS, { keyPath: 'id' });
+        appStore.createIndex('status', 'status', { unique: false });
+        appStore.createIndex('appliedAt', 'appliedAt', { unique: false });
+      }
+      
+      // Messages store - for offline messaging
+      if (!db.objectStoreNames.contains(STORES.MESSAGES)) {
+        const msgStore = db.createObjectStore(STORES.MESSAGES, { keyPath: 'id' });
+        msgStore.createIndex('conversationId', 'conversationId', { unique: false });
+        msgStore.createIndex('timestamp', 'timestamp', { unique: false });
+      }
+      
+      // User data store
+      if (!db.objectStoreNames.contains(STORES.USER_DATA)) {
+        db.createObjectStore(STORES.USER_DATA, { keyPath: 'key' });
+      }
+      
+      // Sync queue - for offline actions to sync later
+      if (!db.objectStoreNames.contains(STORES.SYNC_QUEUE)) {
+        const syncStore = db.createObjectStore(STORES.SYNC_QUEUE, { 
+          keyPath: 'id', 
+          autoIncrement: true 
+        });
+        syncStore.createIndex('type', 'type', { unique: false });
+        syncStore.createIndex('timestamp', 'timestamp', { unique: false });
+      }
+    };
+  });
+}
+
+// Generic get all items from store
+export async function getAll<T>(storeName: string): Promise<T[]> {
+  const db = await openDB();
+  return new Promise((resolve, reject) => {
+    const transaction = db.transaction(storeName, 'readonly');
+    const store = transaction.objectStore(storeName);
+    const request = store.getAll();
+    
+    request.onerror = () => reject(request.error);
+    request.onsuccess = () => resolve(request.result);
+  });
+}
+
+// Generic get item by key
+export async function getByKey<T>(storeName: string, key: IDBValidKey): Promise<T | undefined> {
+  const db = await openDB();
+  return new Promise((resolve, reject) => {
+    const transaction = db.transaction(storeName, 'readonly');
+    const store = transaction.objectStore(storeName);
+    const request = store.get(key);
+    
+    request.onerror = () => reject(request.error);
+    request.onsuccess = () => resolve(request.result);
+  });
+}
+
+// Generic add/update item
+export async function putItem<T extends { id?: IDBValidKey }>(storeName: string, item: T): Promise<IDBValidKey> {
+  const db = await openDB();
+  return new Promise((resolve, reject) => {
+    const transaction = db.transaction(storeName, 'readwrite');
+    const store = transaction.objectStore(storeName);
+    const request = store.put(item);
+    
+    request.onerror = () => reject(request.error);
+    request.onsuccess = () => resolve(request.result);
+  });
+}
+
+// Generic delete item
+export async function deleteItem(storeName: string, key: IDBValidKey): Promise<void> {
+  const db = await openDB();
+  return new Promise((resolve, reject) => {
+    const transaction = db.transaction(storeName, 'readwrite');
+    const store = transaction.objectStore(storeName);
+    const request = store.delete(key);
+    
+    request.onerror = () => reject(request.error);
+    request.onsuccess = () => resolve();
+  });
+}
+
+// Clear entire store
+export async function clearStore(storeName: string): Promise<void> {
+  const db = await openDB();
+  return new Promise((resolve, reject) => {
+    const transaction = db.transaction(storeName, 'readwrite');
+    const store = transaction.objectStore(storeName);
+    const request = store.clear();
+    
+    request.onerror = () => reject(request.error);
+    request.onsuccess = () => resolve();
+  });
+}
+
+// Get items by index
+export async function getByIndex<T>(
+  storeName: string, 
+  indexName: string, 
+  value: IDBValidKey
+): Promise<T[]> {
+  const db = await openDB();
+  return new Promise((resolve, reject) => {
+    const transaction = db.transaction(storeName, 'readonly');
+    const store = transaction.objectStore(storeName);
+    const index = store.index(indexName);
+    const request = index.getAll(value);
+    
+    request.onerror = () => reject(request.error);
+    request.onsuccess = () => resolve(request.result);
+  });
+}
+
+// Job-specific helpers
+export interface CachedJob {
+  id: string;
+  title: string;
+  company: string;
+  location: string;
+  salary?: string;
+  category: string;
+  description: string;
+  requirements?: string[];
+  savedAt: number;
+  expiresAt: number;
+}
+
+// Save jobs for offline access
+export async function cacheJobs(jobs: Omit<CachedJob, 'savedAt' | 'expiresAt'>[]): Promise<void> {
+  const now = Date.now();
+  const expiresAt = now + (7 * 24 * 60 * 60 * 1000); // 7 days
+  
+  const db = await openDB();
+  const transaction = db.transaction(STORES.JOBS, 'readwrite');
+  const store = transaction.objectStore(STORES.JOBS);
+  
+  for (const job of jobs) {
+    store.put({ ...job, savedAt: now, expiresAt });
+  }
+  
+  return new Promise((resolve, reject) => {
+    transaction.oncomplete = () => resolve();
+    transaction.onerror = () => reject(transaction.error);
+  });
+}
+
+// Get cached jobs
+export async function getCachedJobs(): Promise<CachedJob[]> {
+  const jobs = await getAll<CachedJob>(STORES.JOBS);
+  const now = Date.now();
+  
+  // Filter out expired jobs
+  return jobs.filter(job => job.expiresAt > now);
+}
+
+// Sync queue helpers for offline actions
+export interface SyncQueueItem {
+  id?: number;
+  type: 'application' | 'message' | 'referral' | 'profile_update';
+  data: Record<string, unknown>;
+  timestamp: number;
+  retries: number;
+}
+
+export async function addToSyncQueue(
+  type: SyncQueueItem['type'], 
+  data: Record<string, unknown>
+): Promise<number> {
+  const item: SyncQueueItem = {
+    type,
+    data,
+    timestamp: Date.now(),
+    retries: 0,
+  };
+  
+  return putItem(STORES.SYNC_QUEUE, item) as Promise<number>;
+}
+
+export async function getSyncQueue(): Promise<SyncQueueItem[]> {
+  return getAll<SyncQueueItem>(STORES.SYNC_QUEUE);
+}
+
+export async function removeSyncQueueItem(id: number): Promise<void> {
+  return deleteItem(STORES.SYNC_QUEUE, id);
+}
+
+export async function incrementSyncRetries(id: number): Promise<void> {
+  const item = await getByKey<SyncQueueItem>(STORES.SYNC_QUEUE, id);
+  if (item) {
+    item.retries += 1;
+    await putItem(STORES.SYNC_QUEUE, item);
+  }
+}
+
+// Get offline storage stats
+export async function getOfflineStats(): Promise<{
+  jobsCount: number;
+  applicationsCount: number;
+  messagesCount: number;
+  pendingSync: number;
+  lastSync: number | null;
+}> {
+  const [jobs, applications, messages, syncQueue] = await Promise.all([
+    getAll(STORES.JOBS),
+    getAll(STORES.APPLICATIONS),
+    getAll(STORES.MESSAGES),
+    getAll(STORES.SYNC_QUEUE),
+  ]);
+  
+  const userData = await getByKey<{ key: string; value: number }>(
+    STORES.USER_DATA, 
+    'lastSync'
+  );
+  
+  return {
+    jobsCount: jobs.length,
+    applicationsCount: applications.length,
+    messagesCount: messages.length,
+    pendingSync: syncQueue.length,
+    lastSync: userData?.value || null,
+  };
+}
+
+// Update last sync timestamp
+export async function updateLastSync(): Promise<void> {
+  await putItem(STORES.USER_DATA, { key: 'lastSync', value: Date.now() });
+}
+
+// Clean up expired data
+export async function cleanupExpiredData(): Promise<void> {
+  const db = await openDB();
+  const now = Date.now();
+  
+  // Clean expired jobs
+  const jobsTransaction = db.transaction(STORES.JOBS, 'readwrite');
+  const jobsStore = jobsTransaction.objectStore(STORES.JOBS);
+  const jobsRequest = jobsStore.openCursor();
+  
+  jobsRequest.onsuccess = (event) => {
+    const cursor = (event.target as IDBRequest<IDBCursorWithValue>).result;
+    if (cursor) {
+      if (cursor.value.expiresAt < now) {
+        cursor.delete();
+      }
+      cursor.continue();
+    }
+  };
+}
+
+console.log('[OfflineDB] IndexedDB helper loaded');
+=== END FILE ===
+
+################################################################################
+# SECTION: REACT CONTEXTS
+################################################################################
+
+=== FILE: src/contexts/AuthContext.tsx ===
+'use client';
+
+import { createContext, useContext, useState, ReactNode, useCallback, useEffect } from 'react';
+import { 
+  supabase,
+  isSupabaseConfigured,
+  signUpWithEmail,
+  signInWithEmail,
+  signInAsGuest,
+  signOut as supabaseSignOut,
+  getUserProfile,
+  updateUserProfile as updateSupabaseProfile,
+  createUserProfile,
+  onAuthStateChange,
+  UserProfile as SupabaseProfile
+} from '@/lib/supabase';
+
+// Check if we're on client side
+const isClient = typeof window !== 'undefined';
+
+interface PointTransaction {
+  id: string;
+  amount: number;
+  type: string;
+  description: string;
+  createdAt: Date;
+}
+
+interface User {
+  uid: string;
+  email: string | null;
+  displayName: string | null;
+  name: string | null;
+  isGuest: boolean;
+  points: number;
+  totalPointsEarned: number;
+  streak: number;
+  maxStreak: number;
+  completedModules: string[];
+  level: string;
+  avatar: string;
+  avatarType: 'male' | 'female' | 'neutral';
+  avatarUrl: string | null;
+  referralCode: string;
+  totalEarnings: number;
+  successfulReferrals: number;
+  totalReferrals: number;
+  lastLoginAt: string | null;
+  lastBonusClaim: string | null;
+  purchasedItems: string[];
+}
+
+interface AuthContextType {
+  user: User | null;
+  loading: boolean;
+  isSupabaseMode: boolean;
+  login: (email: string, password: string) => Promise<void>;
+  loginAsGuest: () => Promise<void>;
+  signup: (email: string, password: string, displayName: string) => Promise<void>;
+  logout: () => Promise<void>;
+  resetPassword: (email: string) => Promise<void>;
+  addPoints: (points: number, reason: string) => void;
+  deductPoints: (points: number, reason: string) => boolean;
+  completeModule: (moduleId: string, points: number) => void;
+  incrementStreak: () => void;
+  claimDailyBonus: () => { success: boolean; points: number; message: string };
+  purchaseItem: (itemId: string, cost: number) => boolean;
+  canClaimDailyBonus: () => boolean;
+  getPointTransactions: () => PointTransaction[];
+  updateAvatar: (avatarType: 'male' | 'female' | 'neutral', avatar: string) => void;
+  updateProfilePhoto: (photoUrl: string) => void;
+}
+
+const AuthContext = createContext<AuthContextType | undefined>(undefined);
+
+const LEVEL_THRESHOLDS = [
+  { level: 'Amateur', minPoints: 0, icon: '🌱' },
+  { level: 'Professional', minPoints: 300, icon: '💼' },
+  { level: 'Expert', minPoints: 600, icon: '⭐' },
+  { level: 'Master', minPoints: 1000, icon: '👑' },
+];
+
+const STREAK_MILESTONES = [
+  { days: 3, bonus: 5 },
+  { days: 7, bonus: 10 },
+  { days: 14, bonus: 20 },
+  { days: 30, bonus: 35 },
+  { days: 60, bonus: 50 },
+  { days: 100, bonus: 75 },
+];
+
+function calculateLevel(points: number): string {
+  for (let i = LEVEL_THRESHOLDS.length - 1; i >= 0; i--) {
+    if (points >= LEVEL_THRESHOLDS[i].minPoints) {
+      return LEVEL_THRESHOLDS[i].level;
+    }
+  }
+  return 'Amateur';
+}
+
+function generateId(): string {
+  return 'txn_' + Date.now() + '_' + Math.random().toString(36).substring(2, 8);
+}
+
+function generateReferralCode(): string {
+  return 'REF' + Math.random().toString(36).substring(2, 8).toUpperCase();
+}
+
+// Convert Supabase profile to local User type
+function profileToUser(profile: SupabaseProfile): User {
+  return {
+    uid: profile.id,
+    email: profile.email,
+    displayName: profile.name,
+    name: profile.name,
+    isGuest: profile.id.startsWith('guest_'),
+    points: profile.points,
+    totalPointsEarned: profile.total_points_earned,
+    streak: profile.streak,
+    maxStreak: profile.max_streak,
+    completedModules: profile.completed_modules || [],
+    level: profile.level,
+    avatar: profile.avatar || '🧑',
+    avatarType: (profile.avatar_type as 'male' | 'female' | 'neutral') || 'neutral',
+    avatarUrl: profile.avatar_url,
+    referralCode: profile.referral_code,
+    totalEarnings: profile.total_earned,
+    successfulReferrals: profile.successful_referrals,
+    totalReferrals: profile.total_referrals,
+    lastLoginAt: profile.last_login_at,
+    lastBonusClaim: profile.last_bonus_claim,
+    purchasedItems: profile.purchased_items || [],
+  };
+}
+
+// Demo mode functions (localStorage fallback)
+function getSavedTransactions(): PointTransaction[] {
+  if (!isClient) return [];
+  try {
+    const saved = localStorage.getItem('refertrm_transactions');
+    if (saved) return JSON.parse(saved);
+  } catch (e) {
+    console.error('Error reading transactions:', e);
+  }
+  return [];
+}
+
+function getSavedUser(): User | null {
+  if (!isClient) return null;
+  try {
+    const saved = localStorage.getItem('refertrm_user');
+    if (saved) return JSON.parse(saved);
+  } catch (e) {
+    console.error('Error reading user:', e);
+  }
+  return null;
+}
+
+function saveUserToStorage(user: User | null) {
+  if (!isClient) return;
+  if (user) {
+    localStorage.setItem('refertrm_user', JSON.stringify(user));
+  } else {
+    localStorage.removeItem('refertrm_user');
+  }
+}
+
+function createGuestUser(): User {
+  return {
+    uid: 'guest_' + Date.now(),
+    email: null,
+    displayName: 'Guest User',
+    name: 'Guest User',
+    isGuest: true,
+    points: 50,
+    totalPointsEarned: 50,
+    streak: 1,
+    maxStreak: 1,
+    completedModules: [],
+    level: 'Amateur',
+    avatar: '🧑',
+    avatarType: 'neutral',
+    avatarUrl: null,
+    referralCode: generateReferralCode(),
+    totalEarnings: 0,
+    successfulReferrals: 0,
+    totalReferrals: 0,
+    lastLoginAt: new Date().toISOString(),
+    lastBonusClaim: null,
+    purchasedItems: [],
+  };
+}
+
+export function AuthProvider({ children }: { children: ReactNode }) {
+  const [user, setUser] = useState<User | null>(null);
+  const [transactions, setTransactions] = useState<PointTransaction[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [isSupabaseMode, setIsSupabaseMode] = useState(false);
+
+  // Initialize auth
+  useEffect(() => {
+    let mounted = true;
+    let subscription: { unsubscribe: () => void } | null = null;
+    
+    const initAuth = async () => {
+      try {
+        const useSupabase = isSupabaseConfigured();
+        console.log('🚀 Auth Mode:', useSupabase ? 'Supabase' : 'Demo (localStorage)');
+        
+        if (!mounted) return;
+        setIsSupabaseMode(useSupabase);
+        
+        if (useSupabase && supabase) {
+          // Get initial session
+          const { data: { session } } = await supabase.auth.getSession();
+          console.log('📋 Initial session:', session?.user?.id || 'No session');
+          
+          if (!mounted) return;
+          
+          if (session?.user) {
+            try {
+              let profile = await getUserProfile(session.user.id);
+              
+              // If profile doesn't exist, create it
+              if (!profile) {
+                console.log('📝 Creating missing profile for:', session.user.id);
+                await createUserProfile(session.user.id, {
+                  email: session.user.email,
+                  name: session.user.user_metadata?.name || 'User',
+                });
+                // Fetch again
+                profile = await getUserProfile(session.user.id);
+              }
+              
+              if (profile && mounted) {
+                console.log('✅ User profile loaded:', profile.name);
+                setUser(profileToUser(profile));
+              } else {
+                console.log('⚠️ Profile still null after creation attempt');
+              }
+            } catch (profileError) {
+              console.error('❌ Profile fetch error:', profileError);
+            }
+          }
+          
+          // Set loading false after initial check
+          if (mounted) setLoading(false);
+          
+          // Listen for auth changes
+          const { data } = supabase.auth.onAuthStateChange(async (event, session) => {
+            console.log('🔐 Auth event:', event, session?.user?.id);
+            if (!mounted) return;
+            
+            if (event === 'SIGNED_IN' && session?.user) {
+              try {
+                let profile = await getUserProfile(session.user.id);
+                
+                if (!profile) {
+                  console.log('📝 Creating profile on SIGNED_IN');
+                  await createUserProfile(session.user.id, {
+                    email: session.user.email,
+                    name: session.user.user_metadata?.name || 'User',
+                  });
+                  profile = await getUserProfile(session.user.id);
+                }
+                
+                if (profile && mounted) {
+                  setUser(profileToUser(profile));
+                }
+              } catch (e) {
+                console.error('Error in SIGNED_IN:', e);
+              }
+            } else if (event === 'SIGNED_OUT') {
+              setUser(null);
+            }
+          });
+          
+          subscription = data.subscription;
+        } else {
+          // Demo mode
+          const savedUser = getSavedUser();
+          if (savedUser && mounted) setUser(savedUser);
+          if (mounted) setLoading(false);
+        }
+      } catch (error) {
+        console.error('Auth init error:', error);
+        if (mounted) setLoading(false);
+      }
+    };
+    
+    initAuth();
+    
+    return () => {
+      mounted = false;
+      if (subscription) {
+        subscription.unsubscribe();
+      }
+    };
+  }, []);
+
+  // Persist user to Supabase or localStorage
+  const persistUser = useCallback(async (updatedUser: User) => {
+    setUser(updatedUser);
+    
+    if (isSupabaseMode && !updatedUser.isGuest) {
+      try {
+        await updateSupabaseProfile(updatedUser.uid, {
+          points: updatedUser.points,
+          total_points_earned: updatedUser.totalPointsEarned,
+          streak: updatedUser.streak,
+          max_streak: updatedUser.maxStreak,
+          level: updatedUser.level,
+          completed_modules: updatedUser.completedModules,
+          purchased_items: updatedUser.purchasedItems,
+          last_bonus_claim: updatedUser.lastBonusClaim,
+          avatar: updatedUser.avatar,
+          avatar_type: updatedUser.avatarType,
+          avatar_url: updatedUser.avatarUrl,
+          total_earned: updatedUser.totalEarnings,
+          successful_referrals: updatedUser.successfulReferrals,
+          total_referrals: updatedUser.totalReferrals,
+        });
+      } catch (error) {
+        console.error('Error updating Supabase profile:', error);
+      }
+    } else {
+      saveUserToStorage(updatedUser);
+    }
+  }, [isSupabaseMode]);
+
+  const addTransaction = useCallback((amount: number, type: string, description: string) => {
+    const txn: PointTransaction = {
+      id: generateId(),
+      amount,
+      type,
+      description,
+      createdAt: new Date(),
+    };
+    setTransactions(prev => {
+      const updated = [txn, ...prev].slice(0, 100);
+      if (isClient) {
+        localStorage.setItem('refertrm_transactions', JSON.stringify(updated));
+      }
+      return updated;
+    });
+  }, []);
+
+  // Login
+  const login = useCallback(async (email: string, password: string) => {
+    setLoading(true);
+    console.log('🔐 Login attempt:', email);
+    
+    try {
+      if (isSupabaseMode) {
+        console.log('🚀 Using Supabase login...');
+        const authUser = await signInWithEmail(email, password);
+        console.log('✅ Supabase auth successful:', authUser?.id);
+        if (authUser) {
+          const profile = await getUserProfile(authUser.id);
+          console.log('📋 Got user profile:', profile);
+          if (profile) {
+            setUser(profileToUser(profile));
+          }
+          addTransaction(10, 'login', 'Welcome back!');
+        }
+      } else {
+        // Demo mode login
+        const newUser: User = {
+          uid: 'user_' + Date.now(),
+          email,
+          displayName: email.split('@')[0],
+          name: email.split('@')[0],
+          isGuest: false,
+          points: 50,
+          totalPointsEarned: 50,
+          streak: 1,
+          maxStreak: 1,
+          completedModules: [],
+          level: 'Amateur',
+          avatar: '🧑',
+          avatarType: 'neutral',
+          avatarUrl: null,
+          referralCode: generateReferralCode(),
+          totalEarnings: 0,
+          successfulReferrals: 0,
+          totalReferrals: 0,
+          lastLoginAt: new Date().toISOString(),
+          lastBonusClaim: null,
+          purchasedItems: [],
+        };
+        setUser(newUser);
+        saveUserToStorage(newUser);
+        addTransaction(10, 'login', 'Welcome back!');
+      }
+    } catch (error: any) {
+      console.error('❌ Login error:', error);
+      if (error.message?.includes('Invalid login credentials')) {
+        throw new Error('Invalid email or password. Please try again.');
+      } else if (error.message?.includes('Email not confirmed')) {
+        throw new Error('Please confirm your email first. Check your inbox for the confirmation link.');
+      }
+      throw error;
+    } finally {
+      setLoading(false);
+    }
+  }, [isSupabaseMode, addTransaction]);
+
+  // Guest login
+  const loginAsGuest = useCallback(async () => {
+    setLoading(true);
+    try {
+      if (isSupabaseMode) {
+        const authUser = await signInAsGuest();
+        if (authUser) {
+          const profile = await getUserProfile(authUser.id);
+          if (profile) {
+            setUser(profileToUser(profile));
+          }
+        }
+      } else {
+        const guestUser = createGuestUser();
+        setUser(guestUser);
+        saveUserToStorage(guestUser);
+      }
+      addTransaction(50, 'guest_login', 'Welcome to ReferTRM!');
+    } catch (error) {
+      console.error('Guest login error:', error);
+      throw error;
+    } finally {
+      setLoading(false);
+    }
+  }, [isSupabaseMode, addTransaction]);
+
+  // Signup
+  const signup = useCallback(async (email: string, password: string, displayName: string) => {
+    setLoading(true);
+    try {
+      if (isSupabaseMode) {
+        const authUser = await signUpWithEmail(email, password, displayName);
+        if (authUser) {
+          const profile = await getUserProfile(authUser.id);
+          if (profile) {
+            setUser(profileToUser(profile));
+          }
+        }
+      } else {
+        // Demo mode signup
+        const newUser: User = {
+          uid: 'user_' + Date.now(),
+          email,
+          displayName,
+          name: displayName,
+          isGuest: false,
+          points: 50,
+          totalPointsEarned: 50,
+          streak: 1,
+          maxStreak: 1,
+          completedModules: [],
+          level: 'Amateur',
+          avatar: '🧑',
+          avatarType: 'neutral',
+          avatarUrl: null,
+          referralCode: generateReferralCode(),
+          totalEarnings: 0,
+          successfulReferrals: 0,
+          totalReferrals: 0,
+          lastLoginAt: new Date().toISOString(),
+          lastBonusClaim: null,
+          purchasedItems: [],
+        };
+        setUser(newUser);
+        saveUserToStorage(newUser);
+      }
+      addTransaction(50, 'signup', 'Welcome bonus for creating account!');
+    } catch (error: any) {
+      console.error('Signup error:', error);
+      if (error.message?.includes('already registered')) {
+        throw new Error('This email is already registered. Please login instead.');
+      }
+      throw error;
+    } finally {
+      setLoading(false);
+    }
+  }, [isSupabaseMode, addTransaction]);
+
+  // Logout
+  const logout = useCallback(async () => {
+    if (isSupabaseMode) {
+      await supabaseSignOut();
+    }
+    setUser(null);
+    saveUserToStorage(null);
+  }, [isSupabaseMode]);
+
+  // Password reset
+  const resetPassword = useCallback(async (email: string) => {
+    if (isSupabaseMode && supabase) {
+      const { error } = await supabase.auth.resetPasswordForEmail(email);
+      if (error) throw error;
+    } else {
+      console.log('Demo mode: Password reset requested for:', email);
+    }
+  }, [isSupabaseMode]);
+
+  // Add points
+  const addPoints = useCallback((points: number, reason: string) => {
+    setUser(prevUser => {
+      if (!prevUser) return null;
+      
+      const newPoints = prevUser.points + points;
+      const newTotalEarned = prevUser.totalPointsEarned + points;
+      const newLevel = calculateLevel(newPoints);
+      const updated = { 
+        ...prevUser, 
+        points: newPoints, 
+        totalPointsEarned: newTotalEarned,
+        level: newLevel 
+      };
+      
+      persistUser(updated);
+      addTransaction(points, 'earn', reason);
+      return updated;
+    });
+  }, [addTransaction, persistUser]);
+
+  // Deduct points
+  const deductPoints = useCallback((points: number, reason: string): boolean => {
+    let success = false;
+    setUser(prevUser => {
+      if (!prevUser || prevUser.points < points) return prevUser;
+      
+      success = true;
+      const newPoints = prevUser.points - points;
+      const newLevel = calculateLevel(newPoints);
+      const updated = { 
+        ...prevUser, 
+        points: newPoints,
+        level: newLevel
+      };
+      
+      persistUser(updated);
+      addTransaction(-points, 'spend', reason);
+      return updated;
+    });
+    return success;
+  }, [addTransaction, persistUser]);
+
+  // Complete module
+  const completeModule = useCallback((moduleId: string, points: number) => {
+    setUser(prevUser => {
+      if (!prevUser || prevUser.completedModules.includes(moduleId)) return prevUser;
+      
+      const newCompletedModules = [...prevUser.completedModules, moduleId];
+      const newPoints = prevUser.points + points;
+      const newTotalEarned = prevUser.totalPointsEarned + points;
+      const newLevel = calculateLevel(newPoints);
+      const updated = { 
+        ...prevUser, 
+        points: newPoints, 
+        totalPointsEarned: newTotalEarned,
+        level: newLevel, 
+        completedModules: newCompletedModules 
+      };
+      
+      persistUser(updated);
+      addTransaction(points, 'module_complete', `Completed module: ${moduleId}`);
+      return updated;
+    });
+  }, [addTransaction, persistUser]);
+
+  // Increment streak
+  const incrementStreak = useCallback(() => {
+    setUser(prevUser => {
+      if (!prevUser) return null;
+      
+      const newStreak = prevUser.streak + 1;
+      const newMaxStreak = Math.max(newStreak, prevUser.maxStreak);
+      
+      let streakBonus = 5;
+      for (const milestone of STREAK_MILESTONES) {
+        if (newStreak >= milestone.days) {
+          streakBonus = milestone.bonus;
+        }
+      }
+      
+      const newPoints = prevUser.points + streakBonus;
+      const newTotalEarned = prevUser.totalPointsEarned + streakBonus;
+      const newLevel = calculateLevel(newPoints);
+      const updated = { 
+        ...prevUser, 
+        streak: newStreak,
+        maxStreak: newMaxStreak,
+        points: newPoints,
+        totalPointsEarned: newTotalEarned,
+        level: newLevel
+      };
+      
+      persistUser(updated);
+      addTransaction(streakBonus, 'streak_bonus', `${newStreak}-day streak bonus!`);
+      return updated;
+    });
+  }, [addTransaction, persistUser]);
+
+  // Can claim daily bonus
+  const canClaimDailyBonus = useCallback((): boolean => {
+    if (!user) return false;
+    
+    const today = new Date().toDateString();
+    const lastClaim = user.lastBonusClaim ? new Date(user.lastBonusClaim).toDateString() : null;
+    
+    return lastClaim !== today;
+  }, [user]);
+
+  // Claim daily bonus
+  const claimDailyBonus = useCallback((): { success: boolean; points: number; message: string } => {
+    if (!user) {
+      return { success: false, points: 0, message: 'Please log in first' };
+    }
+    
+    const today = new Date().toDateString();
+    const lastClaim = user.lastBonusClaim ? new Date(user.lastBonusClaim).toDateString() : null;
+    
+    if (lastClaim === today) {
+      return { success: false, points: 0, message: 'Already claimed today!' };
+    }
+    
+    const baseBonus = 10;
+    const streakMultiplier = Math.min(user.streak * 0.1, 1);
+    const bonus = Math.round(baseBonus * (1 + streakMultiplier));
+    
+    const yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
+    const wasClaimedYesterday = lastClaim === yesterday.toDateString();
+    
+    let newStreak: number;
+    if (wasClaimedYesterday || !user.lastBonusClaim) {
+      newStreak = user.streak + 1;
+    } else {
+      newStreak = 1;
+    }
+    
+    const newMaxStreak = Math.max(newStreak, user.maxStreak);
+    const newPoints = user.points + bonus;
+    const newTotalEarned = user.totalPointsEarned + bonus;
+    const newLevel = calculateLevel(newPoints);
+    
+    setUser(prevUser => {
+      if (!prevUser) return null;
+      
+      const updated = { 
+        ...prevUser, 
+        streak: newStreak,
+        maxStreak: newMaxStreak,
+        points: newPoints,
+        totalPointsEarned: newTotalEarned,
+        level: newLevel,
+        lastBonusClaim: new Date().toISOString()
+      };
+      
+      persistUser(updated);
+      addTransaction(bonus, 'daily_bonus', `Daily login bonus (${newStreak}-day streak)`);
+      return updated;
+    });
+    
+    return { 
+      success: true, 
+      points: bonus, 
+      message: `+${bonus} points! ${newStreak}-day streak 🔥` 
+    };
+  }, [user, addTransaction, persistUser]);
+
+  // Purchase item
+  const purchaseItem = useCallback((itemId: string, cost: number): boolean => {
+    let success = false;
+    
+    setUser(prevUser => {
+      if (!prevUser || prevUser.points < cost || prevUser.purchasedItems?.includes(itemId)) {
+        return prevUser;
+      }
+      
+      success = true;
+      const newPoints = prevUser.points - cost;
+      const newLevel = calculateLevel(newPoints);
+      const purchasedItems = [...(prevUser.purchasedItems || []), itemId];
+      const updated = { 
+        ...prevUser, 
+        points: newPoints,
+        level: newLevel,
+        purchasedItems
+      };
+      
+      persistUser(updated);
+      addTransaction(-cost, 'shop_purchase', `Purchased: ${itemId}`);
+      return updated;
+    });
+    
+    return success;
+  }, [addTransaction, persistUser]);
+
+  // Get point transactions
+  const getPointTransactions = useCallback((): PointTransaction[] => {
+    return transactions;
+  }, [transactions]);
+
+  // Update avatar
+  const updateAvatar = useCallback((avatarType: 'male' | 'female' | 'neutral', avatar: string) => {
+    setUser(prevUser => {
+      if (!prevUser) return null;
+      
+      const updated = { 
+        ...prevUser, 
+        avatarType,
+        avatar
+      };
+      
+      persistUser(updated);
+      return updated;
+    });
+  }, [persistUser]);
+
+  // Update profile photo
+  const updateProfilePhoto = useCallback((photoUrl: string) => {
+    setUser(prevUser => {
+      if (!prevUser) return null;
+      
+      const updated = { 
+        ...prevUser, 
+        avatarUrl: photoUrl,
+        avatar: '',
+      };
+      
+      persistUser(updated);
+      return updated;
+    });
+  }, [persistUser]);
+
+  return (
+    <AuthContext.Provider value={{ 
+      user, 
+      loading, 
+      isSupabaseMode,
+      login, 
+      loginAsGuest, 
+      signup, 
+      logout, 
+      resetPassword,
+      addPoints, 
+      deductPoints,
+      completeModule, 
+      incrementStreak,
+      claimDailyBonus,
+      canClaimDailyBonus,
+      purchaseItem,
+      getPointTransactions,
+      updateAvatar,
+      updateProfilePhoto
+    }}>
+      {children}
+    </AuthContext.Provider>
+  );
+}
+
+export function useAuth() {
+  const context = useContext(AuthContext);
+  if (!context) throw new Error('useAuth must be used within AuthProvider');
+  return context;
+}
+
+export { LEVEL_THRESHOLDS, STREAK_MILESTONES };
+=== END FILE ===
+
+=== FILE: src/contexts/TranslationContext.tsx ===
+'use client';
+
+import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+
+// Supported languages
+export type Language = 'en' | 'my';
+
+// Translation context type
+interface TranslationContextType {
+  language: Language;
+  setLanguage: (lang: Language) => void;
+  t: (key: string, options?: { context?: string; fallback?: string }) => string;
+  isTranslating: boolean;
+  translateText: (text: string, context?: string) => Promise<string>;
+}
+
+const TranslationContext = createContext<TranslationContextType | undefined>(undefined);
+
+// Common translations embedded (for instant loading)
+const commonTranslations: Record<string, Record<Language, string>> = {
+  // Navigation
+  'nav.dashboard': { en: 'Dashboard', my: 'ပင်မစာမျက်နှာ' },
+  'nav.jobs': { en: 'Jobs', my: 'အလုပ်များ' },
+  'nav.companies': { en: 'Companies', my: 'ကုမ္ပဏီများ' },
+  'nav.academy': { en: 'Academy', my: 'သင်ကြားရေး' },
+  'nav.community': { en: 'Community', my: 'အသိုင်းအဝိုင်း' },
+  'nav.settings': { en: 'Settings', my: 'ဆက်တင်များ' },
+  'nav.leaderboard': { en: 'Leaderboard', my: 'ခေါင်းဆောင်မှုစာရင်း' },
+  'nav.rewards': { en: 'Rewards', my: 'ဆုလာဘ်များ' },
+  'nav.safety': { en: 'Safety Hub', my: 'လုံခြုံရေးစင်တာ' },
+  'nav.blood': { en: 'Blood Network', my: 'သွေးလှူကွန်ရက်' },
+  'nav.zodiac': { en: 'Zodiac Career', my: 'ဗီဇဗေဒင်အလုပ်' },
+  'nav.referrals': { en: 'Referrals', my: 'ရည်ညွှန်းမှုများ' },
+  
+  // Actions
+  'action.apply': { en: 'Apply Now', my: 'ယခုလျှောက်ပါ' },
+  'action.submit': { en: 'Submit', my: 'တင်သွင်းပါ' },
+  'action.cancel': { en: 'Cancel', my: 'ပယ်ဖျက်ပါ' },
+  'action.save': { en: 'Save', my: 'သိမ်းဆည်းပါ' },
+  'action.edit': { en: 'Edit', my: 'ပြုပြင်ပါ' },
+  'action.delete': { en: 'Delete', my: 'ဖျက်ပါ' },
+  'action.search': { en: 'Search', my: 'ရှာဖွေပါ' },
+  'action.filter': { en: 'Filter', my: 'စစ်ထုတ်ပါ' },
+  'action.upload': { en: 'Upload', my: 'တင်ပါ' },
+  'action.download': { en: 'Download', my: 'ဒေါင်းလုဒ်ဆွဲပါ' },
+  'action.share': { en: 'Share', my: 'မျှဝေပါ' },
+  'action.copy': { en: 'Copy', my: 'ကူးယူပါ' },
+  'action.close': { en: 'Close', my: 'ပိတ်ပါ' },
+  'action.continue': { en: 'Continue', my: 'ဆက်လက်လုပ်ဆောင်ပါ' },
+  'action.back': { en: 'Back', my: 'နောက်သို့' },
+  'action.next': { en: 'Next', my: 'ရှေ့သို့' },
+  'action.skip': { en: 'Skip', my: 'ကျော်ပါ' },
+  'action.complete': { en: 'Complete', my: 'ပြီးမြောက်ပါ' },
+  'action.generate': { en: 'Generate', my: 'ဖန်တီးပါ' },
+  'action.analyze': { en: 'Analyze', my: 'ခွဲခြမ်းစိတ်ဖြာပါ' },
+  'action.schedule': { en: 'Schedule', my: 'အချိန်ဇယားချပါ' },
+  'action.start': { en: 'Start', my: 'စတင်ပါ' },
+  'action.retry': { en: 'Retry', my: 'ထပ်မံကြိုးစားပါ' },
+  
+  // Status
+  'status.active': { en: 'Active', my: 'လှုပ်ရှားနေသည်' },
+  'status.pending': { en: 'Pending', my: 'စောင့်ဆိုင်းနေသည်' },
+  'status.completed': { en: 'Completed', my: 'ပြီးမြောက်ပြီ' },
+  'status.approved': { en: 'Approved', my: 'အတည်ပြုပြီ' },
+  'status.rejected': { en: 'Rejected', my: 'ငြင်းပယ်ပြီ' },
+  'status.loading': { en: 'Loading...', my: 'တင်နေသည်...' },
+  'status.success': { en: 'Success!', my: 'အောင်မြင်ပါသည်!' },
+  'status.error': { en: 'Error', my: 'အမှားအယွင်း' },
+  
+  // Messages
+  'msg.welcome': { en: 'Welcome', my: 'ကြိုဆိုပါသည်' },
+  'msg.no_results': { en: 'No results found', my: 'ရလဒ်မတွေ့ပါ' },
+  'msg.coming_soon': { en: 'Coming Soon', my: 'မကြာမီ' },
+  'msg.learn_more': { en: 'Learn More', my: 'ပိုမိုလေ့လာပါ' },
+  'msg.view_all': { en: 'View All', my: 'အားလုံးကြည့်ပါ' },
+  'msg.get_started': { en: 'Get Started', my: 'စတင်ပါ' },
+  
+  // Job-related
+  'job.title': { en: 'Job Title', my: 'အလုပ်ရာထူးအမည်' },
+  'job.company': { en: 'Company', my: 'ကုမ္ပဏီ' },
+  'job.location': { en: 'Location', my: 'နေရာ' },
+  'job.salary': { en: 'Salary', my: 'လစာ' },
+  'job.experience': { en: 'Experience', my: 'အတွေ့အကြုံ' },
+  'job.requirements': { en: 'Requirements', my: 'လိုအပ်ချက်များ' },
+  'job.benefits': { en: 'Benefits', my: 'အကျိုးခံစားခွင့်များ' },
+  'job.full_time': { en: 'Full-time', my: 'အချိန်ပြည့်' },
+  'job.part_time': { en: 'Part-time', my: 'အချိန်ပိုင်း' },
+  'job.remote': { en: 'Remote', my: 'အဝေးမှအလုပ်' },
+  'job.contract': { en: 'Contract', my: 'စာချုပ်' },
+  'job.urgent': { en: 'Urgent', my: 'အရေးပေါ်' },
+  
+  // Profile
+  'profile.name': { en: 'Name', my: 'အမည်' },
+  'profile.email': { en: 'Email', my: 'အီးမေးလ်' },
+  'profile.phone': { en: 'Phone', my: 'ဖုန်းနံပါတ်' },
+  'profile.address': { en: 'Address', my: 'လိပ်စာ' },
+  'profile.education': { en: 'Education', my: 'ပညာရေး' },
+  'profile.skills': { en: 'Skills', my: 'ကျွမ်းကျင်မှုများ' },
+  'profile.experience': { en: 'Experience', my: 'အတွေ့အကြုံ' },
+  
+  // Time
+  'time.today': { en: 'Today', my: 'ယနေ့' },
+  'time.yesterday': { en: 'Yesterday', my: 'မနေ့' },
+  'time.this_week': { en: 'This Week', my: 'ယခုအပတ်' },
+  'time.this_month': { en: 'This Month', my: 'ယခုလ' },
+  'time.days': { en: 'days', my: 'ရက်' },
+  'time.hours': { en: 'hours', my: 'နာရီ' },
+  'time.minutes': { en: 'minutes', my: 'မိနစ်' },
+  
+  // Auth
+  'auth.sign_in': { en: 'Sign In', my: 'လော့ဂ်အင်' },
+  'auth.sign_up': { en: 'Sign Up', my: 'မှတ်ပုံတင်' },
+  'auth.log_out': { en: 'Log Out', my: 'လော့ဂ်အောက်' },
+  'auth.forgot_password': { en: 'Forgot Password?', my: 'စကားဝှက်မေ့နေပါသလား?' },
+  'auth.reset_password': { en: 'Reset Password', my: 'စကားဝှက်ပြန်လည်သတ်မှတ်ပါ' },
+  
+  // Encouragement (Important for youth!)
+  'encourage.start_journey': { en: 'Start Your Journey', my: 'သင်၏ခရီးစတင်ပါ' },
+  'encourage.build_future': { en: 'Build Your Future', my: 'သင့်အနာဂတ်ကိုတည်ဆောက်ပါ' },
+  'encourage.learn_grow': { en: 'Learn and Grow', my: 'သင်ယူ၍ ကြီးထွားပါ' },
+  'encourage.connect': { en: 'Connect with Opportunities', my: 'အခွင့်အလမ်းများနှင့် ဆက်သွယ်ပါ' },
+  'encourage.you_can': { en: 'You Can Do It!', my: 'သင်လုပ်နိုင်ပါသည်!' },
+  'encourage.keep_learning': { en: 'Keep Learning', my: 'ဆက်လက်သင်ယူပါ' },
+  
+  // AI Tools
+  'ai.generator': { en: 'AI Generator', my: 'AI ဖန်တီးရေး' },
+  'ai.analyzer': { en: 'AI Analyzer', my: 'AI ခွဲခြမ်းစိတ်ဖြာရေး' },
+  'ai.generate_jd': { en: 'Generate Job Description', my: 'အလုပ်ကြော်ငြာ ဖန်တီးပါ' },
+  'ai.analyze_resume': { en: 'Analyze Resume', my: 'CV ခွဲခြမ်းစိတ်ဖြာပါ' },
+  
+  // Company
+  'company.dashboard': { en: 'Company Dashboard', my: 'ကုမ္ပဏီ ပင်မစာမျက်နှာ' },
+  'company.jobs': { en: 'Job Postings', my: 'အလုပ်ကြော်ငြာများ' },
+  'company.applicants': { en: 'Applicants', my: 'လျှောက်လွှာတင်သူများ' },
+  'company.analytics': { en: 'Analytics', my: 'ခွဲခြမ်းစိတ်ဖြာမှု' },
+  'company.billing': { en: 'Billing', my: 'ငွေပေးချေမှု' },
+  
+  // Currency
+  'currency.per_month': { en: 'per month', my: 'ကျပ်/လ' },
+  'currency.lakh': { en: 'Lakh', my: 'သိန်း' },
+  'currency.million': { en: 'Million', my: 'သန်း' },
+};
+
+// Translation cache for API calls
+const translationCache = new Map<string, string>();
+
+interface TranslationProviderProps {
+  children: ReactNode;
+}
+
+export function TranslationProvider({ children }: TranslationProviderProps) {
+  const [language, setLanguage] = useState<Language>('en');
+  const [isTranslating, setIsTranslating] = useState(false);
+
+  // Load language preference from localStorage (client-side only)
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    try {
+      const savedLanguage = localStorage.getItem('refertrm-language') as Language;
+      if (savedLanguage && (savedLanguage === 'en' || savedLanguage === 'my')) {
+        setLanguage(savedLanguage);
+      }
+    } catch (e) {
+      console.error('Error loading language preference:', e);
+    }
+  }, []);
+
+  // Save language preference (client-side only)
+  const handleSetLanguage = (lang: Language) => {
+    setLanguage(lang);
+    if (typeof window !== 'undefined') {
+      try {
+        localStorage.setItem('refertrm-language', lang);
+      } catch (e) {
+        console.error('Error saving language preference:', e);
+      }
+    }
+  };
+
+  // Translation function
+  const t = (key: string, options?: { context?: string; fallback?: string }): string => {
+    // If English, return fallback or key
+    if (language === 'en') {
+      return options?.fallback || key;
+    }
+
+    // Check embedded translations
+    const translation = commonTranslations[key];
+    if (translation) {
+      return translation[language];
+    }
+
+    // Check cache
+    const cacheKey = `${key}-${language}`;
+    const cached = translationCache.get(cacheKey);
+    if (cached) {
+      return cached;
+    }
+
+    // Return fallback or key (will be translated asynchronously if needed)
+    return options?.fallback || key;
+  };
+
+  // Translate arbitrary text via API
+  const translateText = async (text: string, context?: string): Promise<string> => {
+    if (language === 'en') return text;
+
+    const cacheKey = `${text}-${context || 'formal'}`;
+    const cached = translationCache.get(cacheKey);
+    if (cached) return cached;
+
+    setIsTranslating(true);
+    try {
+      const response = await fetch('/api/translation', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          text,
+          context: context || 'formal',
+          sourceLanguage: 'en',
+          targetLanguage: 'my',
+        }),
+      });
+
+      const data = await response.json();
+      if (data.success && data.translation) {
+        translationCache.set(cacheKey, data.translation);
+        return data.translation;
+      }
+    } catch (error) {
+      console.error('Translation error:', error);
+    } finally {
+      setIsTranslating(false);
+    }
+
+    return text;
+  };
+
+  return (
+    <TranslationContext.Provider
+      value={{
+        language,
+        setLanguage: handleSetLanguage,
+        t,
+        isTranslating,
+        translateText,
+      }}
+    >
+      {children}
+    </TranslationContext.Provider>
+  );
+}
+
+// Hook to use translation
+export function useTranslation() {
+  const context = useContext(TranslationContext);
+  if (context === undefined) {
+    throw new Error('useTranslation must be used within a TranslationProvider');
+  }
+  return context;
+}
+
+// Export common translations for direct access
+export { commonTranslations };
+=== END FILE ===
+
+################################################################################
+# SECTION: CUSTOM HOOKS
+################################################################################
+
+=== FILE: src/hooks/use-mobile.ts ===
+import * as React from "react"
+
+const MOBILE_BREAKPOINT = 768
+
+export function useIsMobile() {
+  const [isMobile, setIsMobile] = React.useState<boolean | undefined>(undefined)
+
+  React.useEffect(() => {
+    const mql = window.matchMedia(`(max-width: ${MOBILE_BREAKPOINT - 1}px)`)
+    const onChange = () => {
+      setIsMobile(window.innerWidth < MOBILE_BREAKPOINT)
+    }
+    mql.addEventListener("change", onChange)
+    setIsMobile(window.innerWidth < MOBILE_BREAKPOINT)
+    return () => mql.removeEventListener("change", onChange)
+  }, [])
+
+  return !!isMobile
+}
+=== END FILE ===
+
+=== FILE: src/hooks/use-toast.ts ===
+"use client"
+
+// Inspired by react-hot-toast library
+import * as React from "react"
+
+import type {
+  ToastActionElement,
+  ToastProps,
+} from "@/components/ui/toast"
+
+const TOAST_LIMIT = 1
+const TOAST_REMOVE_DELAY = 1000000
+
+type ToasterToast = ToastProps & {
+  id: string
+  title?: React.ReactNode
+  description?: React.ReactNode
+  action?: ToastActionElement
+}
+
+const actionTypes = {
+  ADD_TOAST: "ADD_TOAST",
+  UPDATE_TOAST: "UPDATE_TOAST",
+  DISMISS_TOAST: "DISMISS_TOAST",
+  REMOVE_TOAST: "REMOVE_TOAST",
+} as const
+
+let count = 0
+
+function genId() {
+  count = (count + 1) % Number.MAX_SAFE_INTEGER
+  return count.toString()
+}
+
+type ActionType = typeof actionTypes
+
+type Action =
+  | {
+    type: ActionType["ADD_TOAST"]
+    toast: ToasterToast
+  }
+  | {
+    type: ActionType["UPDATE_TOAST"]
+    toast: Partial<ToasterToast>
+  }
+  | {
+    type: ActionType["DISMISS_TOAST"]
+    toastId?: ToasterToast["id"]
+  }
+  | {
+    type: ActionType["REMOVE_TOAST"]
+    toastId?: ToasterToast["id"]
+  }
+
+interface State {
+  toasts: ToasterToast[]
+}
+
+const toastTimeouts = new Map<string, ReturnType<typeof setTimeout>>()
+
+const addToRemoveQueue = (toastId: string) => {
+  if (toastTimeouts.has(toastId)) {
+    return
+  }
+
+  const timeout = setTimeout(() => {
+    toastTimeouts.delete(toastId)
+    dispatch({
+      type: "REMOVE_TOAST",
+      toastId: toastId,
+    })
+  }, TOAST_REMOVE_DELAY)
+
+  toastTimeouts.set(toastId, timeout)
+}
+
+export const reducer = (state: State, action: Action): State => {
+  switch (action.type) {
+    case "ADD_TOAST":
+      return {
+        ...state,
+        toasts: [action.toast, ...state.toasts].slice(0, TOAST_LIMIT),
+      }
+
+    case "UPDATE_TOAST":
+      return {
+        ...state,
+        toasts: state.toasts.map((t) =>
+          t.id === action.toast.id ? { ...t, ...action.toast } : t
+        ),
+      }
+
+    case "DISMISS_TOAST": {
+      const { toastId } = action
+
+      // ! Side effects ! - This could be extracted into a dismissToast() action,
+      // but I'll keep it here for simplicity
+      if (toastId) {
+        addToRemoveQueue(toastId)
+      } else {
+        state.toasts.forEach((toast) => {
+          addToRemoveQueue(toast.id)
+        })
+      }
+
+      return {
+        ...state,
+        toasts: state.toasts.map((t) =>
+          t.id === toastId || toastId === undefined
+            ? {
+              ...t,
+              open: false,
+            }
+            : t
+        ),
+      }
+    }
+    case "REMOVE_TOAST":
+      if (action.toastId === undefined) {
+        return {
+          ...state,
+          toasts: [],
+        }
+      }
+      return {
+        ...state,
+        toasts: state.toasts.filter((t) => t.id !== action.toastId),
+      }
+  }
+}
+
+const listeners: Array<(state: State) => void> = []
+
+let memoryState: State = { toasts: [] }
+
+function dispatch(action: Action) {
+  memoryState = reducer(memoryState, action)
+  listeners.forEach((listener) => {
+    listener(memoryState)
+  })
+}
+
+type Toast = Omit<ToasterToast, "id">
+
+function toast({ ...props }: Toast) {
+  const id = genId()
+
+  const update = (props: ToasterToast) =>
+    dispatch({
+      type: "UPDATE_TOAST",
+      toast: { ...props, id },
+    })
+  const dismiss = () => dispatch({ type: "DISMISS_TOAST", toastId: id })
+
+  dispatch({
+    type: "ADD_TOAST",
+    toast: {
+      ...props,
+      id,
+      open: true,
+      onOpenChange: (open) => {
+        if (!open) dismiss()
+      },
+    },
+  })
+
+  return {
+    id: id,
+    dismiss,
+    update,
+  }
+}
+
+function useToast() {
+  const [state, setState] = React.useState<State>(memoryState)
+
+  React.useEffect(() => {
+    listeners.push(setState)
+    return () => {
+      const index = listeners.indexOf(setState)
+      if (index > -1) {
+        listeners.splice(index, 1)
+      }
+    }
+  }, [state])
+
+  return {
+    ...state,
+    toast,
+    dismiss: (toastId?: string) => dispatch({ type: "DISMISS_TOAST", toastId }),
+  }
+}
+
+export { useToast, toast }=== END FILE ===
+
+=== FILE: src/hooks/use-touch-gestures.ts ===
+'use client';
+
+import { useCallback, useRef, useState } from 'react';
+
+export interface SwipeHandlers {
+  onSwipeLeft?: () => void;
+  onSwipeRight?: () => void;
+  onSwipeUp?: () => void;
+  onSwipeDown?: () => void;
+}
+
+export interface SwipeState {
+  direction: 'left' | 'right' | 'up' | 'down' | null;
+  distance: number;
+  velocity: number;
+}
+
+interface TouchPoint {
+  x: number;
+  y: number;
+  timestamp: number;
+}
+
+const SWIPE_THRESHOLD = 50; // Minimum distance for swipe
+const VELOCITY_THRESHOLD = 0.3; // Minimum velocity
+
+export function useSwipe(handlers: SwipeHandlers, options?: { 
+  threshold?: number;
+  preventScrollOnSwipe?: boolean;
+}) {
+  const threshold = options?.threshold || SWIPE_THRESHOLD;
+  const preventScrollOnSwipe = options?.preventScrollOnSwipe ?? true;
+  
+  const startPoint = useRef<TouchPoint | null>(null);
+  const [swipeState, setSwipeState] = useState<SwipeState>({
+    direction: null,
+    distance: 0,
+    velocity: 0,
+  });
+
+  const handleTouchStart = useCallback((e: React.TouchEvent) => {
+    const touch = e.touches[0];
+    startPoint.current = {
+      x: touch.clientX,
+      y: touch.clientY,
+      timestamp: Date.now(),
+    };
+    setSwipeState({ direction: null, distance: 0, velocity: 0 });
+  }, []);
+
+  const handleTouchMove = useCallback((e: React.TouchEvent) => {
+    if (!startPoint.current) return;
+    
+    const touch = e.touches[0];
+    const deltaX = touch.clientX - startPoint.current.x;
+    const deltaY = touch.clientY - startPoint.current.y;
+    
+    const absX = Math.abs(deltaX);
+    const absY = Math.abs(deltaY);
+    
+    // Determine primary direction
+    if (absX > absY) {
+      setSwipeState({
+        direction: deltaX > 0 ? 'right' : 'left',
+        distance: absX,
+        velocity: absX / (Date.now() - startPoint.current.timestamp),
+      });
+      
+      // Prevent horizontal scroll during swipe
+      if (preventScrollOnSwipe && absX > 10) {
+        e.preventDefault();
+      }
+    } else {
+      setSwipeState({
+        direction: deltaY > 0 ? 'down' : 'up',
+        distance: absY,
+        velocity: absY / (Date.now() - startPoint.current.timestamp),
+      });
+    }
+  }, [preventScrollOnSwipe]);
+
+  const handleTouchEnd = useCallback(() => {
+    if (!startPoint.current) return;
+    
+    const { direction, distance, velocity } = swipeState;
+    
+    // Check if swipe meets threshold
+    if (distance >= threshold || velocity >= VELOCITY_THRESHOLD) {
+      switch (direction) {
+        case 'left':
+          handlers.onSwipeLeft?.();
+          break;
+        case 'right':
+          handlers.onSwipeRight?.();
+          break;
+        case 'up':
+          handlers.onSwipeUp?.();
+          break;
+        case 'down':
+          handlers.onSwipeDown?.();
+          break;
+      }
+    }
+    
+    startPoint.current = null;
+    setSwipeState({ direction: null, distance: 0, velocity: 0 });
+  }, [swipeState, threshold, handlers]);
+
+  return {
+    swipeState,
+    handlers: {
+      onTouchStart: handleTouchStart,
+      onTouchMove: handleTouchMove,
+      onTouchEnd: handleTouchEnd,
+    },
+  };
+}
+
+// Hook for tab navigation with swipe
+export function useSwipeNavigation(tabs: string[], options?: {
+  initialIndex?: number;
+  onChange?: (index: number) => void;
+}) {
+  const [activeIndex, setActiveIndex] = useState(options?.initialIndex || 0);
+  
+  const goToNext = useCallback(() => {
+    setActiveIndex(prev => {
+      const next = Math.min(prev + 1, tabs.length - 1);
+      options?.onChange?.(next);
+      return next;
+    });
+  }, [tabs.length, options]);
+  
+  const goToPrevious = useCallback(() => {
+    setActiveIndex(prev => {
+      const next = Math.max(prev - 1, 0);
+      options?.onChange?.(next);
+      return next;
+    });
+  }, [options]);
+  
+  const goToTab = useCallback((index: number) => {
+    if (index >= 0 && index < tabs.length) {
+      setActiveIndex(index);
+      options?.onChange?.(index);
+    }
+  }, [tabs.length, options]);
+  
+  const { handlers: swipeHandlers } = useSwipe({
+    onSwipeLeft: goToNext,
+    onSwipeRight: goToPrevious,
+  });
+  
+  return {
+    activeIndex,
+    activeTab: tabs[activeIndex],
+    goToNext,
+    goToPrevious,
+    goToTab,
+    swipeHandlers,
+  };
+}
+
+// Hook for long press (context menu alternative)
+export function useLongPress(
+  callback: () => void, 
+  options?: { delay?: number }
+) {
+  const delay = options?.delay || 500;
+  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const [isPressed, setIsPressed] = useState(false);
+
+  const start = useCallback(() => {
+    setIsPressed(true);
+    timeoutRef.current = setTimeout(() => {
+      callback();
+      setIsPressed(false);
+    }, delay);
+  }, [callback, delay]);
+
+  const stop = useCallback(() => {
+    setIsPressed(false);
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
+      timeoutRef.current = null;
+    }
+  }, []);
+
+  return {
+    isPressed,
+    handlers: {
+      onTouchStart: start,
+      onTouchEnd: stop,
+      onTouchCancel: stop,
+      onMouseDown: start,
+      onMouseUp: stop,
+      onMouseLeave: stop,
+    },
+  };
+}
+
+// Hook for double tap
+export function useDoubleTap(
+  callback: () => void,
+  options?: { delay?: number }
+) {
+  const delay = options?.delay || 300;
+  const lastTapRef = useRef<number>(0);
+
+  const handleTap = useCallback(() => {
+    const now = Date.now();
+    const timeSinceLastTap = now - lastTapRef.current;
+    

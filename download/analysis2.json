@@ -1,0 +1,28 @@
+{
+  "choices": [
+    {
+      "finish_reason": "stop",
+      "index": 0,
+      "message": {
+        "content": "The screenshot displays a **webpage error page** (likely from a browser like Chrome) with the following key sections and features:  \n\n### 1. Header/Icon  \n- A small icon of a **broken document/page** (indicating a connection error) is centered at the top.    \n\n### 2. Main Error Title  \n- The prominent title: *“This site can’t be reached”* (in bold, black text).    \n\n### 3. Error Details  \n- Subtitle: *“localhost refused to connect.”* (explains the error context).  \n- A “Try:” section with two bullet - pointed suggestions:  \n  - *“Checking the connection”* (plain text).  \n  - *“Checking the proxy and the firewall”* (blue, underlined text, suggesting it may be a clickable link).  \n- An error code: *“ERR_CONNECTION_REFUSED”* (in gray text, providing technical context).    \n\n### 4. Action Buttons  \n- A blue, rounded - rectangle button labeled *“Reload”* (for attempting to reload the page).  \n- A gray, outlined button labeled *“Details”* (likely to expand more technical error information).    \n\n\nThe layout is minimalistic, with a white background, and all text/elements are left - aligned (except the “Details” button, which is right - aligned at the bottom). The design focuses on communicating the connection failure and offering basic troubleshooting actions.",
+        "role": "assistant"
+      }
+    }
+  ],
+  "created": 1771157547,
+  "id": "20260215201214bfe194c74e77426a",
+  "model": "glm-4.6v",
+  "object": "chat.completion",
+  "request_id": "20260215201214bfe194c74e77426a",
+  "usage": {
+    "completion_tokens": 302,
+    "completion_tokens_details": {
+      "reasoning_tokens": 0
+    },
+    "prompt_tokens": 704,
+    "prompt_tokens_details": {
+      "cached_tokens": 6
+    },
+    "total_tokens": 1006
+  }
+}

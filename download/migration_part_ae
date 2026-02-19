@@ -1,0 +1,3000 @@
+
+export default function AvatarSystem({ currentPoints = 7500, onAvatarSelect }: AvatarSystemProps) {
+  const [selectedAvatar, setSelectedAvatar] = useState<AvatarOption | null>(null);
+  const [selectedTab, setSelectedTab] = useState<'avatars' | 'accessories'>('avatars');
+
+  const handleAvatarClick = (avatar: AvatarOption) => {
+    if (avatar.unlocked || avatar.cost <= currentPoints) {
+      setSelectedAvatar(avatar);
+      onAvatarSelect?.(avatar);
+    }
+  };
+
+  return (
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="text-center">
+        <h2 className="text-2xl md:text-3xl font-bold text-white mb-2">
+          Avatar <span className="text-gradient-primary">Customization</span>
+        </h2>
+        <p className="text-slate-400 burmese-text">
+          Avatar စိတ်ကြိုက်ပြင်ဆင်မှု - သင့်ရည်ညွှန်းခေါင်းဆောင်
+        </p>
+        <div className="flex items-center justify-center gap-2 mt-3">
+          <Star className="h-5 w-5 text-amber-400" />
+          <span className="text-amber-400 font-bold">{currentPoints.toLocaleString()} Points</span>
+          <span className="text-slate-500">available</span>
+        </div>
+      </div>
+
+      {/* Preview Area */}
+      <div className="glass-card p-6">
+        <div className="flex flex-col md:flex-row items-center gap-6">
+          {/* Avatar Preview */}
+          <div className="flex-shrink-0">
+            <div className="relative">
+              <motion.div
+                key={selectedAvatar?.id || 'default'}
+                initial={{ scale: 0.8, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                className={`w-32 h-32 rounded-full bg-gradient-to-br ${
+                  selectedAvatar ? tierColors[selectedAvatar.tier].bg : 'from-teal-500 to-cyan-500'
+                } flex items-center justify-center text-6xl shadow-xl ${
+                  selectedAvatar ? tierColors[selectedAvatar.tier].glow : 'shadow-teal-500/30'
+                }`}
+              >
+                {selectedAvatar?.emoji || '🧑'}
+              </motion.div>
+              
+              {/* Tier Badge */}
+              {selectedAvatar && (
+                <div className={`absolute -bottom-2 left-1/2 -translate-x-1/2 px-3 py-1 rounded-full bg-slate-800 border ${
+                  tierColors[selectedAvatar.tier].border
+                }`}>
+                  <span className={`text-xs font-bold ${tierColors[selectedAvatar.tier].text}`}>
+                    {tierLabels[selectedAvatar.tier].en}
+                  </span>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Selected Avatar Info */}
+          <div className="flex-1 text-center md:text-left">
+            <h3 className="text-xl font-bold text-white mb-1">
+              {selectedAvatar?.name || 'Choose Your Avatar'}
+            </h3>
+            <p className="text-slate-400 burmese-text text-sm mb-3">
+              {selectedAvatar?.nameMm || 'သင့် Avatar ကို ရွေးချယ်ပါ'}
+            </p>
+            {selectedAvatar && (
+              <div className="flex flex-wrap items-center gap-2 justify-center md:justify-start">
+                <Badge className={`${tierColors[selectedAvatar.tier].text} bg-white/5 border-current`}>
+                  <Crown className="h-3 w-3 mr-1" />
+                  {selectedAvatar.style}
+                </Badge>
+                <Badge className="bg-amber-500/20 text-amber-400 border-amber-500/30">
+                  <Star className="h-3 w-3 mr-1" />
+                  {selectedAvatar.cost > 0 ? `${selectedAvatar.cost.toLocaleString()} pts` : 'Free'}
+                </Badge>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Tab Switcher */}
+      <div className="flex justify-center gap-2">
+        <button
+          onClick={() => setSelectedTab('avatars')}
+          className={`px-6 py-3 rounded-xl font-medium transition-all touch-target ${
+            selectedTab === 'avatars' ? 'btn-primary' : 'bg-slate-800 text-slate-400 hover:text-white'
+          }`}
+        >
+          Avatars
+        </button>
+        <button
+          onClick={() => setSelectedTab('accessories')}
+          className={`px-6 py-3 rounded-xl font-medium transition-all touch-target ${
+            selectedTab === 'accessories' ? 'btn-primary' : 'bg-slate-800 text-slate-400 hover:text-white'
+          }`}
+        >
+          Accessories
+        </button>
+      </div>
+
+      {/* Avatar Grid */}
+      <AnimatePresence mode="wait">
+        {selectedTab === 'avatars' && (
+          <motion.div
+            key="avatars"
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            className="space-y-6"
+          >
+            {Object.keys(tierLabels).map((tier) => {
+              const tierAvatars = avatarOptions.filter((a) => a.tier === tier);
+              const colors = tierColors[tier];
+              
+              return (
+                <div key={tier} className="space-y-3">
+                  <div className="flex items-center gap-2">
+                    <h4 className={`font-bold ${colors.text}`}>
+                      {tierLabels[tier].en}
+                    </h4>
+                    <span className="text-slate-500 text-sm burmese-text">
+                      ({tierLabels[tier].mm})
+                    </span>
+                    <div className="flex-1 h-px bg-slate-800" />
+                  </div>
+                  
+                  <div className="grid grid-cols-3 md:grid-cols-6 gap-3">
+                    {tierAvatars.map((avatar) => {
+                      const isSelected = selectedAvatar?.id === avatar.id;
+                      const canUnlock = avatar.cost <= currentPoints;
+                      
+                      return (
+                        <motion.button
+                          key={avatar.id}
+                          whileHover={{ scale: 1.05 }}
+                          whileTap={{ scale: 0.95 }}
+                          onClick={() => handleAvatarClick(avatar)}
+                          disabled={!canUnlock && !avatar.unlocked}
+                          className={`relative p-3 rounded-xl transition-all touch-target haptic ${
+                            isSelected
+                              ? `bg-gradient-to-br ${colors.bg} ${colors.border} border-2 shadow-lg ${colors.glow}`
+                              : canUnlock || avatar.unlocked
+                              ? 'bg-slate-800 hover:bg-slate-700 border border-slate-700'
+                              : 'bg-slate-900 opacity-50 cursor-not-allowed border border-slate-800'
+                          }`}
+                        >
+                          <div className="text-3xl mb-2">{avatar.emoji}</div>
+                          <div className="text-xs text-white font-medium truncate">{avatar.name}</div>
+                          <div className="text-[10px] text-slate-500 truncate burmese-text">{avatar.nameMm}</div>
+                          
+                          {/* Selected Check */}
+                          {isSelected && (
+                            <div className="absolute -top-1 -right-1 w-5 h-5 bg-teal-500 rounded-full flex items-center justify-center">
+                              <Check className="h-3 w-3 text-white" />
+                            </div>
+                          )}
+                          
+                          {/* Lock Icon */}
+                          {!canUnlock && !avatar.unlocked && (
+                            <div className="absolute inset-0 flex items-center justify-center bg-slate-900/70 rounded-xl">
+                              <Lock className="h-6 w-6 text-slate-500" />
+                            </div>
+                          )}
+                        </motion.button>
+                      );
+                    })}
+                  </div>
+                </div>
+              );
+            })}
+          </motion.div>
+        )}
+
+        {selectedTab === 'accessories' && (
+          <motion.div
+            key="accessories"
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+          >
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+              {accessories.map((acc) => (
+                <motion.button
+                  key={acc.id}
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  className="p-4 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-center touch-target haptic"
+                >
+                  <div className="text-3xl mb-2">{acc.emoji}</div>
+                  <div className="text-sm text-white font-medium">{acc.name}</div>
+                  <div className="text-xs text-slate-500 burmese-text">{acc.nameMm}</div>
+                  <div className="mt-2 text-amber-400 text-xs font-bold">{acc.cost.toLocaleString()} pts</div>
+                </motion.button>
+              ))}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Save Button */}
+      <div className="flex justify-center">
+        <motion.button
+          whileHover={{ scale: 1.02 }}
+          whileTap={{ scale: 0.98 }}
+          disabled={!selectedAvatar}
+          className={`px-8 py-4 rounded-xl font-bold text-lg transition-all touch-target ${
+            selectedAvatar
+              ? 'btn-primary'
+              : 'bg-slate-800 text-slate-500 cursor-not-allowed'
+          }`}
+        >
+          <Sparkles className="inline mr-2 h-5 w-5" />
+          Save Avatar
+        </motion.button>
+      </div>
+    </div>
+  );
+}
+=== END FILE ===
+
+=== FILE: src/components/PointsShop.tsx ===
+'use client';
+
+import { useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { 
+  ShoppingBag, 
+  Lock, 
+  Check, 
+  Sparkles, 
+  FileText, 
+  MessageSquare, 
+  Palette,
+  Star,
+  Crown,
+  Zap,
+  X
+} from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+
+interface ShopItem {
+  id: string;
+  name: string;
+  nameMm: string;
+  description: string;
+  descriptionMm: string;
+  cost: number;
+  category: 'avatar' | 'feature' | 'premium';
+  icon: React.ElementType;
+  image?: string;
+  unlocked?: boolean;
+}
+
+const shopItems: ShopItem[] = [
+  // Avatar Items
+  {
+    id: 'avatar-male-1',
+    name: 'Business Professional',
+    nameMm: 'စီးပွားရေး ပရော်ဖက်ရှင်နယ်',
+    description: 'Male avatar in business attire',
+    descriptionMm: 'စီးပွားရေးအဝတ်အစားဖြင့် အမျိုးသားအvata',
+    cost: 50,
+    category: 'avatar',
+    icon: Crown,
+  },
+  {
+    id: 'avatar-female-1',
+    name: 'Career Woman',
+    nameMm: 'အလုပ်အကိုင် အမျိုးသမီး',
+    description: 'Female avatar in professional style',
+    descriptionMm: 'ပရော်ဖက်ရှင်နယ်ပုံစံဖြင့် အမျိုးသမီးအvata',
+    cost: 50,
+    category: 'avatar',
+    icon: Crown,
+  },
+  {
+    id: 'avatar-premium-1',
+    name: 'Golden Avatar Frame',
+    nameMm: 'ရွှေအvata ဘောင်',
+    description: 'Exclusive golden frame for your avatar',
+    descriptionMm: 'သင့်အvataအတွက် အထူးရွှေဘောင်',
+    cost: 200,
+    category: 'avatar',
+    icon: Star,
+  },
+  // Feature Unlocks
+  {
+    id: 'cv-template',
+    name: 'Professional CV Template',
+    nameMm: 'ပရော်ဖက်ရှင်နယ် CV ပုံစံ',
+    description: 'Downloadable CV template designed for Myanmar job market',
+    descriptionMm: 'မြန်မာအလုပ်ဈေးကွက်အတွက် ဒီဇိုင်းထုတ်ထားသော CV ပုံစံ',
+    cost: 30,
+    category: 'feature',
+    icon: FileText,
+  },
+  {
+    id: 'ai-cv-creator',
+    name: 'AI CV Creator',
+    nameMm: 'AI CV ဖန်တီးသူ',
+    description: 'AI-powered CV builder with suggestions',
+    descriptionMm: 'အကြံပြုချက်များပါဝင်သော AI စွမ်းအားဖြင့် CV တည်ဆောက်သူ',
+    cost: 100,
+    category: 'feature',
+    icon: Sparkles,
+  },
+  {
+    id: 'mentor-chat',
+    name: 'Mentor Chat Access',
+    nameMm: 'ဆရာများနှင့် စကားပြောခွင့်',
+    description: 'Chat with experienced recruiters for career advice',
+    descriptionMm: 'အလုပ်အကိုင်အကြံဉာဏ်အတွက် အတွေ့အကြုံရှိ စုံရှာဖွေသူများနှင့် စကားပြောပါ',
+    cost: 150,
+    category: 'feature',
+    icon: MessageSquare,
+  },
+  // Premium Features
+  {
+    id: 'premium-skin',
+    name: 'Premium Avatar Skins',
+    nameMm: 'အထူးအvata အသားအရေများ',
+    description: 'Unlock all premium avatar customization options',
+    descriptionMm: 'အထူးအvata စိတ်ကြိုက်ပြင်ဆင်မှု ရွေးချယ်စရာများအားလုံး',
+    cost: 300,
+    category: 'premium',
+    icon: Palette,
+  },
+  {
+    id: 'priority-support',
+    name: 'Priority Support',
+    nameMm: 'ဦးစားပေး ပံ့ပိုးမှု',
+    description: '24/7 priority support for all your questions',
+    descriptionMm: 'သင့်မေးခွန်းများအားလုံးအတွက် ၂၄/၇ ဦးစားပေး ပံ့ပိုးမှု',
+    cost: 200,
+    category: 'premium',
+    icon: Zap,
+  },
+];
+
+const categoryLabels = {
+  avatar: { en: 'Avatar Items', mm: 'အvata ပစ္စည်းများ' },
+  feature: { en: 'Feature Unlocks', mm: 'အသွင်းအပြင် ဖွင့်လှစ်မှုများ' },
+  premium: { en: 'Premium Features', mm: 'အထူးအသွင်းအပြင်များ' },
+};
+
+const categoryColors = {
+  avatar: 'from-purple-500 to-pink-500',
+  feature: 'from-teal-500 to-cyan-500',
+  premium: 'from-amber-500 to-orange-500',
+};
+
+interface PointsShopProps {
+  isOpen: boolean;
+  onClose: () => void;
+  userPoints: number;
+}
+
+export default function PointsShop({ isOpen, onClose, userPoints }: PointsShopProps) {
+  const [points, setPoints] = useState(userPoints);
+  const [purchasedItems, setPurchasedItems] = useState<string[]>([]);
+  const [showToast, setShowToast] = useState(false);
+  const [toastMessage, setToastMessage] = useState('');
+
+  const handlePurchase = (item: ShopItem) => {
+    if (purchasedItems.includes(item.id)) {
+      showToastMessage('Already owned! ✓', 'info');
+      return;
+    }
+    
+    if (points >= item.cost) {
+      setPoints(points - item.cost);
+      setPurchasedItems([...purchasedItems, item.id]);
+      showToastMessage(`Purchased ${item.name}! -${item.cost} points`, 'success');
+    } else {
+      showToastMessage('Not enough points! Keep learning 📚', 'error');
+    }
+  };
+
+  const showToastMessage = (message: string, type: 'success' | 'error' | 'info') => {
+    setToastMessage(message);
+    setShowToast(true);
+    setTimeout(() => setShowToast(false), 3000);
+  };
+
+  if (!isOpen) return null;
+
+  const categories = ['avatar', 'feature', 'premium'] as const;
+
+  return (
+    <AnimatePresence>
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm overflow-y-auto"
+      >
+        <motion.div
+          initial={{ scale: 0.9, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          exit={{ scale: 0.9, opacity: 0 }}
+          className="relative w-full max-w-4xl glass-card p-6 bg-slate-900 my-8"
+        >
+          {/* Header */}
+          <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 flex items-center justify-center">
+                <ShoppingBag className="h-6 w-6 text-white" />
+              </div>
+              <div>
+                <h2 className="text-2xl font-bold text-white">Points Shop</h2>
+                <p className="text-slate-400 burmese-text text-sm">အမှတ်ဆိုင်</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-4">
+              <div className="glass-card px-4 py-2 flex items-center gap-2">
+                <Star className="h-5 w-5 text-amber-400" />
+                <span className="text-xl font-bold text-amber-400">{points}</span>
+                <span className="text-slate-400 text-sm">pts</span>
+              </div>
+              <button
+                onClick={onClose}
+                className="text-slate-400 hover:text-white transition-colors"
+              >
+                <X className="h-6 w-6" />
+              </button>
+            </div>
+          </div>
+
+          {/* Shop Items by Category */}
+          <div className="space-y-8 max-h-[60vh] overflow-y-auto pr-2">
+            {categories.map((category) => (
+              <div key={category}>
+                <h3 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
+                  <div className={`w-8 h-8 rounded-lg bg-gradient-to-r ${categoryColors[category]} flex items-center justify-center`}>
+                    {category === 'avatar' && <Crown className="h-4 w-4 text-white" />}
+                    {category === 'feature' && <Sparkles className="h-4 w-4 text-white" />}
+                    {category === 'premium' && <Star className="h-4 w-4 text-white" />}
+                  </div>
+                  {categoryLabels[category].en}
+                  <span className="text-slate-500 burmese-text text-sm font-normal">
+                    ({categoryLabels[category].mm})
+                  </span>
+                </h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {shopItems
+                    .filter((item) => item.category === category)
+                    .map((item) => {
+                      const isPurchased = purchasedItems.includes(item.id);
+                      const canAfford = points >= item.cost;
+                      
+                      return (
+                        <motion.div
+                          key={item.id}
+                          whileHover={{ scale: 1.02 }}
+                          className={`glass-card-hover p-4 ${
+                            isPurchased ? 'border-green-500/30 bg-green-500/5' : ''
+                          }`}
+                        >
+                          <div className="flex items-start gap-3 mb-3">
+                            <div className={`w-10 h-10 rounded-lg bg-gradient-to-r ${categoryColors[category]} flex items-center justify-center flex-shrink-0`}>
+                              <item.icon className="h-5 w-5 text-white" />
+                            </div>
+                            <div className="flex-1">
+                              <h4 className="font-bold text-white">{item.name}</h4>
+                              <p className="text-slate-500 text-xs burmese-text">{item.nameMm}</p>
+                            </div>
+                            {isPurchased && (
+                              <Badge className="bg-green-500/20 text-green-400 border-green-500/30">
+                                <Check className="h-3 w-3 mr-1" /> Owned
+                              </Badge>
+                            )}
+                          </div>
+                          <p className="text-slate-400 text-sm mb-2">{item.description}</p>
+                          <p className="text-slate-500 text-xs burmese-text mb-4">{item.descriptionMm}</p>
+                          <Button
+                            className={`w-full ${
+                              isPurchased
+                                ? 'bg-green-500/20 text-green-400 cursor-default'
+                                : canAfford
+                                ? 'btn-teal'
+                                : 'bg-slate-700 text-slate-400 cursor-not-allowed'
+                            }`}
+                            onClick={() => handlePurchase(item)}
+                            disabled={isPurchased}
+                          >
+                            {isPurchased ? (
+                              <>
+                                <Check className="mr-2 h-4 w-4" />
+                                Owned
+                              </>
+                            ) : (
+                              <>
+                                <Star className="mr-2 h-4 w-4" />
+                                {item.cost} Points
+                              </>
+                            )}
+                          </Button>
+                        </motion.div>
+                      );
+                    })}
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Toast Notification */}
+          <AnimatePresence>
+            {showToast && (
+              <motion.div
+                initial={{ opacity: 0, y: 50 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: 50 }}
+                className="fixed bottom-8 left-1/2 -translate-x-1/2 glass-card px-6 py-3 bg-slate-800"
+              >
+                <p className="text-white text-center">{toastMessage}</p>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </motion.div>
+      </motion.div>
+    </AnimatePresence>
+  );
+}
+=== END FILE ===
+
+################################################################################
+# SECTION: AI COMPONENTS
+################################################################################
+
+=== FILE: src/components/ai/AIJobMatcher.tsx ===
+'use client';
+
+import { useState, useCallback } from 'react';
+import { 
+  Sparkles, 
+  Target, 
+  TrendingUp, 
+  Briefcase, 
+  MapPin, 
+  DollarSign,
+  ChevronRight,
+  Lightbulb,
+  AlertCircle,
+  RefreshCw,
+  Check,
+  X
+} from 'lucide-react';
+import { cn } from '@/lib/utils';
+
+interface JobMatch {
+  role: string;
+  category: string;
+  matchScore: number;
+  skillMatch: number;
+  growthPotential: 'high' | 'medium' | 'stable';
+  salaryRange: { min: number; max: number };
+  reasons: string[];
+  gaps: string[];
+  recommendations: string[];
+}
+
+interface CareerPath {
+  shortTerm: string;
+  mediumTerm: string;
+  longTerm: string;
+}
+
+interface JobMatchResult {
+  matches: JobMatch[];
+  careerPath: CareerPath;
+  skillDevelopment: string[];
+  marketInsights: string;
+}
+
+interface AIJobMatcherProps {
+  userProfile: {
+    skills: string[];
+    experience: number;
+    education: string;
+    interests?: string[];
+    location?: string;
+  };
+  language?: 'en' | 'my';
+  onJobSelect?: (job: JobMatch) => void;
+}
+
+export default function AIJobMatcher({ 
+  userProfile, 
+  language = 'en',
+  onJobSelect 
+}: AIJobMatcherProps) {
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState<JobMatchResult | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [selectedJob, setSelectedJob] = useState<JobMatch | null>(null);
+
+  const analyzeProfile = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    
+    try {
+      const response = await fetch('/api/ai/job-match', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userProfile,
+          limit: 5,
+        }),
+      });
+      
+      const data = await response.json();
+      
+      if (data.success) {
+        setResult(data);
+      } else {
+        setError(data.error || 'Analysis failed');
+      }
+    } catch (err) {
+      setError('Failed to analyze profile');
+    } finally {
+      setLoading(false);
+    }
+  }, [userProfile]);
+
+  const handleJobClick = (job: JobMatch) => {
+    setSelectedJob(selectedJob?.role === job.role ? null : job);
+    onJobSelect?.(job);
+  };
+
+  const formatSalary = (min: number, max: number) => {
+    const formatNum = (n: number) => {
+      if (n >= 1000000) return `${(n / 1000000).toFixed(1)}M`;
+      if (n >= 1000) return `${(n / 1000).toFixed(0)}K`;
+      return String(n);
+    };
+    return `${formatNum(min)} - ${formatNum(max)} MMK`;
+  };
+
+  const getGrowthColor = (growth: string) => {
+    switch (growth) {
+      case 'high': return 'text-green-500';
+      case 'medium': return 'text-amber-500';
+      default: return 'text-slate-400';
+    }
+  };
+
+  const texts = {
+    en: {
+      title: 'AI Job Match',
+      subtitle: 'Find your perfect career path',
+      analyze: 'Analyze My Profile',
+      analyzing: 'Analyzing...',
+      topMatches: 'Top Job Matches',
+      careerPath: 'Your Career Path',
+      shortTerm: 'Short Term (1-2 years)',
+      mediumTerm: 'Medium Term (3-5 years)',
+      longTerm: 'Long Term (5+ years)',
+      skillDevelopment: 'Recommended Skills to Develop',
+      marketInsights: 'Market Insights',
+      matchScore: 'Match Score',
+      skillMatch: 'Skill Match',
+      salaryRange: 'Salary Range',
+      growthPotential: 'Growth Potential',
+      reasons: 'Why This Match',
+      gaps: 'Skills to Develop',
+      recommendations: 'Recommendations',
+      high: 'High Growth',
+      medium: 'Medium Growth',
+      stable: 'Stable',
+    },
+    my: {
+      title: 'AI အလုပ်က配',
+      subtitle: 'သင့်အတွက် အကောင်းဆုံး အလုပ်ကို ရှာပါ',
+      analyze: 'ပရိုဖိုင်ခွဲခြမ်းစိတ်ဖြာပါ',
+      analyzing: 'ခွဲခြမ်းစိတ်ဖြာနေသည်...',
+      topMatches: 'အကောင်းဆုံး အလုပ်များ',
+      careerPath: 'သင့်အလုပ်လမ်းကြောင်း',
+      shortTerm: 'တိုတောင်းကာလ (၁-၂ နှစ်)',
+      mediumTerm: 'အလယ်အလတ်ကာလ (၃-၅ နှစ်)',
+      longTerm: 'ရှည်ကာလ (၅+ နှစ်)',
+      skillDevelopment: 'ဖွံ့ဖြိုးတိုးတက်ရန် အကျိုးသင့်ဆုံး ကျွမ်းကျင်မှုများ',
+      marketInsights: 'ဈေးကွက်အခြေအနေ',
+      matchScore: 'ကိုက်ညီမှုရမှတ်',
+      skillMatch: 'ကျွမ်းကျင်မှု ကိုက်ညီမှု',
+      salaryRange: 'လစာအပိုင်းအခြား',
+      growthPotential: 'ကြီးထွားမှုအလားအလာ',
+      reasons: 'ဤအလုပ်နှင့် ကိုက်ညီသောအကြောင်းများ',
+      gaps: 'ဖွံ့ဖြိုးတိုးတက်ရန် ကျွမ်းကျင်မှုများ',
+      recommendations: 'အကြံပြုချက်များ',
+      high: 'မြန်ဆန်စွာ ကြီးထွားသည်',
+      medium: 'အလယ်အလတ် ကြီးထွားသည်',
+      stable: 'တည်ငြိမ်သည်',
+    },
+  };
+
+  const t = texts[language];
+
+  return (
+    <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 overflow-hidden">
+      {/* Header */}
+      <div className="bg-gradient-to-r from-teal-500 to-cyan-500 p-6 text-white">
+        <div className="flex items-center gap-3 mb-2">
+          <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center">
+            <Sparkles className="w-5 h-5" />
+          </div>
+          <div>
+            <h2 className="text-xl font-bold">{t.title}</h2>
+            <p className="text-sm text-white/80">{t.subtitle}</p>
+          </div>
+        </div>
+      </div>
+
+      <div className="p-6">
+        {/* Analyze Button */}
+        {!result && (
+          <div className="text-center py-8">
+            <div className="w-20 h-20 bg-teal-100 dark:bg-teal-900/30 rounded-full flex items-center justify-center mx-auto mb-4">
+              <Target className="w-10 h-10 text-teal-500" />
+            </div>
+            <p className="text-slate-600 dark:text-slate-400 mb-6">
+              {language === 'my' 
+                ? 'သင့်ကျွမ်းကျင်မှုများနှင့် အတွေ့အကြုံကို ခွဲခြမ်းစိတ်ဖြာ၍ အကောင်းဆုံး အလုပ်များကို ရှာပေးပါမည်။'
+                : 'We\'ll analyze your skills and experience to find the best job matches for you.'}
+            </p>
+            <button
+              onClick={analyzeProfile}
+              disabled={loading}
+              className="px-6 py-3 bg-teal-500 hover:bg-teal-600 text-white rounded-xl font-medium flex items-center gap-2 mx-auto transition-colors disabled:opacity-50"
+            >
+              {loading ? (
+                <>
+                  <RefreshCw className="w-5 h-5 animate-spin" />
+                  {t.analyzing}
+                </>
+              ) : (
+                <>
+                  <Sparkles className="w-5 h-5" />
+                  {t.analyze}
+                </>
+              )}
+            </button>
+            {error && (
+              <p className="mt-4 text-red-500 flex items-center justify-center gap-2">
+                <AlertCircle className="w-4 h-4" />
+                {error}
+              </p>
+            )}
+          </div>
+        )}
+
+        {/* Results */}
+        {result && (
+          <div className="space-y-6">
+            {/* Job Matches */}
+            <div>
+              <h3 className="font-semibold text-slate-900 dark:text-white mb-4 flex items-center gap-2">
+                <Briefcase className="w-5 h-5 text-teal-500" />
+                {t.topMatches}
+              </h3>
+              
+              <div className="space-y-3">
+                {result.matches.map((job, index) => (
+                  <div key={job.role}>
+                    <button
+                      onClick={() => handleJobClick(job)}
+                      className={cn(
+                        "w-full text-left p-4 rounded-xl border transition-all",
+                        selectedJob?.role === job.role
+                          ? "border-teal-500 bg-teal-50 dark:bg-teal-900/20"
+                          : "border-slate-200 dark:border-slate-700 hover:border-teal-300"
+                      )}
+                    >
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2 mb-1">
+                            <span className="font-medium text-slate-900 dark:text-white">
+                              {job.role}
+                            </span>
+                            <span className="text-xs px-2 py-0.5 bg-slate-100 dark:bg-slate-700 rounded-full text-slate-600 dark:text-slate-400">
+                              {job.category}
+                            </span>
+                          </div>
+                          
+                          <div className="flex flex-wrap items-center gap-3 text-sm text-slate-500">
+                            <span className="flex items-center gap-1">
+                              <DollarSign className="w-3.5 h-3.5" />
+                              {formatSalary(job.salaryRange.min, job.salaryRange.max)}
+                            </span>
+                            <span className={cn("flex items-center gap-1", getGrowthColor(job.growthPotential))}>
+                              <TrendingUp className="w-3.5 h-3.5" />
+                              {t[job.growthPotential]}
+                            </span>
+                          </div>
+                        </div>
+                        
+                        <div className="text-right">
+                          <div className="text-2xl font-bold text-teal-500">
+                            {job.matchScore}%
+                          </div>
+                          <div className="text-xs text-slate-400">{t.matchScore}</div>
+                        </div>
+                      </div>
+                    </button>
+                    
+                    {/* Expanded Details */}
+                    {selectedJob?.role === job.role && (
+                      <div className="mt-2 p-4 bg-slate-50 dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 space-y-4">
+                        <div className="grid grid-cols-2 gap-4">
+                          <div>
+                            <h4 className="text-xs font-medium text-slate-500 mb-2">{t.reasons}</h4>
+                            <ul className="space-y-1">
+                              {job.reasons.map((reason, i) => (
+                                <li key={i} className="flex items-start gap-2 text-sm text-slate-600 dark:text-slate-400">
+                                  <Check className="w-4 h-4 text-green-500 mt-0.5 flex-shrink-0" />
+                                  {reason}
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                          <div>
+                            <h4 className="text-xs font-medium text-slate-500 mb-2">{t.gaps}</h4>
+                            <ul className="space-y-1">
+                              {job.gaps.map((gap, i) => (
+                                <li key={i} className="flex items-start gap-2 text-sm text-slate-600 dark:text-slate-400">
+                                  <Lightbulb className="w-4 h-4 text-amber-500 mt-0.5 flex-shrink-0" />
+                                  {gap}
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                        </div>
+                        
+                        <div>
+                          <h4 className="text-xs font-medium text-slate-500 mb-2">{t.recommendations}</h4>
+                          <div className="flex flex-wrap gap-2">
+                            {job.recommendations.map((rec, i) => (
+                              <span key={i} className="text-xs px-2 py-1 bg-teal-100 dark:bg-teal-900/30 text-teal-700 dark:text-teal-300 rounded-lg">
+                                {rec}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Career Path */}
+            {result.careerPath && (
+              <div>
+                <h3 className="font-semibold text-slate-900 dark:text-white mb-4 flex items-center gap-2">
+                  <MapPin className="w-5 h-5 text-teal-500" />
+                  {t.careerPath}
+                </h3>
+                
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-xl border border-blue-200 dark:border-blue-800">
+                    <div className="text-xs font-medium text-blue-600 dark:text-blue-400 mb-2">
+                      {t.shortTerm}
+                    </div>
+                    <p className="text-sm text-slate-700 dark:text-slate-300">
+                      {result.careerPath.shortTerm}
+                    </p>
+                  </div>
+                  <div className="p-4 bg-purple-50 dark:bg-purple-900/20 rounded-xl border border-purple-200 dark:border-purple-800">
+                    <div className="text-xs font-medium text-purple-600 dark:text-purple-400 mb-2">
+                      {t.mediumTerm}
+                    </div>
+                    <p className="text-sm text-slate-700 dark:text-slate-300">
+                      {result.careerPath.mediumTerm}
+                    </p>
+                  </div>
+                  <div className="p-4 bg-amber-50 dark:bg-amber-900/20 rounded-xl border border-amber-200 dark:border-amber-800">
+                    <div className="text-xs font-medium text-amber-600 dark:text-amber-400 mb-2">
+                      {t.longTerm}
+                    </div>
+                    <p className="text-sm text-slate-700 dark:text-slate-300">
+                      {result.careerPath.longTerm}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Skill Development */}
+            {result.skillDevelopment.length > 0 && (
+              <div>
+                <h3 className="font-semibold text-slate-900 dark:text-white mb-3 flex items-center gap-2">
+                  <Lightbulb className="w-5 h-5 text-amber-500" />
+                  {t.skillDevelopment}
+                </h3>
+                <div className="flex flex-wrap gap-2">
+                  {result.skillDevelopment.map((skill, i) => (
+                    <span key={i} className="px-3 py-1.5 bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 rounded-lg text-sm">
+                      {skill}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Market Insights */}
+            {result.marketInsights && (
+              <div className="p-4 bg-gradient-to-r from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800 rounded-xl">
+                <h3 className="font-semibold text-slate-900 dark:text-white mb-2 flex items-center gap-2">
+                  <TrendingUp className="w-5 h-5 text-teal-500" />
+                  {t.marketInsights}
+                </h3>
+                <p className="text-sm text-slate-600 dark:text-slate-400">
+                  {result.marketInsights}
+                </p>
+              </div>
+            )}
+
+            {/* Re-analyze Button */}
+            <button
+              onClick={analyzeProfile}
+              disabled={loading}
+              className="w-full py-3 border border-teal-500 text-teal-600 dark:text-teal-400 rounded-xl font-medium flex items-center justify-center gap-2 hover:bg-teal-50 dark:hover:bg-teal-900/20 transition-colors disabled:opacity-50"
+            >
+              <RefreshCw className={cn("w-4 h-4", loading && "animate-spin")} />
+              {language === 'my' ? 'ပြန်လည်ခွဲခြမ်းစိတ်ဖြာပါ' : 'Re-analyze Profile'}
+            </button>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+=== END FILE ===
+
+=== FILE: src/components/ai/AIInterviewPrep.tsx ===
+'use client';
+
+import { useState, useCallback } from 'react';
+import { 
+  MessageSquare, 
+  Send, 
+  RefreshCw, 
+  ChevronRight,
+  ChevronDown,
+  ChevronUp,
+  Lightbulb,
+  Check,
+  AlertCircle,
+  Mic,
+  FileText,
+  Clock,
+  Target
+} from 'lucide-react';
+import { cn } from '@/lib/utils';
+
+interface InterviewQuestion {
+  id: string;
+  question: string;
+  category: 'behavioral' | 'technical' | 'situational' | 'common';
+  difficulty: 'easy' | 'medium' | 'hard';
+  hints: string[];
+  sampleAnswer: string;
+  followUpQuestions?: string[];
+}
+
+interface AnswerFeedback {
+  score: number;
+  strengths: string[];
+  improvements: string[];
+  suggestedAnswer: string;
+  keyPoints: string[];
+  tone: string;
+  length: string;
+}
+
+interface AIInterviewPrepProps {
+  jobRole: string;
+  company?: string;
+  experienceLevel?: 'entry' | 'junior' | 'mid' | 'senior';
+  language?: 'en' | 'my';
+}
+
+export default function AIInterviewPrep({
+  jobRole,
+  company,
+  experienceLevel = 'mid',
+  language = 'en',
+}: AIInterviewPrepProps) {
+  const [loading, setLoading] = useState(false);
+  const [questions, setQuestions] = useState<InterviewQuestion[]>([]);
+  const [currentQuestion, setCurrentQuestion] = useState<InterviewQuestion | null>(null);
+  const [userAnswer, setUserAnswer] = useState('');
+  const [showHints, setShowHints] = useState(false);
+  const [showSampleAnswer, setShowSampleAnswer] = useState(false);
+  const [feedback, setFeedback] = useState<AnswerFeedback | null>(null);
+  const [feedbackLoading, setFeedbackLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [preparationTips, setPreparationTips] = useState<string[]>([]);
+  const [questionIndex, setQuestionIndex] = useState(0);
+
+  const generateQuestions = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    setFeedback(null);
+    setUserAnswer('');
+    
+    try {
+      const response = await fetch('/api/ai/interview-prep', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          jobRole,
+          company,
+          experienceLevel,
+          interviewType: 'mixed',
+          difficulty: 'medium',
+          count: 5,
+        }),
+      });
+      
+      const data = await response.json();
+      
+      if (data.success) {
+        setQuestions(data.questions);
+        setCurrentQuestion(data.questions[0]);
+        setPreparationTips(data.preparationTips || []);
+        setQuestionIndex(0);
+      } else {
+        setError(data.error || 'Failed to generate questions');
+      }
+    } catch (err) {
+      setError('Failed to generate questions');
+    } finally {
+      setLoading(false);
+    }
+  }, [jobRole, company, experienceLevel]);
+
+  const submitAnswer = useCallback(async () => {
+    if (!currentQuestion || !userAnswer.trim()) return;
+    
+    setFeedbackLoading(true);
+    
+    try {
+      const response = await fetch('/api/ai/interview-prep', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          question: currentQuestion.question,
+          userAnswer,
+          jobRole,
+        }),
+      });
+      
+      const data = await response.json();
+      
+      if (data.success) {
+        setFeedback(data.feedback);
+      }
+    } catch (err) {
+      console.error('Failed to get feedback:', err);
+    } finally {
+      setFeedbackLoading(false);
+    }
+  }, [currentQuestion, userAnswer, jobRole]);
+
+  const nextQuestion = useCallback(() => {
+    const nextIndex = questionIndex + 1;
+    if (nextIndex < questions.length) {
+      setQuestionIndex(nextIndex);
+      setCurrentQuestion(questions[nextIndex]);
+      setUserAnswer('');
+      setFeedback(null);
+      setShowHints(false);
+      setShowSampleAnswer(false);
+    }
+  }, [questionIndex, questions]);
+
+  const prevQuestion = useCallback(() => {
+    const prevIndex = questionIndex - 1;
+    if (prevIndex >= 0) {
+      setQuestionIndex(prevIndex);
+      setCurrentQuestion(questions[prevIndex]);
+      setUserAnswer('');
+      setFeedback(null);
+      setShowHints(false);
+      setShowSampleAnswer(false);
+    }
+  }, [questionIndex, questions]);
+
+  const getCategoryColor = (category: string) => {
+    switch (category) {
+      case 'behavioral': return 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400';
+      case 'technical': return 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400';
+      case 'situational': return 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400';
+      default: return 'bg-slate-100 text-slate-700 dark:bg-slate-700 dark:text-slate-300';
+    }
+  };
+
+  const getDifficultyColor = (difficulty: string) => {
+    switch (difficulty) {
+      case 'hard': return 'text-red-500';
+      case 'medium': return 'text-amber-500';
+      default: return 'text-green-500';
+    }
+  };
+
+  const getScoreColor = (score: number) => {
+    if (score >= 80) return 'text-green-500';
+    if (score >= 60) return 'text-amber-500';
+    return 'text-red-500';
+  };
+
+  const texts = {
+    en: {
+      title: 'AI Interview Prep',
+      subtitle: 'Practice with AI-generated questions',
+      startPractice: 'Start Practice',
+      generating: 'Generating questions...',
+      question: 'Question',
+      of: 'of',
+      hints: 'Need a hint?',
+      showHints: 'Show Hints',
+      hideHints: 'Hide Hints',
+      sampleAnswer: 'Sample Answer',
+      showAnswer: 'Show Sample Answer',
+      hideAnswer: 'Hide Sample Answer',
+      yourAnswer: 'Your Answer',
+      placeholder: 'Type your answer here...',
+      submitAnswer: 'Submit Answer',
+      submitting: 'Analyzing...',
+      feedback: 'AI Feedback',
+      strengths: 'Strengths',
+      improvements: 'Areas for Improvement',
+      suggestedAnswer: 'Suggested Answer',
+      keyPoints: 'Key Points to Include',
+      score: 'Score',
+      previous: 'Previous',
+      next: 'Next',
+      completed: 'Completed',
+      preparationTips: 'Preparation Tips',
+    },
+    my: {
+      title: 'AI အင်တာဗျူး ပြင်ဆင်မှု',
+      subtitle: 'AI မေးခွန်းများဖြင့် လေ့ကျင့်ပါ',
+      startPractice: 'လေ့ကျင့်မှုစတင်ပါ',
+      generating: 'မေးခွန်းများ ပြင်ဆင်နေသည်...',
+      question: 'မေးခွန်း',
+      of: '၏',
+      hints: 'အကူအညီလိုပါသလား?',
+      showHints: 'အကြံပြုချက်များပြပါ',
+      hideHints: 'အကြံပြုချက်များဖျောက်ပါ',
+      sampleAnswer: 'နမူနာအဖြေ',
+      showAnswer: 'နမူနာအဖြေပြပါ',
+      hideAnswer: 'နမူနာအဖြေဖျောက်ပါ',
+      yourAnswer: 'သင့်အဖြေ',
+      placeholder: 'သင့်အဖြေကို ဤနေရာတွင်ရိုက်ပါ...',
+      submitAnswer: 'အဖြေတင်သွင်းပါ',
+      submitting: 'ခွဲခြမ်းစိတ်ဖြာနေသည်...',
+      feedback: 'AI တုံ့ပြန်ချက်',
+      strengths: 'အားသာချက်များ',
+      improvements: 'တိုးတက်ရန်နေရာများ',
+      suggestedAnswer: 'အကြံပြုအဖြေ',
+      keyPoints: 'ထည့်သွင်းသင့်သော အချက်များ',
+      score: 'ရမှတ်',
+      previous: 'နောက်သို့',
+      next: 'ရှေ့သို့',
+      completed: 'ပြီးပြီ',
+      preparationTips: 'ပြင်ဆင်မှု အကြံပြုချက်များ',
+    },
+  };
+
+  const t = texts[language];
+
+  return (
+    <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 overflow-hidden">
+      {/* Header */}
+      <div className="bg-gradient-to-r from-purple-500 to-indigo-500 p-6 text-white">
+        <div className="flex items-center gap-3 mb-2">
+          <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center">
+            <MessageSquare className="w-5 h-5" />
+          </div>
+          <div>
+            <h2 className="text-xl font-bold">{t.title}</h2>
+            <p className="text-sm text-white/80">{t.subtitle}</p>
+          </div>
+        </div>
+        
+        {jobRole && (
+          <div className="mt-3 flex items-center gap-2 text-sm text-white/80">
+            <Target className="w-4 h-4" />
+            <span>{jobRole}</span>
+            {company && <span className="text-white/60">@ {company}</span>}
+          </div>
+        )}
+      </div>
+
+      <div className="p-6">
+        {/* Start Practice Button */}
+        {questions.length === 0 && (
+          <div className="text-center py-8">
+            <div className="w-20 h-20 bg-purple-100 dark:bg-purple-900/30 rounded-full flex items-center justify-center mx-auto mb-4">
+              <Mic className="w-10 h-10 text-purple-500" />
+            </div>
+            <p className="text-slate-600 dark:text-slate-400 mb-6">
+              {language === 'my'
+                ? 'သင့်ရာထူးအတွက် သင့်တော်သော မေးခွန်းများကို လေ့ကျင့်ပါမည်။'
+                : 'We\'ll generate practice questions tailored to your target role.'}
+            </p>
+            <button
+              onClick={generateQuestions}
+              disabled={loading}
+              className="px-6 py-3 bg-purple-500 hover:bg-purple-600 text-white rounded-xl font-medium flex items-center gap-2 mx-auto transition-colors disabled:opacity-50"
+            >
+              {loading ? (
+                <>
+                  <RefreshCw className="w-5 h-5 animate-spin" />
+                  {t.generating}
+                </>
+              ) : (
+                <>
+                  <FileText className="w-5 h-5" />
+                  {t.startPractice}
+                </>
+              )}
+            </button>
+            {error && (
+              <p className="mt-4 text-red-500 flex items-center justify-center gap-2">
+                <AlertCircle className="w-4 h-4" />
+                {error}
+              </p>
+            )}
+          </div>
+        )}
+
+        {/* Questions */}
+        {currentQuestion && (
+          <div className="space-y-6">
+            {/* Progress */}
+            <div className="flex items-center justify-between text-sm">
+              <span className="text-slate-500">
+                {t.question} {questionIndex + 1} {t.of} {questions.length}
+              </span>
+              <div className="flex gap-2">
+                <span className={cn(
+                  "px-2 py-1 rounded-full text-xs",
+                  getCategoryColor(currentQuestion.category)
+                )}>
+                  {currentQuestion.category}
+                </span>
+                <span className={cn("text-xs font-medium", getDifficultyColor(currentQuestion.difficulty))}>
+                  {currentQuestion.difficulty}
+                </span>
+              </div>
+            </div>
+
+            {/* Question */}
+            <div className="p-4 bg-slate-50 dark:bg-slate-900 rounded-xl">
+              <p className="text-lg font-medium text-slate-900 dark:text-white">
+                {currentQuestion.question}
+              </p>
+            </div>
+
+            {/* Hints */}
+            <div>
+              <button
+                onClick={() => setShowHints(!showHints)}
+                className="flex items-center gap-2 text-sm text-purple-600 dark:text-purple-400 hover:text-purple-700"
+              >
+                <Lightbulb className="w-4 h-4" />
+                {showHints ? t.hideHints : t.showHints}
+                {showHints ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+              </button>
+              
+              {showHints && (
+                <ul className="mt-2 space-y-1">
+                  {currentQuestion.hints.map((hint, i) => (
+                    <li key={i} className="flex items-start gap-2 text-sm text-slate-600 dark:text-slate-400">
+                      <ChevronRight className="w-4 h-4 text-purple-500 mt-0.5" />
+                      {hint}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+
+            {/* Answer Input */}
+            <div>
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                {t.yourAnswer}
+              </label>
+              <textarea
+                value={userAnswer}
+                onChange={(e) => setUserAnswer(e.target.value)}
+                placeholder={t.placeholder}
+                rows={5}
+                className="w-full px-4 py-3 border border-slate-200 dark:border-slate-700 rounded-xl bg-white dark:bg-slate-800 text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:border-purple-500 resize-none"
+              />
+            </div>
+
+            {/* Submit Button */}
+            <div className="flex gap-3">
+              <button
+                onClick={submitAnswer}
+                disabled={!userAnswer.trim() || feedbackLoading}
+                className="flex-1 py-3 bg-purple-500 hover:bg-purple-600 text-white rounded-xl font-medium flex items-center justify-center gap-2 transition-colors disabled:opacity-50"
+              >
+                {feedbackLoading ? (
+                  <>
+                    <RefreshCw className="w-5 h-5 animate-spin" />
+                    {t.submitting}
+                  </>
+                ) : (
+                  <>
+                    <Send className="w-5 h-5" />
+                    {t.submitAnswer}
+                  </>
+                )}
+              </button>
+            </div>
+
+            {/* Feedback */}
+            {feedback && (
+              <div className="p-4 bg-gradient-to-r from-purple-50 to-indigo-50 dark:from-purple-900/20 dark:to-indigo-900/20 rounded-xl border border-purple-200 dark:border-purple-800 space-y-4">
+                <div className="flex items-center justify-between">
+                  <h3 className="font-semibold text-purple-900 dark:text-purple-100">
+                    {t.feedback}
+                  </h3>
+                  <div className={cn("text-2xl font-bold", getScoreColor(feedback.score))}>
+                    {feedback.score}%
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <h4 className="text-xs font-medium text-green-600 dark:text-green-400 mb-2">
+                      {t.strengths}
+                    </h4>
+                    <ul className="space-y-1">
+                      {feedback.strengths.map((s, i) => (
+                        <li key={i} className="flex items-start gap-2 text-sm text-slate-600 dark:text-slate-400">
+                          <Check className="w-4 h-4 text-green-500 mt-0.5" />
+                          {s}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                  <div>
+                    <h4 className="text-xs font-medium text-amber-600 dark:text-amber-400 mb-2">
+                      {t.improvements}
+                    </h4>
+                    <ul className="space-y-1">
+                      {feedback.improvements.map((imp, i) => (
+                        <li key={i} className="flex items-start gap-2 text-sm text-slate-600 dark:text-slate-400">
+                          <Lightbulb className="w-4 h-4 text-amber-500 mt-0.5" />
+                          {imp}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                </div>
+
+                {feedback.keyPoints.length > 0 && (
+                  <div>
+                    <h4 className="text-xs font-medium text-slate-500 mb-2">{t.keyPoints}</h4>
+                    <div className="flex flex-wrap gap-2">
+                      {feedback.keyPoints.map((point, i) => (
+                        <span key={i} className="px-2 py-1 bg-white dark:bg-slate-800 rounded-lg text-xs text-slate-600 dark:text-slate-400">
+                          {point}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Sample Answer (revealed after feedback) */}
+            {(feedback || showSampleAnswer) && currentQuestion.sampleAnswer && (
+              <div>
+                <button
+                  onClick={() => setShowSampleAnswer(!showSampleAnswer)}
+                  className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-400 hover:text-slate-900"
+                >
+                  <FileText className="w-4 h-4" />
+                  {showSampleAnswer ? t.hideAnswer : t.showAnswer}
+                </button>
+                
+                {showSampleAnswer && (
+                  <div className="mt-2 p-4 bg-slate-50 dark:bg-slate-900 rounded-xl">
+                    <p className="text-sm text-slate-600 dark:text-slate-400">
+                      {currentQuestion.sampleAnswer}
+                    </p>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Navigation */}
+            <div className="flex items-center justify-between pt-4 border-t border-slate-200 dark:border-slate-700">
+              <button
+                onClick={prevQuestion}
+                disabled={questionIndex === 0}
+                className="px-4 py-2 text-slate-600 dark:text-slate-400 hover:text-slate-900 disabled:opacity-50 flex items-center gap-1"
+              >
+                <ChevronUp className="w-4 h-4 rotate-[-90deg]" />
+                {t.previous}
+              </button>
+              
+              <button
+                onClick={nextQuestion}
+                disabled={questionIndex === questions.length - 1}
+                className="px-4 py-2 text-purple-600 dark:text-purple-400 hover:text-purple-700 disabled:opacity-50 flex items-center gap-1"
+              >
+                {t.next}
+                <ChevronUp className="w-4 h-4 rotate-90" />
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Preparation Tips */}
+        {preparationTips.length > 0 && questions.length > 0 && (
+          <div className="mt-6 pt-6 border-t border-slate-200 dark:border-slate-700">
+            <h3 className="font-medium text-slate-900 dark:text-white mb-3 flex items-center gap-2">
+              <Clock className="w-4 h-4 text-purple-500" />
+              {t.preparationTips}
+            </h3>
+            <ul className="grid grid-cols-1 md:grid-cols-2 gap-2">
+              {preparationTips.map((tip, i) => (
+                <li key={i} className="flex items-start gap-2 text-sm text-slate-600 dark:text-slate-400">
+                  <Check className="w-4 h-4 text-purple-500 mt-0.5" />
+                  {tip}
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+=== END FILE ===
+
+=== FILE: src/components/ai/AICoverLetterGenerator.tsx ===
+'use client';
+
+import { useState, useCallback } from 'react';
+import { 
+  FileText, 
+  Sparkles, 
+  Copy, 
+  Check, 
+  RefreshCw,
+  Download,
+  ChevronDown,
+  AlertCircle,
+  Wand2
+} from 'lucide-react';
+import { cn } from '@/lib/utils';
+
+interface CoverLetterData {
+  name: string;
+  email: string;
+  phone?: string;
+  position: string;
+  company: string;
+  experience: number;
+  currentRole?: string;
+  skills: string[];
+  achievements: string[];
+  education?: string;
+  template?: 'professional' | 'creative' | 'careerChange' | 'entryLevel';
+  tone?: 'formal' | 'friendly' | 'enthusiastic';
+  includeMyanmar?: boolean;
+}
+
+interface CoverLetterResult {
+  coverLetter: string;
+  coverLetterMyanmar?: string;
+  highlights: string[];
+  tips: string[];
+}
+
+interface AICoverLetterGeneratorProps {
+  language?: 'en' | 'my';
+  initialData?: Partial<CoverLetterData>;
+}
+
+export default function AICoverLetterGenerator({
+  language = 'en',
+  initialData,
+}: AICoverLetterGeneratorProps) {
+  const [formData, setFormData] = useState<CoverLetterData>({
+    name: initialData?.name || '',
+    email: initialData?.email || '',
+    phone: initialData?.phone || '',
+    position: initialData?.position || '',
+    company: initialData?.company || '',
+    experience: initialData?.experience || 0,
+    currentRole: initialData?.currentRole || '',
+    skills: initialData?.skills || [],
+    achievements: initialData?.achievements || [],
+    education: initialData?.education || '',
+    template: 'professional',
+    tone: 'formal',
+    includeMyanmar: language === 'my',
+  });
+
+  const [skillInput, setSkillInput] = useState('');
+  const [achievementInput, setAchievementInput] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState<CoverLetterResult | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
+  const [showTips, setShowTips] = useState(false);
+
+  const generateCoverLetter = useCallback(async () => {
+    if (!formData.name || !formData.position || !formData.company) {
+      setError(language === 'my' ? 'အမည်၊ ရာထူးနှင့် ကုမ္ပဏီလိုအပ်သည်' : 'Name, position, and company are required');
+      return;
+    }
+
+    setLoading(true);
+    setError(null);
+    
+    try {
+      const response = await fetch('/api/ai/cover-letter', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(formData),
+      });
+      
+      const data = await response.json();
+      
+      if (data.success) {
+        setResult(data);
+      } else {
+        setError(data.error || 'Failed to generate cover letter');
+      }
+    } catch (err) {
+      setError('Failed to generate cover letter');
+    } finally {
+      setLoading(false);
+    }
+  }, [formData, language]);
+
+  const addSkill = () => {
+    if (skillInput.trim() && !formData.skills.includes(skillInput.trim())) {
+      setFormData(prev => ({
+        ...prev,
+        skills: [...prev.skills, skillInput.trim()],
+      }));
+      setSkillInput('');
+    }
+  };
+
+  const removeSkill = (skill: string) => {
+    setFormData(prev => ({
+      ...prev,
+      skills: prev.skills.filter(s => s !== skill),
+    }));
+  };
+
+  const addAchievement = () => {
+    if (achievementInput.trim() && !formData.achievements.includes(achievementInput.trim())) {
+      setFormData(prev => ({
+        ...prev,
+        achievements: [...prev.achievements, achievementInput.trim()],
+      }));
+      setAchievementInput('');
+    }
+  };
+
+  const removeAchievement = (achievement: string) => {
+    setFormData(prev => ({
+      ...prev,
+      achievements: prev.achievements.filter(a => a !== achievement),
+    }));
+  };
+
+  const copyToClipboard = async (text: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch (err) {
+      console.error('Failed to copy:', err);
+    }
+  };
+
+  const downloadAsDoc = () => {
+    if (!result) return;
+    
+    const content = result.coverLetterMyanmar 
+      ? `${result.coverLetter}\n\n---\n\n${result.coverLetterMyanmar}`
+      : result.coverLetter;
+    
+    const blob = new Blob([content], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `cover-letter-${formData.company.toLowerCase().replace(/\s+/g, '-')}.txt`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
+  const texts = {
+    en: {
+      title: 'AI Cover Letter Generator',
+      subtitle: 'Create a compelling cover letter in seconds',
+      name: 'Your Name',
+      email: 'Email Address',
+      phone: 'Phone Number',
+      position: 'Target Position',
+      company: 'Company Name',
+      experience: 'Years of Experience',
+      currentRole: 'Current Role',
+      education: 'Education',
+      skills: 'Key Skills',
+      addSkill: 'Add Skill',
+      achievements: 'Key Achievements',
+      addAchievement: 'Add Achievement',
+      template: 'Template Style',
+      tone: 'Writing Tone',
+      includeMyanmar: 'Include Myanmar Translation',
+      generate: 'Generate Cover Letter',
+      generating: 'Generating...',
+      coverLetter: 'Your Cover Letter',
+      myanmarVersion: 'Myanmar Version',
+      highlights: 'Key Highlights',
+      tips: 'Pro Tips',
+      copy: 'Copy to Clipboard',
+      copied: 'Copied!',
+      download: 'Download',
+      regenerate: 'Regenerate',
+      templates: {
+        professional: 'Professional',
+        creative: 'Creative',
+        careerChange: 'Career Change',
+        entryLevel: 'Entry Level',
+      },
+      tones: {
+        formal: 'Formal',
+        friendly: 'Friendly',
+        enthusiastic: 'Enthusiastic',
+      },
+    },
+    my: {
+      title: 'AI စာတမ်းဖြင့်လျှောက်လွှာ ဖန်တီးသူ',
+      subtitle: 'စိတ်ဆွဲဖွယ် စာတမ်းဖြင့်လျှောက်လွှာကို စက္ကန့်အနည်းငယ်ဖြင့် ဖန်တီးပါ',
+      name: 'သင့်အမည်',
+      email: 'အီးမေးလ်လိပ်စာ',
+      phone: 'ဖုန်းနံပါတ်',
+      position: 'ရည်မှန်းရာထူး',
+      company: 'ကုမ္ပဏီအမည်',
+      experience: 'အတွေ့အကြုံနှစ်များ',
+      currentRole: 'လက်ရှိရာထူး',
+      education: 'ပညာရေး',
+      skills: 'အဓိကကျွမ်းကျင်မှုများ',
+      addSkill: 'ကျွမ်းကျင်မှုထည့်ပါ',
+      achievements: 'အောင်မြင်မှုများ',
+      addAchievement: 'အောင်မြင်မှုထည့်ပါ',
+      template: 'စတိုင်ပုံစံ',
+      tone: 'ရေးသားမှုအသံကျော',
+      includeMyanmar: 'မြန်မာဘာသာပြန်ဆိုမှုပါဝင်ပါ',
+      generate: 'စာတမ်းဖြင့်လျှောက်လွှာ ဖန်တီးပါ',
+      generating: 'ဖန်တီးနေသည်...',
+      coverLetter: 'သင့်စာတမ်းဖြင့်လျှောက်လွှာ',
+      myanmarVersion: 'မြန်မာပုံစံ',
+      highlights: 'အဓိကအချက်များ',
+      tips: 'အကြံပြုချက်များ',
+      copy: 'ကလစ်ဘုတ်သို့ကူးယူပါ',
+      copied: 'ကူးယူပြီးပြီ!',
+      download: 'ဒေါင်းလုဒ်ဆွဲပါ',
+      regenerate: 'ပြန်လည်ဖန်တီးပါ',
+      templates: {
+        professional: 'ပရော်ဖက်ရှင်နယ်',
+        creative: 'ဆန်းသစ်ဖန်တီးမှု',
+        careerChange: 'အလုပ်ပြောင်းရွှေ့မှု',
+        entryLevel: 'စတင်သူ',
+      },
+      tones: {
+        formal: 'တရားဝင်',
+        friendly: 'ခင်မင်ဖွယ်',
+        enthusiastic: 'စိတ်အားထက်သန်',
+      },
+    },
+  };
+
+  const t = texts[language];
+
+  return (
+    <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 overflow-hidden">
+      {/* Header */}
+      <div className="bg-gradient-to-r from-amber-500 to-orange-500 p-6 text-white">
+        <div className="flex items-center gap-3 mb-2">
+          <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center">
+            <FileText className="w-5 h-5" />
+          </div>
+          <div>
+            <h2 className="text-xl font-bold">{t.title}</h2>
+            <p className="text-sm text-white/80">{t.subtitle}</p>
+          </div>
+        </div>
+      </div>
+
+      <div className="p-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Form */}
+          <div className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+                  {t.name} *
+                </label>
+                <input
+                  type="text"
+                  value={formData.name}
+                  onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
+                  className="w-full px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:border-amber-500"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+                  {t.email} *
+                </label>
+                <input
+                  type="email"
+                  value={formData.email}
+                  onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
+                  className="w-full px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:border-amber-500"
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+                  {t.position} *
+                </label>
+                <input
+                  type="text"
+                  value={formData.position}
+                  onChange={(e) => setFormData(prev => ({ ...prev, position: e.target.value }))}
+                  className="w-full px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:border-amber-500"
+                  placeholder={language === 'my' ? 'ဥပမာ - Software Engineer' : 'e.g. Software Engineer'}
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+                  {t.company} *
+                </label>
+                <input
+                  type="text"
+                  value={formData.company}
+                  onChange={(e) => setFormData(prev => ({ ...prev, company: e.target.value }))}
+                  className="w-full px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:border-amber-500"
+                  placeholder={language === 'my' ? 'ဥပမာ - KBZ Bank' : 'e.g. KBZ Bank'}
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+                  {t.experience}
+                </label>
+                <input
+                  type="number"
+                  min="0"
+                  max="30"
+                  value={formData.experience}
+                  onChange={(e) => setFormData(prev => ({ ...prev, experience: parseInt(e.target.value) || 0 }))}
+                  className="w-full px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:border-amber-500"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+                  {t.currentRole}
+                </label>
+                <input
+                  type="text"
+                  value={formData.currentRole}
+                  onChange={(e) => setFormData(prev => ({ ...prev, currentRole: e.target.value }))}
+                  className="w-full px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:border-amber-500"
+                />
+              </div>
+            </div>
+
+            {/* Skills */}
+            <div>
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+                {t.skills}
+              </label>
+              <div className="flex gap-2 mb-2">
+                <input
+                  type="text"
+                  value={skillInput}
+                  onChange={(e) => setSkillInput(e.target.value)}
+                  onKeyPress={(e) => e.key === 'Enter' && addSkill()}
+                  className="flex-1 px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:border-amber-500"
+                  placeholder={language === 'my' ? 'ကျွမ်းကျင်မှုထည့်ပါ' : 'Add a skill'}
+                />
+                <button
+                  onClick={addSkill}
+                  className="px-4 py-2 bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 rounded-lg hover:bg-amber-200 dark:hover:bg-amber-900/50"
+                >
+                  {t.addSkill}
+                </button>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {formData.skills.map((skill, i) => (
+                  <span
+                    key={i}
+                    className="px-3 py-1 bg-slate-100 dark:bg-slate-700 rounded-full text-sm text-slate-600 dark:text-slate-300 flex items-center gap-1"
+                  >
+                    {skill}
+                    <button onClick={() => removeSkill(skill)} className="text-slate-400 hover:text-red-500">
+                      ×
+                    </button>
+                  </span>
+                ))}
+              </div>
+            </div>
+
+            {/* Achievements */}
+            <div>
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+                {t.achievements}
+              </label>
+              <div className="flex gap-2 mb-2">
+                <input
+                  type="text"
+                  value={achievementInput}
+                  onChange={(e) => setAchievementInput(e.target.value)}
+                  onKeyPress={(e) => e.key === 'Enter' && addAchievement()}
+                  className="flex-1 px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:border-amber-500"
+                  placeholder={language === 'my' ? 'အောင်မြင်မှုထည့်ပါ' : 'Add an achievement'}
+                />
+                <button
+                  onClick={addAchievement}
+                  className="px-4 py-2 bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 rounded-lg hover:bg-amber-200 dark:hover:bg-amber-900/50"
+                >
+                  {t.addAchievement}
+                </button>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {formData.achievements.map((achievement, i) => (
+                  <span
+                    key={i}
+                    className="px-3 py-1 bg-amber-100 dark:bg-amber-900/30 rounded-full text-sm text-amber-700 dark:text-amber-300 flex items-center gap-1"
+                  >
+                    {achievement}
+                    <button onClick={() => removeAchievement(achievement)} className="text-amber-400 hover:text-red-500">
+                      ×
+                    </button>
+                  </span>
+                ))}
+              </div>
+            </div>
+
+            {/* Template & Tone */}
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+                  {t.template}
+                </label>
+                <select
+                  value={formData.template}
+                  onChange={(e) => setFormData(prev => ({ ...prev, template: e.target.value as CoverLetterData['template'] }))}
+                  className="w-full px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:border-amber-500"
+                >
+                  {Object.entries(t.templates).map(([key, value]) => (
+                    <option key={key} value={key}>{value}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+                  {t.tone}
+                </label>
+                <select
+                  value={formData.tone}
+                  onChange={(e) => setFormData(prev => ({ ...prev, tone: e.target.value as CoverLetterData['tone'] }))}
+                  className="w-full px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:border-amber-500"
+                >
+                  {Object.entries(t.tones).map(([key, value]) => (
+                    <option key={key} value={key}>{value}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            {/* Myanmar toggle */}
+            <label className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-400">
+              <input
+                type="checkbox"
+                checked={formData.includeMyanmar}
+                onChange={(e) => setFormData(prev => ({ ...prev, includeMyanmar: e.target.checked }))}
+                className="w-4 h-4 text-amber-500 border-slate-300 rounded focus:ring-amber-500"
+              />
+              {t.includeMyanmar}
+            </label>
+
+            {/* Error */}
+            {error && (
+              <p className="text-red-500 flex items-center gap-2 text-sm">
+                <AlertCircle className="w-4 h-4" />
+                {error}
+              </p>
+            )}
+
+            {/* Generate Button */}
+            <button
+              onClick={generateCoverLetter}
+              disabled={loading || !formData.name || !formData.position || !formData.company}
+              className="w-full py-3 bg-amber-500 hover:bg-amber-600 text-white rounded-xl font-medium flex items-center justify-center gap-2 transition-colors disabled:opacity-50"
+            >
+              {loading ? (
+                <>
+                  <RefreshCw className="w-5 h-5 animate-spin" />
+                  {t.generating}
+                </>
+              ) : (
+                <>
+                  <Wand2 className="w-5 h-5" />
+                  {t.generate}
+                </>
+              )}
+            </button>
+          </div>
+
+          {/* Result */}
+          <div className="space-y-4">
+            {result ? (
+              <>
+                {/* Cover Letter */}
+                <div className="p-4 bg-slate-50 dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700">
+                  <div className="flex items-center justify-between mb-3">
+                    <h3 className="font-semibold text-slate-900 dark:text-white flex items-center gap-2">
+                      <FileText className="w-4 h-4 text-amber-500" />
+                      {t.coverLetter}
+                    </h3>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => copyToClipboard(result.coverLetter)}
+                        className="p-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
+                        title={t.copy}
+                      >
+                        {copied ? <Check className="w-4 h-4 text-green-500" /> : <Copy className="w-4 h-4" />}
+                      </button>
+                      <button
+                        onClick={downloadAsDoc}
+                        className="p-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
+                        title={t.download}
+                      >
+                        <Download className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
+                  <div className="prose prose-sm dark:prose-invert max-h-64 overflow-y-auto">
+                    <pre className="whitespace-pre-wrap text-sm text-slate-600 dark:text-slate-400 font-sans">
+                      {result.coverLetter}
+                    </pre>
+                  </div>
+                </div>
+
+                {/* Myanmar Version */}
+                {result.coverLetterMyanmar && (
+                  <div className="p-4 bg-amber-50 dark:bg-amber-900/20 rounded-xl border border-amber-200 dark:border-amber-800">
+                    <h3 className="font-semibold text-amber-900 dark:text-amber-100 mb-3 flex items-center gap-2">
+                      <FileText className="w-4 h-4" />
+                      {t.myanmarVersion}
+                    </h3>
+                    <div className="prose prose-sm dark:prose-invert max-h-64 overflow-y-auto">
+                      <pre className="whitespace-pre-wrap text-sm text-amber-800 dark:text-amber-200 font-sans">
+                        {result.coverLetterMyanmar}
+                      </pre>
+                    </div>
+                  </div>
+                )}
+
+                {/* Highlights */}
+                {result.highlights.length > 0 && (
+                  <div>
+                    <h4 className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                      {t.highlights}
+                    </h4>
+                    <div className="flex flex-wrap gap-2">
+                      {result.highlights.map((h, i) => (
+                        <span key={i} className="px-2 py-1 bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 rounded-lg text-xs">
+                          {h}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Tips Toggle */}
+                <button
+                  onClick={() => setShowTips(!showTips)}
+                  className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-400 hover:text-slate-900"
+                >
+                  <ChevronDown className={cn("w-4 h-4 transition-transform", showTips && "rotate-180")} />
+                  {t.tips}
+                </button>
+                
+                {showTips && result.tips.length > 0 && (
+                  <ul className="space-y-1">
+                    {result.tips.map((tip, i) => (
+                      <li key={i} className="flex items-start gap-2 text-sm text-slate-600 dark:text-slate-400">
+                        <Check className="w-4 h-4 text-amber-500 mt-0.5" />
+                        {tip}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+
+                {/* Regenerate */}
+                <button
+                  onClick={generateCoverLetter}
+                  disabled={loading}
+                  className="w-full py-2 border border-amber-500 text-amber-600 dark:text-amber-400 rounded-xl font-medium flex items-center justify-center gap-2 hover:bg-amber-50 dark:hover:bg-amber-900/20 transition-colors"
+                >
+                  <RefreshCw className={cn("w-4 h-4", loading && "animate-spin")} />
+                  {t.regenerate}
+                </button>
+              </>
+            ) : (
+              <div className="h-full flex items-center justify-center text-center py-12 text-slate-500">
+                <div>
+                  <FileText className="w-12 h-12 mx-auto mb-4 text-slate-300 dark:text-slate-600" />
+                  <p>{language === 'my' ? 'သင့်စာတမ်းဖြင့်လျှောက်လွှာ ဤနေရာတွင် ပေါ်လာမည်' : 'Your cover letter will appear here'}</p>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+=== END FILE ===
+
+################################################################################
+# SECTION: HR COMPONENTS
+################################################################################
+
+=== FILE: src/components/hr/HRAnalyticsDashboard.tsx ===
+'use client';
+
+import { useState, useEffect, useCallback } from 'react';
+import { 
+  BarChart3, 
+  TrendingUp, 
+  TrendingDown,
+  Users,
+  Clock,
+  DollarSign,
+  Target,
+  RefreshCw,
+  ChevronDown,
+  ChevronUp,
+  Lightbulb
+} from 'lucide-react';
+import { cn } from '@/lib/utils';
+
+interface KPI {
+  id: string;
+  name: string;
+  value: number;
+  unit: string;
+  change: number;
+  trend: 'improving' | 'stable' | 'needs_attention';
+  target: number;
+}
+
+interface TimeSeriesData {
+  month: string;
+  applications: number;
+  hires: number;
+  turnover: number;
+  satisfaction: number;
+}
+
+interface HRAnalyticsDashboardProps {
+  language?: 'en' | 'my';
+}
+
+export default function HRAnalyticsDashboard({
+  language = 'en',
+}: HRAnalyticsDashboardProps) {
+  const [loading, setLoading] = useState(true);
+  const [kpis, setKpis] = useState<KPI[]>([]);
+  const [timeSeries, setTimeSeries] = useState<TimeSeriesData[]>([]);
+  const [recommendations, setRecommendations] = useState<{ area: string; suggestion: string; impact: string }[]>([]);
+  const [expandedSection, setExpandedSection] = useState<string | null>(null);
+
+  const loadAnalytics = useCallback(async () => {
+    setLoading(true);
+    try {
+      const response = await fetch('/api/hr/analytics');
+      const data = await response.json();
+      
+      if (data.success) {
+        setKpis(data.kpis);
+        setTimeSeries(data.timeSeries);
+        setRecommendations(data.recommendations);
+      }
+    } catch (error) {
+      console.error('Failed to load analytics:', error);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadAnalytics();
+  }, [loadAnalytics]);
+
+  const getTrendIcon = (trend: string) => {
+    switch (trend) {
+      case 'improving': return <TrendingUp className="w-4 h-4 text-green-500" />;
+      case 'needs_attention': return <TrendingDown className="w-4 h-4 text-red-500" />;
+      default: return <div className="w-4 h-4 rounded-full bg-slate-300" />;
+    }
+  };
+
+  const getChangeColor = (change: number, trend: string) => {
+    if (trend === 'needs_attention') return 'text-red-500';
+    if (change > 0) return 'text-green-500';
+    if (change < 0) return 'text-red-500';
+    return 'text-slate-500';
+  };
+
+  const texts = {
+    en: {
+      title: 'HR Analytics Dashboard',
+      subtitle: 'Key metrics and insights',
+      timeToHire: 'Avg Time to Hire',
+      costPerHire: 'Cost per Hire',
+      turnoverRate: 'Turnover Rate',
+      retentionRate: 'Retention Rate',
+      acceptanceRate: 'Offer Acceptance Rate',
+      employeeSatisfaction: 'Employee Satisfaction',
+      days: 'days',
+      mmk: 'MMK',
+      percent: '%',
+      trendImproving: 'Improving',
+      trendStable: 'Stable',
+      trendNeedsAttention: 'Needs Attention',
+      target: 'Target',
+      change: 'change',
+      hiringTrends: 'Hiring Trends',
+      applications: 'Applications',
+      hires: 'Hires',
+      recommendations: 'AI Recommendations',
+      impact: 'Impact',
+      high: 'High',
+      medium: 'Medium',
+      low: 'Low',
+      refresh: 'Refresh',
+      lastUpdated: 'Last updated',
+    },
+    my: {
+      title: 'HR ခွဲခြမ်းစိတ်ဖြာမှု ဒက်ရှ်ဘုတ်',
+      subtitle: 'အဓိက ကိန်းဂဏန်းများနှင့် ဉာဏ်ရည်ဉာဏ်သွေးများ',
+      timeToHire: 'ပျမ်းမျှ အလုပ်ခန့်အပ်ရန် အချိန်',
+      costPerHire: 'တစ်ဦးခန့်အပ်ရန် ကုန်ကျစရိတ်',
+      turnoverRate: 'အလုပ်ထွက်နှုန်း',
+      retentionRate: 'လူထိန်းသိမ်းနှုန်း',
+      acceptanceRate: 'ခန့်အပ်မှု လက်ခံနှုန်း',
+      employeeSatisfaction: 'ဝန်ထမ်း ကျေနပ်မှု',
+      days: 'ရက်',
+      mmk: 'ကျပ်',
+      percent: '%',
+      trendImproving: 'တိုးတက်နေသည်',
+      trendStable: 'တည်ငြိမ်သည်',
+      trendNeedsAttention: 'ဂရုပြုရန်လိုသည်',
+      target: 'ရည်မှန်းချက်',
+      change: 'ပြောင်းလဲမှု',
+      hiringTrends: 'အလုပ်ခန့်အပ်မှု လမ်းကြောင်းများ',
+      applications: 'လျှောက်လွှာများ',
+      hires: 'ခန့်အပ်ပြီး',
+      recommendations: 'AI အကြံပြုချက်များ',
+      impact: 'သက်ရောက်မှု',
+      high: 'မြင့်မား',
+      medium: 'အလယ်အလတ်',
+      low: 'နိမ့်',
+      refresh: 'ပြန်လည်ဖော်ပြပါ',
+      lastUpdated: 'နောက်ဆုံးအပ်ဒိတ်',
+    },
+  };
+
+  const t = texts[language];
+
+  if (loading) {
+    return (
+      <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 p-6">
+        <div className="flex items-center justify-center py-12">
+          <RefreshCw className="w-8 h-8 animate-spin text-teal-500" />
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
+            <BarChart3 className="w-5 h-5 text-teal-500" />
+            {t.title}
+          </h2>
+          <p className="text-sm text-slate-500">{t.subtitle}</p>
+        </div>
+        <button
+          onClick={loadAnalytics}
+          className="px-4 py-2 bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-400 rounded-lg hover:bg-slate-200 flex items-center gap-2"
+        >
+          <RefreshCw className="w-4 h-4" />
+          {t.refresh}
+        </button>
+      </div>
+
+      {/* KPI Cards */}
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+        {kpis.map(kpi => (
+          <div key={kpi.id} className="p-4 bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-xs text-slate-500">
+                {t[kpi.id.replace(/-/g, '') as keyof typeof t] || kpi.name}
+              </span>
+              {getTrendIcon(kpi.trend)}
+            </div>
+            <div className="text-2xl font-bold text-slate-900 dark:text-white">
+              {kpi.unit === 'MMK' ? `${(kpi.value / 1000).toFixed(0)}K` : kpi.value}
+              <span className="text-sm font-normal text-slate-400 ml-1">{kpi.unit}</span>
+            </div>
+            <div className="flex items-center justify-between mt-2 text-xs">
+              <span className={cn(getChangeColor(kpi.change, kpi.trend))}>
+                {kpi.change > 0 ? '+' : ''}{kpi.change}%
+              </span>
+              <span className="text-slate-400">
+                {t.target}: {kpi.unit === 'MMK' ? `${(kpi.target / 1000).toFixed(0)}K` : kpi.target}
+              </span>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Hiring Trends Chart (Simple Bar Visualization) */}
+      <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-6">
+        <h3 className="font-semibold text-slate-900 dark:text-white mb-4 flex items-center gap-2">
+          <TrendingUp className="w-5 h-5 text-teal-500" />
+          {t.hiringTrends}
+        </h3>
+        
+        <div className="space-y-4">
+          {timeSeries.map((data, i) => (
+            <div key={i} className="flex items-end gap-4">
+              <div className="w-16 text-xs text-slate-500">{data.month}</div>
+              <div className="flex-1 flex gap-1 h-8">
+                <div 
+                  className="bg-teal-500 rounded-l"
+                  style={{ width: `${Math.min(data.applications / 2, 100)}%` }}
+                  title={`${t.applications}: ${data.applications}`}
+                />
+                <div 
+                  className="bg-purple-500"
+                  style={{ width: `${Math.min(data.hires * 5, 100)}%` }}
+                  title={`${t.hires}: ${data.hires}`}
+                />
+              </div>
+              <div className="w-20 text-right text-xs text-slate-500">
+                {data.applications} / {data.hires}
+              </div>
+            </div>
+          ))}
+        </div>
+        
+        <div className="flex gap-6 mt-4 pt-4 border-t border-slate-200 dark:border-slate-700">
+          <div className="flex items-center gap-2 text-sm">
+            <div className="w-3 h-3 bg-teal-500 rounded" />
+            <span className="text-slate-600 dark:text-slate-400">{t.applications}</span>
+          </div>
+          <div className="flex items-center gap-2 text-sm">
+            <div className="w-3 h-3 bg-purple-500 rounded" />
+            <span className="text-slate-600 dark:text-slate-400">{t.hires}</span>
+          </div>
+        </div>
+      </div>
+
+      {/* AI Recommendations */}
+      <div className="bg-gradient-to-r from-teal-50 to-cyan-50 dark:from-teal-900/20 dark:to-cyan-900/20 rounded-xl border border-teal-200 dark:border-teal-800 p-6">
+        <h3 className="font-semibold text-slate-900 dark:text-white mb-4 flex items-center gap-2">
+          <Lightbulb className="w-5 h-5 text-amber-500" />
+          {t.recommendations}
+        </h3>
+        
+        <div className="space-y-3">
+          {recommendations.map((rec, i) => (
+            <div key={i} className="flex items-start gap-3 p-3 bg-white dark:bg-slate-800 rounded-lg">
+              <div className={cn(
+                "px-2 py-1 rounded text-xs font-medium",
+                rec.impact === 'high' ? "bg-green-100 text-green-700" :
+                rec.impact === 'medium' ? "bg-amber-100 text-amber-700" :
+                "bg-slate-100 text-slate-700"
+              )}>
+                {t[rec.impact as keyof typeof t]}
+              </div>
+              <div className="flex-1">
+                <div className="font-medium text-slate-900 dark:text-white text-sm">{rec.area}</div>
+                <div className="text-slate-600 dark:text-slate-400 text-sm">{rec.suggestion}</div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+=== END FILE ===
+
+=== FILE: src/components/hr/HRCandidateScreening.tsx ===
+'use client';
+
+import { useState, useCallback } from 'react';
+import { 
+  Users, 
+  FileText, 
+  Calendar, 
+  Mail, 
+  CheckSquare, 
+  BarChart3,
+  Filter,
+  Search,
+  Download,
+  ChevronDown,
+  ChevronUp,
+  Check,
+  X,
+  Clock,
+  TrendingUp,
+  AlertCircle,
+  RefreshCw
+} from 'lucide-react';
+import { cn } from '@/lib/utils';
+
+interface Candidate {
+  id: string;
+  name: string;
+  email: string;
+  phone?: string;
+  skills: string[];
+  experience: number;
+  education: string;
+  appliedRole: string;
+  appliedDate: string;
+  status: 'new' | 'screening' | 'shortlisted' | 'interview' | 'offered' | 'rejected';
+  matchScore?: number;
+  notes?: string;
+}
+
+interface ScreeningStats {
+  totalCandidates: number;
+  screenedCandidates: number;
+  shortlistedCandidates: number;
+  averageMatchScore: number;
+}
+
+interface HRCandidateScreeningProps {
+  jobId?: string;
+  jobTitle?: string;
+  language?: 'en' | 'my';
+}
+
+export default function HRCandidateScreening({
+  jobId,
+  jobTitle,
+  language = 'en',
+}: HRCandidateScreeningProps) {
+  const [candidates, setCandidates] = useState<Candidate[]>([]);
+  const [stats, setStats] = useState<ScreeningStats | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [selectedCandidate, setSelectedCandidate] = useState<Candidate | null>(null);
+  const [filterStatus, setFilterStatus] = useState<string>('all');
+  const [searchQuery, setSearchQuery] = useState('');
+
+  // Mock data for demo
+  const mockCandidates: Candidate[] = [
+    {
+      id: 'c1',
+      name: 'Aung Myat',
+      email: 'aung.myat@email.com',
+      phone: '+95 912 345 678',
+      skills: ['JavaScript', 'React', 'Node.js', 'Python'],
+      experience: 3,
+      education: 'B.Sc. Computer Science, University of Yangon',
+      appliedRole: 'Software Engineer',
+      appliedDate: '2024-01-15',
+      status: 'new',
+      matchScore: 85,
+    },
+    {
+      id: 'c2',
+      name: 'Su Myat Khine',
+      email: 'sumyat.k@email.com',
+      phone: '+95 923 456 789',
+      skills: ['Marketing', 'Social Media', 'Content Writing', 'SEO'],
+      experience: 2,
+      education: 'B.A. Marketing, Yangon University of Economics',
+      appliedRole: 'Marketing Specialist',
+      appliedDate: '2024-01-14',
+      status: 'screening',
+      matchScore: 78,
+    },
+    {
+      id: 'c3',
+      name: 'Zaw Win',
+      email: 'zaw.win@email.com',
+      phone: '+95 934 567 890',
+      skills: ['Sales', 'CRM', 'Negotiation', 'Communication'],
+      experience: 5,
+      education: 'B.B.A, Mandalay University',
+      appliedRole: 'Sales Manager',
+      appliedDate: '2024-01-13',
+      status: 'shortlisted',
+      matchScore: 92,
+    },
+  ];
+
+  const loadCandidates = useCallback(async () => {
+    setLoading(true);
+    // In production, fetch from API
+    setTimeout(() => {
+      setCandidates(mockCandidates);
+      setStats({
+        totalCandidates: mockCandidates.length,
+        screenedCandidates: mockCandidates.filter(c => c.status !== 'new').length,
+        shortlistedCandidates: mockCandidates.filter(c => c.status === 'shortlisted').length,
+        averageMatchScore: Math.round(
+          mockCandidates.reduce((sum, c) => sum + (c.matchScore || 0), 0) / mockCandidates.length
+        ),
+      });
+      setLoading(false);
+    }, 500);
+  }, []);
+
+  const updateCandidateStatus = useCallback(async (candidateId: string, newStatus: Candidate['status']) => {
+    setCandidates(prev => 
+      prev.map(c => c.id === candidateId ? { ...c, status: newStatus } : c)
+    );
+    if (selectedCandidate?.id === candidateId) {
+      setSelectedCandidate(prev => prev ? { ...prev, status: newStatus } : null);
+    }
+  }, [selectedCandidate]);
+
+  const filteredCandidates = candidates.filter(c => {
+    if (filterStatus !== 'all' && c.status !== filterStatus) return false;
+    if (searchQuery && !c.name.toLowerCase().includes(searchQuery.toLowerCase()) &&
+        !c.email.toLowerCase().includes(searchQuery.toLowerCase())) return false;
+    return true;
+  });
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'new': return 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400';
+      case 'screening': return 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400';
+      case 'shortlisted': return 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400';
+      case 'interview': return 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400';
+      case 'offered': return 'bg-teal-100 text-teal-700 dark:bg-teal-900/30 dark:text-teal-400';
+      case 'rejected': return 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400';
+      default: return 'bg-slate-100 text-slate-700 dark:bg-slate-700 dark:text-slate-300';
+    }
+  };
+
+  const getMatchScoreColor = (score: number) => {
+    if (score >= 80) return 'text-green-500';
+    if (score >= 60) return 'text-amber-500';
+    return 'text-red-500';
+  };
+
+  const texts = {
+    en: {
+      title: 'Candidate Screening',
+      subtitle: 'Screen and manage job applicants',
+      search: 'Search candidates...',
+      filterAll: 'All',
+      filterNew: 'New',
+      filterScreening: 'Screening',
+      filterShortlisted: 'Shortlisted',
+      filterInterview: 'Interview',
+      filterOffered: 'Offered',
+      filterRejected: 'Rejected',
+      total: 'Total Candidates',
+      screened: 'Screened',
+      shortlisted: 'Shortlisted',
+      avgScore: 'Avg Match Score',
+      candidate: 'Candidate',
+      skills: 'Skills',
+      experience: 'Experience',
+      education: 'Education',
+      appliedRole: 'Applied Role',
+      appliedDate: 'Applied Date',
+      matchScore: 'Match Score',
+      status: 'Status',
+      actions: 'Actions',
+      shortlist: 'Shortlist',
+      reject: 'Reject',
+      schedule: 'Schedule Interview',
+      notes: 'Notes',
+      addNote: 'Add a note...',
+      export: 'Export',
+      refresh: 'Refresh',
+    },
+    my: {
+      title: 'ကိစ္စလက်ခံသူများ စိစစ်ခြင်း',
+      subtitle: 'အလုပ်လျှောက်လွှာတင်သူများကို စိစစ်၍ စီမံပါ',
+      search: 'ကိစ္စလက်ခံသူများ ရှာဖွေပါ...',
+      filterAll: 'အားလုံး',
+      filterNew: 'အသစ်',
+      filterScreening: 'စိစစ်နေသည်',
+      filterShortlisted: 'ရွေးချယ်ထားသည်',
+      filterInterview: 'အင်တာဗျူး',
+      filterOffered: 'ခန့်အပ်ပြီ',
+      filterRejected: 'ငြင်းပယ်ပြီ',
+      total: 'စုစုပေါင်း ကိစ္စလက်ခံသူများ',
+      screened: 'စိစစ်ပြီး',
+      shortlisted: 'ရွေးချယ်ထားသည်',
+      avgScore: 'ပျမ်းမျှ ကိုက်ညီမှုရမှတ်',
+      candidate: 'ကိစ္စလက်ခံသူ',
+      skills: 'ကျွမ်းကျင်မှုများ',
+      experience: 'အတွေ့အကြုံ',
+      education: 'ပညာရေး',
+      appliedRole: 'လျှောက်ထားသော ရာထူး',
+      appliedDate: 'လျှောက်လွှာတင်သည့်ရက်စွဲ',
+      matchScore: 'ကိုက်ညီမှုရမှတ်',
+      status: 'အဆင့်အတန်း',
+      actions: 'လုပ်ဆောင်ချက်များ',
+      shortlist: 'ရွေးချယ်ပါ',
+      reject: 'ငြင်းပယ်ပါ',
+      schedule: 'အင်တာဗျူး ချိန်းဆိုပါ',
+      notes: 'မှတ်ချက်များ',
+      addNote: 'မှတ်ချက်ထည့်ပါ...',
+      export: 'တင်ပို့ပါ',
+      refresh: 'ပြန်လည်ဖော်ပြပါ',
+    },
+  };
+
+  const t = texts[language];
+
+  return (
+    <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 overflow-hidden">
+      {/* Header */}
+      <div className="bg-gradient-to-r from-indigo-500 to-purple-500 p-6 text-white">
+        <div className="flex items-center gap-3 mb-2">
+          <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center">
+            <Users className="w-5 h-5" />
+          </div>
+          <div>
+            <h2 className="text-xl font-bold">{t.title}</h2>
+            <p className="text-sm text-white/80">{t.subtitle}</p>
+          </div>
+        </div>
+        {jobTitle && (
+          <div className="mt-2 text-sm text-white/80">
+            {jobTitle}
+          </div>
+        )}
+      </div>
+
+      <div className="p-6">
+        {/* Stats */}
+        {stats && (
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+            <div className="p-4 bg-slate-50 dark:bg-slate-900 rounded-xl">
+              <div className="text-2xl font-bold text-slate-900 dark:text-white">{stats.totalCandidates}</div>
+              <div className="text-sm text-slate-500">{t.total}</div>
+            </div>
+            <div className="p-4 bg-slate-50 dark:bg-slate-900 rounded-xl">
+              <div className="text-2xl font-bold text-slate-900 dark:text-white">{stats.screenedCandidates}</div>
+              <div className="text-sm text-slate-500">{t.screened}</div>
+            </div>
+            <div className="p-4 bg-slate-50 dark:bg-slate-900 rounded-xl">
+              <div className="text-2xl font-bold text-green-500">{stats.shortlistedCandidates}</div>
+              <div className="text-sm text-slate-500">{t.shortlisted}</div>
+            </div>
+            <div className="p-4 bg-slate-50 dark:bg-slate-900 rounded-xl">
+              <div className="text-2xl font-bold text-purple-500">{stats.avgScore}%</div>
+              <div className="text-sm text-slate-500">{t.avgScore}</div>
+            </div>
+          </div>
+        )}
+
+        {/* Search and Filter */}
+        <div className="flex flex-wrap gap-4 mb-6">
+          <div className="flex-1 min-w-[200px] relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+            <input
+              type="text"
+              placeholder={t.search}
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full pl-10 pr-4 py-2 border border-slate-200 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:border-indigo-500"
+            />
+          </div>
+          
+          <div className="flex gap-2">
+            {['all', 'new', 'screening', 'shortlisted', 'interview', 'offered', 'rejected'].map(status => (
+              <button
+                key={status}
+                onClick={() => setFilterStatus(status)}
+                className={cn(
+                  "px-3 py-2 text-sm rounded-lg transition-colors",
+                  filterStatus === status
+                    ? "bg-indigo-500 text-white"
+                    : "bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-200"
+                )}
+              >
+                {t[`filter${status.charAt(0).toUpperCase() + status.slice(1)}` as keyof typeof t]}
+              </button>
+            ))}
+          </div>
+
+          <div className="flex gap-2">
+            <button
+              onClick={loadCandidates}
+              disabled={loading}
+              className="px-4 py-2 bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-400 rounded-lg hover:bg-slate-200 flex items-center gap-2"
+            >
+              <RefreshCw className={cn("w-4 h-4", loading && "animate-spin")} />
+              {t.refresh}
+            </button>
+            <button className="px-4 py-2 bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 rounded-lg hover:bg-indigo-200 flex items-center gap-2">
+              <Download className="w-4 h-4" />
+              {t.export}
+            </button>
+          </div>
+        </div>
+
+        {/* Load Button */}
+        {candidates.length === 0 && (
+          <div className="text-center py-12">
+            <Users className="w-12 h-12 mx-auto mb-4 text-slate-300 dark:text-slate-600" />
+            <p className="text-slate-500 mb-4">
+              {language === 'my' ? 'ကိစ္စလက်ခံသူများကို ဖော်ပြရန် စိစစ်ပါ' : 'Load candidates to start screening'}
+            </p>
+            <button
+              onClick={loadCandidates}
+              disabled={loading}
+              className="px-6 py-3 bg-indigo-500 hover:bg-indigo-600 text-white rounded-xl font-medium flex items-center gap-2 mx-auto"
+            >
+              {loading ? (
+                <>
+                  <RefreshCw className="w-5 h-5 animate-spin" />
+                  {language === 'my' ? 'ဖော်ပြနေသည်...' : 'Loading...'}
+                </>
+              ) : (
+                <>
+                  <Filter className="w-5 h-5" />
+                  {language === 'my' ? 'စိစစ်ပါ' : 'Screen Candidates'}
+                </>
+              )}
+            </button>
+          </div>
+        )}
+
+        {/* Candidates List */}
+        {filteredCandidates.length > 0 && (
+          <div className="space-y-3">
+            {filteredCandidates.map(candidate => (
+              <div key={candidate.id}>
+                <button
+                  onClick={() => setSelectedCandidate(selectedCandidate?.id === candidate.id ? null : candidate)}
+                  className={cn(
+                    "w-full text-left p-4 rounded-xl border transition-all",
+                    selectedCandidate?.id === candidate.id
+                      ? "border-indigo-500 bg-indigo-50 dark:bg-indigo-900/20"
+                      : "border-slate-200 dark:border-slate-700 hover:border-indigo-300"
+                  )}
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 bg-indigo-100 dark:bg-indigo-900/30 rounded-full flex items-center justify-center text-indigo-600 dark:text-indigo-400 font-medium">
+                          {candidate.name.charAt(0)}
+                        </div>
+                        <div>
+                          <div className="font-medium text-slate-900 dark:text-white">{candidate.name}</div>
+                          <div className="text-sm text-slate-500">{candidate.email}</div>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <div className="flex items-center gap-4">
+                      <span className={cn(
+                        "px-2 py-1 rounded-full text-xs font-medium",
+                        getStatusColor(candidate.status)
+                      )}>
+                        {t[`filter${candidate.status.charAt(0).toUpperCase() + candidate.status.slice(1)}` as keyof typeof t]}
+                      </span>
+                      
+                      {candidate.matchScore && (
+                        <div className={cn("text-lg font-bold", getMatchScoreColor(candidate.matchScore))}>
+                          {candidate.matchScore}%
+                        </div>
+                      )}
+                      
+                      {selectedCandidate?.id === candidate.id ? (
+                        <ChevronUp className="w-5 h-5 text-slate-400" />
+                      ) : (
+                        <ChevronDown className="w-5 h-5 text-slate-400" />
+                      )}
+                    </div>
+                  </div>
+                </button>
+
+                {/* Expanded Details */}
+                {selectedCandidate?.id === candidate.id && (
+                  <div className="mt-2 p-4 bg-slate-50 dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                      <div>
+                        <div className="text-xs font-medium text-slate-500 mb-1">{t.skills}</div>
+                        <div className="flex flex-wrap gap-1">
+                          {candidate.skills.map((skill, i) => (
+                            <span key={i} className="px-2 py-1 bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 rounded-lg text-xs">
+                              {skill}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                      <div>
+                        <div className="text-xs font-medium text-slate-500 mb-1">{t.experience}</div>
+                        <div className="text-slate-700 dark:text-slate-300">
+                          {candidate.experience} {language === 'my' ? 'နှစ်' : 'years'}
+                        </div>
+                      </div>
+                      <div>
+                        <div className="text-xs font-medium text-slate-500 mb-1">{t.education}</div>
+                        <div className="text-slate-700 dark:text-slate-300">{candidate.education}</div>
+                      </div>
+                      <div>
+                        <div className="text-xs font-medium text-slate-500 mb-1">{t.appliedRole}</div>
+                        <div className="text-slate-700 dark:text-slate-300">{candidate.appliedRole}</div>
+                      </div>
+                    </div>
+
+                    {/* Actions */}
+                    <div className="flex flex-wrap gap-2 pt-4 border-t border-slate-200 dark:border-slate-700">
+                      {candidate.status === 'new' && (
+                        <button
+                          onClick={() => updateCandidateStatus(candidate.id, 'screening')}
+                          className="px-4 py-2 bg-yellow-100 text-yellow-700 rounded-lg text-sm font-medium hover:bg-yellow-200"
+                        >
+                          {t.filterScreening}
+                        </button>
+                      )}
+                      {(candidate.status === 'new' || candidate.status === 'screening') && (
+                        <button
+                          onClick={() => updateCandidateStatus(candidate.id, 'shortlisted')}
+                          className="px-4 py-2 bg-green-500 text-white rounded-lg text-sm font-medium hover:bg-green-600 flex items-center gap-1"
+                        >
+                          <Check className="w-4 h-4" />
+                          {t.shortlist}
+                        </button>
+                      )}
+                      {candidate.status === 'shortlisted' && (
+                        <button
+                          onClick={() => updateCandidateStatus(candidate.id, 'interview')}
+                          className="px-4 py-2 bg-purple-500 text-white rounded-lg text-sm font-medium hover:bg-purple-600 flex items-center gap-1"
+                        >
+                          <Calendar className="w-4 h-4" />
+                          {t.schedule}
+                        </button>
+                      )}
+                      {candidate.status !== 'rejected' && candidate.status !== 'offered' && (
+                        <button
+                          onClick={() => updateCandidateStatus(candidate.id, 'rejected')}
+                          className="px-4 py-2 bg-red-100 text-red-700 rounded-lg text-sm font-medium hover:bg-red-200 flex items-center gap-1"
+                        >
+                          <X className="w-4 h-4" />
+                          {t.reject}
+                        </button>
+                      )}
+                      {candidate.status === 'interview' && (
+                        <button
+                          onClick={() => updateCandidateStatus(candidate.id, 'offered')}
+                          className="px-4 py-2 bg-teal-500 text-white rounded-lg text-sm font-medium hover:bg-teal-600"
+                        >
+                          {t.filterOffered}
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+=== END FILE ===
+
+################################################################################
+# SECTION: PWA COMPONENTS
+################################################################################
+
+=== FILE: src/components/pwa/PWAInstallPrompt.tsx ===
+'use client';
+
+import { useState, useEffect, useCallback, useRef } from 'react';
+import { Download, X, Smartphone, Share, Plus, Check } from 'lucide-react';
+
+interface BeforeInstallPromptEvent extends Event {
+  prompt: () => Promise<void>;
+  userChoice: Promise<{ outcome: 'accepted' | 'dismissed' }>;
+}
+
+export default function PWAInstallPrompt() {
+  const [showPrompt, setShowPrompt] = useState(false);
+  const [showIOSInstructions, setShowIOSInstructions] = useState(false);
+  const installPromptRef = useRef<BeforeInstallPromptEvent | null>(null);
+  const installCountRef = useRef(0);
+
+  useEffect(() => {
+    // Check install prompt dismiss count
+    installCountRef.current = parseInt(localStorage.getItem('pwa-install-dismissed') || '0');
+    
+    // Check if already installed
+    const standalone = window.matchMedia('(display-mode: standalone)').matches;
+    const iosStandalone = ('standalone' in window.navigator) && 
+      (window.navigator as Navigator & { standalone: boolean }).standalone;
+    
+    if (standalone || iosStandalone) return;
+
+    // Check if iOS
+    const isIOSDevice = /iPad|iPhone|iPod/.test(navigator.userAgent);
+
+    // Listen for beforeinstallprompt event
+    const handleBeforeInstallPrompt = (e: Event) => {
+      e.preventDefault();
+      installPromptRef.current = e as BeforeInstallPromptEvent;
+      
+      if (installCountRef.current < 3) {
+        setTimeout(() => setShowPrompt(true), 3000);
+      }
+    };
+
+    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+
+    // For iOS, show prompt after delay
+    if (isIOSDevice && installCountRef.current < 3) {
+      setTimeout(() => setShowPrompt(true), 5000);
+    }
+
+    window.addEventListener('appinstalled', () => {
+      setShowPrompt(false);
+      installPromptRef.current = null;
+      localStorage.setItem('pwa-installed', 'true');
+    });
+
+    return () => {
+      window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+    };
+  }, []);
+
+  const handleInstallClick = useCallback(async () => {
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+    
+    if (isIOS) {
+      setShowIOSInstructions(true);
+      return;
+    }
+
+    if (!installPromptRef.current) return;
+
+    try {
+      await installPromptRef.current.prompt();
+      const { outcome } = await installPromptRef.current.userChoice;
+      
+      if (outcome === 'accepted') {
+        setShowPrompt(false);
+        localStorage.setItem('pwa-installed', 'true');
+      } else {
+        installCountRef.current += 1;
+        localStorage.setItem('pwa-install-dismissed', installCountRef.current.toString());
+      }
+      
+      installPromptRef.current = null;
+    } catch (error) {
+      console.error('Install prompt error:', error);
+    }
+  }, []);
+
+  const handleDismiss = useCallback(() => {
+    setShowPrompt(false);
+    installCountRef.current += 1;
+    localStorage.setItem('pwa-install-dismissed', installCountRef.current.toString());
+  }, []);
+
+  if (!showPrompt) return null;
+
+  return (
+    <>
+      <div className="fixed bottom-20 left-4 right-4 z-50 max-w-md mx-auto">
+        <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-700 overflow-hidden">
+          <div className="bg-gradient-to-r from-teal-500 to-teal-600 p-4 text-white">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center">
+                  <Smartphone className="w-6 h-6" />
+                </div>
+                <div>
+                  <h3 className="font-semibold">Install ReferTRM</h3>
+                  <p className="text-sm text-white/80">Add to home screen</p>
+                </div>
+              </div>
+              <button onClick={handleDismiss} className="p-2 hover:bg-white/20 rounded-lg">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+          </div>
+          
+          <div className="p-4">
+            <p className="text-sm text-slate-600 dark:text-slate-400 mb-4">
+              Install ReferTRM for a better experience:
+            </p>
+            <ul className="space-y-2 mb-4">
+              <li className="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-300">
+                <Check className="w-4 h-4 text-teal-500" />
+                Offline access to jobs
+              </li>
+              <li className="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-300">
+                <Check className="w-4 h-4 text-teal-500" />
+                Push notifications
+              </li>
+              <li className="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-300">
+                <Check className="w-4 h-4 text-teal-500" />
+                Faster loading
+              </li>
+            </ul>
+            
+            <button
+              onClick={handleInstallClick}
+              className="w-full py-3 bg-teal-500 hover:bg-teal-600 text-white rounded-xl font-medium flex items-center justify-center gap-2 transition-colors"
+            >
+              <Download className="w-5 h-5" />
+              Install Now
+            </button>
+            
+            <button onClick={handleDismiss} className="w-full py-2 text-sm text-slate-500 mt-2">
+              Not now
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {showIOSInstructions && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
+          <div className="bg-white dark:bg-slate-800 rounded-2xl max-w-sm w-full p-6">
+            <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-4">
+              Install on iOS
+            </h3>
+            <div className="space-y-4">
+              <div className="flex items-center gap-4 p-3 bg-slate-50 dark:bg-slate-700 rounded-xl">
+                <div className="w-10 h-10 bg-teal-100 dark:bg-teal-900/30 rounded-lg flex items-center justify-center">
+                  <Share className="w-5 h-5 text-teal-600 dark:text-teal-400" />
+                </div>
+                <div>
+                  <p className="font-medium text-slate-900 dark:text-white">Step 1</p>
+                  <p className="text-sm text-slate-500 dark:text-slate-400">Tap the Share button</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-4 p-3 bg-slate-50 dark:bg-slate-700 rounded-xl">
+                <div className="w-10 h-10 bg-teal-100 dark:bg-teal-900/30 rounded-lg flex items-center justify-center">
+                  <Plus className="w-5 h-5 text-teal-600 dark:text-teal-400" />
+                </div>
+                <div>
+                  <p className="font-medium text-slate-900 dark:text-white">Step 2</p>
+                  <p className="text-sm text-slate-500 dark:text-slate-400">Tap &quot;Add to Home Screen&quot;</p>
+                </div>
+              </div>
+            </div>
+            <button
+              onClick={() => { setShowIOSInstructions(false); handleDismiss(); }}
+              className="w-full mt-6 py-3 bg-teal-500 hover:bg-teal-600 text-white rounded-xl font-medium"
+            >
+              Got it!

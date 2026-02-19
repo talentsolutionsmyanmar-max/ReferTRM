@@ -1,0 +1,184 @@
+[
+  {
+    "id": "1",
+    "title": "Senior Supervisor",
+    "company": "RK Yangon Steel",
+    "location": "Thanlyin",
+    "salary": "7.5 Lakhs to 10 Lakhs"
+  },
+  {
+    "id": "2",
+    "title": "Warehouse Supervisor",
+    "company": "Universal Energy",
+    "location": "Thingangyun",
+    "salary": "Nego"
+  },
+  {
+    "id": "3",
+    "title": "Content & Script Writer",
+    "company": "Shwe Taung Htun",
+    "location": "Mingalar Taung Nyunt",
+    "salary": "4 Lakhs to 6 Lakhs"
+  },
+  {
+    "id": "4",
+    "title": "Site Engineer",
+    "company": "Sun Myat Tun",
+    "location": "Botahtaung",
+    "salary": "7.5 Lakhs"
+  },
+  {
+    "id": "5",
+    "title": "Data Collector",
+    "company": "NielsenIQ Myanmar",
+    "location": "Mdy,Sagaing,Meikhtila",
+    "salary": "3.5 Lakhs"
+  },
+  {
+    "id": "6",
+    "title": "Loan Officer",
+    "company": "Real Aid Microfinance",
+    "location": "Ayeyarwady",
+    "salary": "4 Lakhs to 5 Lakhs"
+  },
+  {
+    "id": "7",
+    "title": "Cashier",
+    "company": "Real Aid Microfinance",
+    "location": "Ayeyarwady",
+    "salary": "Above 3 Lakhs"
+  },
+  {
+    "id": "8",
+    "title": "Brand Executive",
+    "company": "Unicharm Myanmar",
+    "location": "Yankin",
+    "salary": "7 Lakhs to 9 Lakhs"
+  },
+  {
+    "id": "9",
+    "title": "Assistant Brand Manager",
+    "company": "Unicharm Myanmar",
+    "location": "Yankin",
+    "salary": "15 Lakhs to 17 Lakhs"
+  },
+  {
+    "id": "10",
+    "title": "Receptionist",
+    "company": "Myanmar Information Technology",
+    "location": "Insein",
+    "salary": "3 Lakhs to 4 Lakhs"
+  },
+  {
+    "id": "11",
+    "title": "Assistant Accountant",
+    "company": "KBZ Life Insurance",
+    "location": "Bahan",
+    "salary": "4 Lakhs to 5 Lakhs"
+  },
+  {
+    "id": "12",
+    "title": "Accountant",
+    "company": "Universal Energy",
+    "location": "Thingangyun",
+    "salary": "6 Lakhs to 7 Lakhs"
+  },
+  {
+    "id": "13",
+    "title": "Online Sale",
+    "company": "Salpyar",
+    "location": "North Dagon",
+    "salary": "2.4 Lakhs"
+  },
+  {
+    "id": "14",
+    "title": "Graphic Designer",
+    "company": "WOW Sport",
+    "location": "Kamaryut",
+    "salary": "Around 10 Lakhs"
+  },
+  {
+    "id": "15",
+    "title": "Senior Sales Executive",
+    "company": "WOW Sport",
+    "location": "Kamaryut",
+    "salary": "10 Lakhs"
+  },
+  {
+    "id": "16",
+    "title": "Senior Agency Sales Representative",
+    "company": "AMI",
+    "location": "Kamaryut",
+    "salary": "5 Lakhs to 6.5 Lakhs"
+  },
+  {
+    "id": "17",
+    "title": "Admin Supervisor",
+    "company": "TOMO",
+    "location": "South Dagon",
+    "salary": "5 Lakhs to 6 Lakhs"
+  },
+  {
+    "id": "18",
+    "title": "IT Supervisor",
+    "company": "Wave Plus",
+    "location": "Mingalardon",
+    "salary": "6 Lakhs"
+  },
+  {
+    "id": "19",
+    "title": "Sales Staff",
+    "company": "Yangoods",
+    "location": "Pyin Oo Lwin",
+    "salary": "2.04 Lakhs"
+  },
+  {
+    "id": "20",
+    "title": "Senior Page Admin",
+    "company": "TOMO",
+    "location": "Tamwe",
+    "salary": "Nego"
+  },
+  {
+    "id": "21",
+    "title": "Junior Page Admin",
+    "company": "TOMO",
+    "location": "Tamwe",
+    "salary": "3 Lakhs to 3.5 Lakhs"
+  },
+  {
+    "id": "22",
+    "title": "Junior Accountant",
+    "company": "Unicharm Myanmar",
+    "location": "Yankin",
+    "salary": "3.5 Lakhs to 4 Lakhs"
+  },
+  {
+    "id": "23",
+    "title": "Accountant",
+    "company": "GK International Company",
+    "location": "Kamaryut",
+    "salary": "6.5 Lakhs to 8 Lakhs"
+  },
+  {
+    "id": "24",
+    "title": "Assistant Project Coordinator",
+    "company": "GK International Company",
+    "location": "Kamaryut",
+    "salary": "3.5 Lakhs to 5 Lakhs"
+  },
+  {
+    "id": "25",
+    "title": "Interior Designer",
+    "company": "Delight Amatat",
+    "location": "Thingangyun",
+    "salary": "10 Lakhs to 15 Lakhs"
+  },
+  {
+    "id": "26",
+    "title": "Quantity Surveyor",
+    "company": "Delight Amatat",
+    "location": "Thingangyun",
+    "salary": "10 Lakhs to 15 Lakhs"
+  }
+]

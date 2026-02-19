@@ -1,0 +1,28 @@
+{
+  "choices": [
+    {
+      "finish_reason": "stop",
+      "index": 0,
+      "message": {
+        "content": "The screenshot displays the homepage of **TRM**, a platform focused on skill development and career training. Here’s a detailed breakdown of its layout and features:  \n\n\n### 1. **Header & Branding**  \n- **Top-left**: The logo “TRM” is displayed in white text on a dark background.  \n- **Top-right**: A green button with white text and an arrow icon: *“Login to Save Progress”* (encourages user authentication to track progress).  \n\n\n### 2. **Navigation Tabs (Horizontal Menu)**  \nA row of interactive tabs (with icons) for different skill categories, styled with a dark background and colored highlights:  \n- **Active Tab**: *“AI-Resilient Skills”* (teal background, white text, with a folder icon) — indicates the current section.  \n- **Other Tabs** (gray background, white text, with icons):  \n  - Recruitment (folder icon)  \n  - Sales & Marketing (graph icon)  \n  - Employer Success (folder icon)  \n  - First Job Essentials (document icon)  \n  - Digital Marketing (megaphone icon)  \n  - Engineering & IT Essentials (code icon)  \n  - English for Job Seekers (language icon)  \n\n\n### 3. **Main Content Section (AI-Resilient Skills)**  \n- **Icon**: A pink square with a white “chatbot” or “AI” icon (centered at the top of this section).  \n- **Title**: *“AI-Resilient Skills”* (bold white text).  \n- **Subheading (Burmese)**: Text in green (likely a translation of the title, e.g., “AI နှင့် ပတ်သက်သော အခက်အခဲများ ကို ကျော်လွှားနိုင်သော အရည်အချင်းများ”).  \n- **Description**: *“Learn to use AI as your helper, not your enemy. Master human skills AI cannot replace.”* (white text, centered).  \n- **Promotional Banner**: A brown button with orange text: *“+15% permanent referral bonus + AI-Resilient badge”* (highlights incentives for completing the track).  \n- **Call-to-Action (CTA) Button**: A teal button with a chat icon and white text: *“Start Full Track Experience”* (arrow icon, encourages users to begin the course).  \n- **Small Text (Burmese)**: Below the CTA, a line of text (likely a disclaimer or additional info, e.g., “အခမဲ့ လေ့လာနိုင်သော အခွင့်အလမ်း”).  \n\n\n### 4. **Progress Tracker**  \n- **Section Title**: *“Track Progress”* (white text, left-aligned).  \n- **Progress Indicator**: *“0/10 modules”* (teal text, right-aligned) — shows the user has completed 0 of 10 modules in the current track.  \n\n\n### Overall Design  \nThe color scheme is **dark (navy/black) with teal, pink, and orange accents**, creating a modern, tech-focused aesthetic. Icons (e.g., folder, chatbot, code) visually represent each skill category, enhancing usability. The layout prioritizes clear navigation, promotional incentives, and progress tracking to guide users toward engaging with the “AI-Resilient Skills” track.",
+        "role": "assistant"
+      }
+    }
+  ],
+  "created": 1771157587,
+  "id": "20260215201229b9079fa5ddec4cd9",
+  "model": "glm-4.6v",
+  "object": "chat.completion",
+  "request_id": "20260215201229b9079fa5ddec4cd9",
+  "usage": {
+    "completion_tokens": 839,
+    "completion_tokens_details": {
+      "reasoning_tokens": 0
+    },
+    "prompt_tokens": 704,
+    "prompt_tokens_details": {
+      "cached_tokens": 4
+    },
+    "total_tokens": 1543
+  }
+}

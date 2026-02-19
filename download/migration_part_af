@@ -1,0 +1,3000 @@
+            </button>
+          </div>
+        </div>
+      )}
+    </>
+  );
+}
+=== END FILE ===
+
+=== FILE: src/components/pwa/ServiceWorkerRegistration.tsx ===
+'use client';
+
+import { useEffect } from 'react';
+
+export function useServiceWorker() {
+  useEffect(() => {
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', async () => {
+        try {
+          const registration = await navigator.serviceWorker.register('/sw.js', {
+            scope: '/',
+          });
+          
+          console.log('SW registered:', registration.scope);
+          
+          // Check for updates
+          registration.addEventListener('updatefound', () => {
+            const newWorker = registration.installing;
+            if (newWorker) {
+              newWorker.addEventListener('statechange', () => {
+                if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                  // New content available
+                  window.dispatchEvent(new CustomEvent('sw-update-available'));
+                }
+              });
+            }
+          });
+        } catch (error) {
+          console.error('SW registration failed:', error);
+        }
+      });
+    }
+  }, []);
+}
+
+export default function ServiceWorkerRegistration() {
+  useServiceWorker();
+  return null;
+}
+=== END FILE ===
+
+=== FILE: src/components/pwa/PushNotificationSetup.tsx ===
+'use client';
+
+import { useState, useEffect } from 'react';
+import { Bell, BellOff, Check, X, Smartphone } from 'lucide-react';
+
+interface PushNotificationSetupProps {
+  language?: 'en' | 'my';
+}
+
+export default function PushNotificationSetup({ language = 'en' }: PushNotificationSetupProps) {
+  const [isSupported, setIsSupported] = useState(false);
+  const [isSubscribed, setIsSubscribed] = useState(false);
+  const [permission, setPermission] = useState<NotificationPermission>('default');
+  const [loading, setLoading] = useState(false);
+  const [showSetup, setShowSetup] = useState(false);
+
+  useEffect(() => {
+    // Check if push notifications are supported
+    setIsSupported('Notification' in window && 'serviceWorker' in navigator && 'PushManager' in window);
+    
+    if ('Notification' in window) {
+      setPermission(Notification.permission);
+      setIsSubscribed(Notification.permission === 'granted');
+    }
+
+    // Check if user has dismissed setup
+    const dismissed = localStorage.getItem('push-setup-dismissed');
+    if (!dismissed && Notification.permission === 'default') {
+      setTimeout(() => setShowSetup(true), 10000);
+    }
+  }, []);
+
+  const requestPermission = async () => {
+    setLoading(true);
+    try {
+      const result = await Notification.requestPermission();
+      setPermission(result);
+      
+      if (result === 'granted') {
+        setIsSubscribed(true);
+        
+        // Subscribe to push notifications
+        const registration = await navigator.serviceWorker.ready;
+        const subscription = await registration.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey: urlBase64ToUint8Array(
+            // This would be your VAPID public key
+            'BEl62iUYgUivxIkv69yViEuiBIa-Ib9-SkvMeAtA3LFgDzkrxZJjSgSnfckjBJuBkr3qBUYIHBQFLXYp5Nksh8U'
+          ),
+        });
+        
+        // Send subscription to server
+        await fetch('/api/push/subscribe', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(subscription),
+        });
+        
+        setShowSetup(false);
+      }
+    } catch (error) {
+      console.error('Push notification setup error:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const unsubscribe = async () => {
+    setLoading(true);
+    try {
+      const registration = await navigator.serviceWorker.ready;
+      const subscription = await registration.pushManager.getSubscription();
+      
+      if (subscription) {
+        await subscription.unsubscribe();
+        
+        // Notify server
+        await fetch('/api/push/unsubscribe', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ endpoint: subscription.endpoint }),
+        });
+      }
+      
+      setIsSubscribed(false);
+    } catch (error) {
+      console.error('Unsubscribe error:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const dismissSetup = () => {
+    setShowSetup(false);
+    localStorage.setItem('push-setup-dismissed', 'true');
+  };
+
+  // Convert VAPID key
+  function urlBase64ToUint8Array(base64String: string): Uint8Array {
+    const padding = '='.repeat((4 - base64String.length % 4) % 4);
+    const base64 = (base64String + padding)
+      .replace(/-/g, '+')
+      .replace(/_/g, '/');
+    const rawData = window.atob(base64);
+    const outputArray = new Uint8Array(rawData.length);
+    for (let i = 0; i < rawData.length; ++i) {
+      outputArray[i] = rawData.charCodeAt(i);
+    }
+    return outputArray;
+  }
+
+  if (!isSupported) return null;
+
+  // Setup prompt
+  if (showSetup && permission === 'default') {
+    return (
+      <div className="fixed bottom-24 left-4 right-4 z-50 max-w-md mx-auto animate-slide-up">
+        <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-700 p-4">
+          <div className="flex items-start gap-3">
+            <div className="w-12 h-12 bg-teal-100 dark:bg-teal-900/30 rounded-xl flex items-center justify-center flex-shrink-0">
+              <Bell className="w-6 h-6 text-teal-600 dark:text-teal-400" />
+            </div>
+            <div className="flex-1">
+              <h3 className="font-semibold text-slate-900 dark:text-white mb-1">
+                {language === 'my' ? 'အသိပေးချက်များ ခွင့်ပြုပါ' : 'Enable Notifications'}
+              </h3>
+              <p className="text-sm text-slate-600 dark:text-slate-400 mb-3">
+                {language === 'my' 
+                  ? 'အလုပ်အသစ်များနှင့် လျှောက်လွှာအပ်ဒိတ်များကို အချိန်မီလက်ခံရယူပါ'
+                  : 'Get instant alerts for new jobs and application updates'
+                }
+              </p>
+              <div className="flex gap-2">
+                <button
+                  onClick={requestPermission}
+                  disabled={loading}
+                  className="flex-1 py-2 bg-teal-500 hover:bg-teal-600 text-white rounded-lg text-sm font-medium transition-colors disabled:opacity-50"
+                >
+                  {loading ? '...' : language === 'my' ? 'ခွင့်ပြုပါ' : 'Enable'}
+                </button>
+                <button
+                  onClick={dismissSetup}
+                  className="px-4 py-2 bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-400 rounded-lg text-sm font-medium hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors"
+                >
+                  {language === 'my' ? 'နောက်မှ' : 'Later'}
+                </button>
+              </div>
+            </div>
+            <button onClick={dismissSetup} className="text-slate-400 hover:text-slate-600">
+              <X className="w-5 h-5" />
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Toggle button (for settings page)
+  return (
+    <div className="flex items-center justify-between p-4 bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700">
+      <div className="flex items-center gap-3">
+        <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${
+          isSubscribed 
+            ? 'bg-teal-100 dark:bg-teal-900/30' 
+            : 'bg-slate-100 dark:bg-slate-700'
+        }`}>
+          {isSubscribed ? (
+            <Bell className="w-5 h-5 text-teal-600 dark:text-teal-400" />
+          ) : (
+            <BellOff className="w-5 h-5 text-slate-400" />
+          )}
+        </div>
+        <div>
+          <h4 className="font-medium text-slate-900 dark:text-white">
+            {language === 'my' ? 'ပုဒ်အသိပေးချက်များ' : 'Push Notifications'}
+          </h4>
+          <p className="text-sm text-slate-500 dark:text-slate-400">
+            {isSubscribed 
+              ? (language === 'my' ? 'ဖွင့်ထားသည်' : 'Enabled')
+              : (language === 'my' ? 'ပိတ်ထားသည်' : 'Disabled')
+            }
+          </p>
+        </div>
+      </div>
+      <button
+        onClick={isSubscribed ? unsubscribe : requestPermission}
+        disabled={loading}
+        className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+          isSubscribed
+            ? 'bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 hover:bg-red-200 dark:hover:bg-red-900/50'
+            : 'bg-teal-500 text-white hover:bg-teal-600'
+        }`}
+      >
+        {loading 
+          ? '...' 
+          : isSubscribed 
+            ? (language === 'my' ? 'ပိတ်ပါ' : 'Disable')
+            : (language === 'my' ? 'ဖွင့်ပါ' : 'Enable')
+        }
+      </button>
+    </div>
+  );
+}
+=== END FILE ===
+
+=== FILE: src/components/pwa/OfflineIndicator.tsx ===
+'use client';
+
+import { useEffect, useRef } from 'react';
+import { WifiOff, Cloud, CloudOff } from 'lucide-react';
+
+interface OfflineIndicatorProps {
+  language?: 'en' | 'my';
+}
+
+export default function OfflineIndicator({ language = 'en' }: OfflineIndicatorProps) {
+  const wasOfflineRef = useRef(false);
+  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  useEffect(() => {
+    const handleOnline = () => {
+      if (wasOfflineRef.current) {
+        // Show reconnected message
+        document.body.setAttribute('data-online-status', 'reconnected');
+        timeoutRef.current = setTimeout(() => {
+          document.body.setAttribute('data-online-status', 'online');
+        }, 3000);
+      }
+      wasOfflineRef.current = false;
+    };
+
+    const handleOffline = () => {
+      wasOfflineRef.current = true;
+      document.body.setAttribute('data-online-status', 'offline');
+    };
+
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+      if (timeoutRef.current) clearTimeout(timeoutRef.current);
+    };
+  }, []);
+
+  return null; // This component only sets up listeners
+}
+
+// Mini offline badge for header/sidebar
+export function OfflineBadge({ language = 'en' }: OfflineIndicatorProps) {
+  const isOnline = typeof window !== 'undefined' ? navigator.onLine : true;
+
+  if (isOnline) return null;
+
+  return (
+    <div className="flex items-center gap-1 px-2 py-1 bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 rounded-full text-xs">
+      <WifiOff className="w-3 h-3" />
+      <span>{language === 'my' ? 'အော့ဖ်လိုင်း' : 'Offline'}</span>
+    </div>
+  );
+}
+
+// Connection status indicator
+export function ConnectionStatus({ language = 'en' }: OfflineIndicatorProps) {
+  const isOnline = typeof window !== 'undefined' ? navigator.onLine : true;
+
+  return (
+    <div className="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400">
+      {isOnline ? (
+        <>
+          <Cloud className="w-3 h-3 text-teal-500" />
+          <span>{language === 'my' ? 'အွန်လိုင်း' : 'Online'}</span>
+        </>
+      ) : (
+        <>
+          <CloudOff className="w-3 h-3 text-amber-500" />
+          <span>{language === 'my' ? 'အော့ဖ်လိုင်း' : 'Offline'}</span>
+        </>
+      )}
+    </div>
+  );
+}
+=== END FILE ===
+
+=== FILE: src/components/pwa/MobileBottomNav.tsx ===
+'use client';
+
+import { useState, useCallback, useMemo } from 'react';
+import { useRouter, usePathname } from 'next/navigation';
+import { 
+  Home, 
+  Briefcase, 
+  MessageSquare, 
+  User, 
+  Bell,
+  Gift,
+  Menu,
+  X,
+  ChevronUp
+} from 'lucide-react';
+import { cn } from '@/lib/utils';
+import { useHapticFeedback } from '@/hooks/use-touch-gestures';
+import { OfflineMiniBadge } from './OfflineBanner';
+
+interface NavItem {
+  id: string;
+  label: string;
+  labelMy: string;
+  icon: React.ComponentType<{ className?: string }>;
+  path: string;
+  badge?: number;
+}
+
+const mainNavItems: NavItem[] = [
+  {
+    id: 'home',
+    label: 'Home',
+    labelMy: 'ပင်မ',
+    icon: Home,
+    path: '/dashboard',
+  },
+  {
+    id: 'jobs',
+    label: 'Jobs',
+    labelMy: 'အလုပ်',
+    icon: Briefcase,
+    path: '/dashboard/jobs',
+  },
+  {
+    id: 'messages',
+    label: 'Messages',
+    labelMy: 'စာများ',
+    icon: MessageSquare,
+    path: '/dashboard/messages',
+  },
+  {
+    id: 'rewards',
+    label: 'Rewards',
+    labelMy: 'ဆုများ',
+    icon: Gift,
+    path: '/dashboard/rewards',
+  },
+];
+
+interface MobileBottomNavProps {
+  language?: 'en' | 'my';
+  unreadMessages?: number;
+  unreadNotifications?: number;
+}
+
+export default function MobileBottomNav({ 
+  language = 'en',
+  unreadMessages = 0,
+  unreadNotifications = 0,
+}: MobileBottomNavProps) {
+  const router = useRouter();
+  const pathname = usePathname();
+  const haptic = useHapticFeedback();
+  
+  const [showMoreMenu, setShowMoreMenu] = useState(false);
+  
+  // Derive active item from pathname (no state needed)
+  const activeItem = useMemo(() => {
+    const matchingItem = mainNavItems.find(item => pathname?.includes(item.path));
+    return matchingItem?.id || 'home';
+  }, [pathname]);
+
+  const handleNavClick = useCallback((item: NavItem) => {
+    haptic.light();
+    router.push(item.path);
+  }, [haptic, router]);
+
+  const handleMoreClick = useCallback(() => {
+    haptic.medium();
+    setShowMoreMenu(prev => !prev);
+  }, [haptic]);
+
+  const moreItems: NavItem[] = [
+    {
+      id: 'notifications',
+      label: 'Notifications',
+      labelMy: 'အသိပေးချက်',
+      icon: Bell,
+      path: '/dashboard/notifications',
+      badge: unreadNotifications,
+    },
+    {
+      id: 'profile',
+      label: 'Profile',
+      labelMy: 'ပရိုဖိုင်',
+      icon: User,
+      path: '/dashboard/settings',
+    },
+  ];
+
+  return (
+    <>
+      {/* More menu overlay */}
+      {showMoreMenu && (
+        <div 
+          className="fixed inset-0 z-40 bg-black/50 animate-fade-in"
+          onClick={() => setShowMoreMenu(false)}
+        />
+      )}
+
+      {/* More menu sheet */}
+      <div 
+        className={cn(
+          "fixed bottom-16 left-0 right-0 z-50 bg-white dark:bg-slate-900 rounded-t-3xl shadow-2xl transform transition-transform duration-300",
+          showMoreMenu ? "translate-y-0" : "translate-y-full"
+        )}
+      >
+        <div className="p-4">
+          <div className="w-12 h-1 bg-slate-300 dark:bg-slate-700 rounded-full mx-auto mb-4" />
+          
+          <div className="grid grid-cols-2 gap-3">
+            {moreItems.map((item) => (
+              <button
+                key={item.id}
+                onClick={() => {
+                  handleNavClick(item);
+                  setShowMoreMenu(false);
+                }}
+                className={cn(
+                  "flex flex-col items-center gap-2 p-4 rounded-2xl transition-all",
+                  "active:scale-95",
+                  activeItem === item.id
+                    ? "bg-teal-50 dark:bg-teal-900/30 text-teal-600 dark:text-teal-400"
+                    : "bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-400"
+                )}
+              >
+                <div className="relative">
+                  <item.icon className="w-6 h-6" />
+                  {item.badge && item.badge > 0 && (
+                    <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 text-white text-xs rounded-full flex items-center justify-center">
+                      {item.badge > 9 ? '9+' : item.badge}
+                    </span>
+                  )}
+                </div>
+                <span className="text-sm font-medium">
+                  {language === 'my' ? item.labelMy : item.label}
+                </span>
+              </button>
+            ))}
+          </div>
+          
+          <div className="mt-4 pt-4 border-t border-slate-200 dark:border-slate-700">
+            <OfflineMiniBadge language={language} />
+          </div>
+        </div>
+      </div>
+
+      {/* Bottom navigation bar */}
+      <nav className="fixed bottom-0 left-0 right-0 z-40 bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 safe-area-bottom">
+        <div className="flex items-center justify-around h-16 max-w-lg mx-auto px-2">
+          {mainNavItems.map((item) => (
+            <button
+              key={item.id}
+              onClick={() => handleNavClick(item)}
+              className={cn(
+                "flex flex-col items-center justify-center gap-1 w-16 h-14 rounded-xl transition-all",
+                "active:scale-90 active:bg-slate-100 dark:active:bg-slate-800",
+                activeItem === item.id
+                  ? "text-teal-600 dark:text-teal-400"
+                  : "text-slate-500 dark:text-slate-400"
+              )}
+            >
+              <div className="relative">
+                <item.icon className={cn(
+                  "w-6 h-6 transition-transform",
+                  activeItem === item.id && "scale-110"
+                )} />
+                {item.badge && item.badge > 0 && (
+                  <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 text-white text-xs rounded-full flex items-center justify-center">
+                    {item.badge > 9 ? '9+' : item.badge}
+                  </span>
+                )}
+              </div>
+              <span className="text-xs font-medium">
+                {language === 'my' ? item.labelMy : item.label}
+              </span>
+              
+              {/* Active indicator */}
+              {activeItem === item.id && (
+                <div className="absolute bottom-1 w-1 h-1 bg-teal-500 rounded-full" />
+              )}
+            </button>
+          ))}
+          
+          {/* More button */}
+          <button
+            onClick={handleMoreClick}
+            className={cn(
+              "flex flex-col items-center justify-center gap-1 w-16 h-14 rounded-xl transition-all",
+              "active:scale-90 active:bg-slate-100 dark:active:bg-slate-800",
+              "text-slate-500 dark:text-slate-400",
+              showMoreMenu && "text-teal-600 dark:text-teal-400"
+            )}
+          >
+            {showMoreMenu ? (
+              <ChevronUp className="w-6 h-6" />
+            ) : (
+              <Menu className="w-6 h-6" />
+            )}
+            <span className="text-xs font-medium">
+              {language === 'my' ? 'ပိုမို' : 'More'}
+            </span>
+          </button>
+        </div>
+      </nav>
+
+      {/* Safe area spacer for iOS */}
+      <style jsx global>{`
+        .safe-area-bottom {
+          padding-bottom: env(safe-area-inset-bottom, 0);
+        }
+      `}</style>
+    </>
+  );
+}
+
+// Desktop sidebar version
+export function DesktopSidebar({ 
+  language = 'en',
+  unreadMessages = 0,
+  unreadNotifications = 0,
+}: MobileBottomNavProps) {
+  const router = useRouter();
+  const pathname = usePathname();
+  
+  // Derive active item from pathname
+  const activeItem = useMemo(() => {
+    const matchingItem = mainNavItems.find(item => pathname?.includes(item.path));
+    return matchingItem?.id || 'home';
+  }, [pathname]);
+
+  const allItems = [...mainNavItems, {
+    id: 'notifications',
+    label: 'Notifications',
+    labelMy: 'အသိပေးချက်',
+    icon: Bell,
+    path: '/dashboard/notifications',
+    badge: unreadNotifications,
+  }, {
+    id: 'profile',
+    label: 'Settings',
+    labelMy: 'ဆက်တင်များ',
+    icon: User,
+    path: '/dashboard/settings',
+  }];
+
+  return (
+    <aside className="hidden lg:flex flex-col w-64 h-screen bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800">
+      {/* Logo */}
+      <div className="p-6 border-b border-slate-200 dark:border-slate-800">
+        <h1 className="text-xl font-bold text-teal-600 dark:text-teal-400">
+          ReferTRM
+        </h1>
+      </div>
+
+      {/* Navigation */}
+      <nav className="flex-1 p-4 space-y-1">
+        {allItems.map((item) => (
+          <button
+            key={item.id}
+            onClick={() => router.push(item.path)}
+            className={cn(
+              "w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all",
+              "hover:bg-slate-100 dark:hover:bg-slate-800",
+              activeItem === item.id
+                ? "bg-teal-50 dark:bg-teal-900/30 text-teal-600 dark:text-teal-400"
+                : "text-slate-600 dark:text-slate-400"
+            )}
+          >
+            <item.icon className="w-5 h-5" />
+            <span className="font-medium">
+              {language === 'my' ? item.labelMy : item.label}
+            </span>
+            {item.badge && item.badge > 0 && (
+              <span className="ml-auto w-5 h-5 bg-red-500 text-white text-xs rounded-full flex items-center justify-center">
+                {item.badge > 9 ? '9+' : item.badge}
+              </span>
+            )}
+          </button>
+        ))}
+      </nav>
+
+      {/* Offline indicator */}
+      <div className="p-4 border-t border-slate-200 dark:border-slate-800">
+        <OfflineMiniBadge language={language} />
+      </div>
+    </aside>
+  );
+}
+=== END FILE ===
+
+################################################################################
+# SECTION: SOCIAL COMPONENTS
+################################################################################
+
+=== FILE: src/components/social/ActivityFeed.tsx ===
+'use client';
+
+import { useState, useEffect, useCallback } from 'react';
+import { 
+  Activity, 
+  Heart, 
+  MessageCircle, 
+  Share2, 
+  Briefcase, 
+  Users, 
+  Trophy,
+  GraduationCap,
+  Target,
+  UserPlus,
+  Star,
+  Clock,
+  ChevronDown,
+  ChevronUp,
+  RefreshCw,
+  Filter
+} from 'lucide-react';
+import { cn } from '@/lib/utils';
+
+interface ActivityItem {
+  id: string;
+  userId: string;
+  userName: string;
+  userAvatar?: string;
+  type: string;
+  title: string;
+  description: string;
+  metadata: Record<string, unknown>;
+  createdAt: string;
+  likes: number;
+  comments: number;
+  isLiked: boolean;
+}
+
+interface ActivityFeedProps {
+  userId?: string;
+  language?: 'en' | 'my';
+}
+
+export default function ActivityFeed({ userId, language = 'en' }: ActivityFeedProps) {
+  const [activities, setActivities] = useState<ActivityItem[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [selectedType, setSelectedType] = useState<string>('all');
+  const [expandedActivity, setExpandedActivity] = useState<string | null>(null);
+
+  const loadActivities = useCallback(async () => {
+    setLoading(true);
+    try {
+      const params = new URLSearchParams();
+      if (userId) params.append('userId', userId);
+      if (selectedType !== 'all') params.append('type', selectedType);
+      params.append('limit', '20');
+
+      const response = await fetch(`/api/social/activity?${params}`);
+      const data = await response.json();
+
+      if (data.success) {
+        setActivities(data.activities);
+      }
+    } catch (error) {
+      console.error('Failed to load activities:', error);
+    } finally {
+      setLoading(false);
+    }
+  }, [userId, selectedType]);
+
+  useEffect(() => {
+    loadActivities();
+  }, [loadActivities]);
+
+  const handleLike = async (activityId: string, isLiked: boolean) => {
+    // Optimistic update
+    setActivities(prev => 
+      prev.map(a => a.id === activityId 
+        ? { ...a, isLiked: !isLiked, likes: isLiked ? a.likes - 1 : a.likes + 1 }
+        : a
+      )
+    );
+  };
+
+  const getActivityIcon = (type: string) => {
+    switch (type) {
+      case 'job_applied': return <Briefcase className="w-5 h-5" />;
+      case 'referral_made': return <Users className="w-5 h-5" />;
+      case 'achievement_earned': return <Trophy className="w-5 h-5" />;
+      case 'course_completed': return <GraduationCap className="w-5 h-5" />;
+      case 'milestone_reached': return <Target className="w-5 h-5" />;
+      case 'connection_made': return <UserPlus className="w-5 h-5" />;
+      case 'review_posted': return <Star className="w-5 h-5" />;
+      default: return <Activity className="w-5 h-5" />;
+    }
+  };
+
+  const getActivityColor = (type: string) => {
+    switch (type) {
+      case 'job_applied': return 'text-blue-500 bg-blue-100 dark:bg-blue-900/30';
+      case 'referral_made': return 'text-green-500 bg-green-100 dark:bg-green-900/30';
+      case 'achievement_earned': return 'text-amber-500 bg-amber-100 dark:bg-amber-900/30';
+      case 'course_completed': return 'text-purple-500 bg-purple-100 dark:bg-purple-900/30';
+      case 'milestone_reached': return 'text-teal-500 bg-teal-100 dark:bg-teal-900/30';
+      case 'connection_made': return 'text-pink-500 bg-pink-100 dark:bg-pink-900/30';
+      default: return 'text-slate-500 bg-slate-100 dark:bg-slate-700';
+    }
+  };
+
+  const formatTimeAgo = (dateString: string) => {
+    const date = new Date(dateString);
+    const now = new Date();
+    const diff = now.getTime() - date.getTime();
+    
+    const minutes = Math.floor(diff / 60000);
+    const hours = Math.floor(minutes / 60);
+    const days = Math.floor(hours / 24);
+
+    if (days > 0) return language === 'my' ? `${days} ရက်ကြာ` : `${days}d ago`;
+    if (hours > 0) return language === 'my' ? `${hours} နာရီကြာ` : `${hours}h ago`;
+    if (minutes > 0) return language === 'my' ? `${minutes} မိနစ်ကြာ` : `${minutes}m ago`;
+    return language === 'my' ? 'ယခု' : 'Just now';
+  };
+
+  const texts = {
+    en: {
+      title: 'Activity Feed',
+      subtitle: 'See what others are doing',
+      all: 'All',
+      refresh: 'Refresh',
+      like: 'Like',
+      liked: 'Liked',
+      comment: 'Comment',
+      share: 'Share',
+    },
+    my: {
+      title: 'လုပ်ဆောင်ချက်များ',
+      subtitle: 'အခြားသူများ ဘာလုပ်နေကြသည်ကို ကြည့်ပါ',
+      all: 'အားလုံး',
+      refresh: 'ပြန်လည်ဖော်ပြပါ',
+      like: 'နှစ်သက်',
+      liked: 'နှစ်သက်ပြီ',
+      comment: 'မှတ်ချက်',
+      share: 'မျှဝေ',
+    },
+  };
+
+  const t = texts[language];
+
+  return (
+    <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 overflow-hidden">
+      {/* Header */}
+      <div className="p-4 border-b border-slate-200 dark:border-slate-700">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Activity className="w-5 h-5 text-teal-500" />
+            <h2 className="font-semibold text-slate-900 dark:text-white">{t.title}</h2>
+          </div>
+          <button
+            onClick={loadActivities}
+            disabled={loading}
+            className="p-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
+          >
+            <RefreshCw className={cn("w-4 h-4", loading && "animate-spin")} />
+          </button>
+        </div>
+      </div>
+
+      {/* Filter */}
+      <div className="p-4 border-b border-slate-200 dark:border-slate-700">
+        <div className="flex gap-2 overflow-x-auto pb-2">
+          <button
+            onClick={() => setSelectedType('all')}
+            className={cn(
+              "px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-colors",
+              selectedType === 'all'
+                ? "bg-teal-500 text-white"
+                : "bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-400"
+            )}
+          >
+            {t.all}
+          </button>
+          <button className="px-4 py-2 rounded-full text-sm bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-400 whitespace-nowrap flex items-center gap-2">
+            <Filter className="w-4 h-4" />
+            {language === 'my' ? 'စစ်ထုတ်ပါ' : 'Filter'}
+          </button>
+        </div>
+      </div>
+
+      {/* Activities */}
+      <div className="divide-y divide-slate-200 dark:divide-slate-700">
+        {loading ? (
+          <div className="flex items-center justify-center py-12">
+            <RefreshCw className="w-8 h-8 animate-spin text-teal-500" />
+          </div>
+        ) : activities.length === 0 ? (
+          <div className="text-center py-12 text-slate-500">
+            {language === 'my' ? 'လုပ်ဆောင်ချက်များ မရှိသေးပါ' : 'No activities yet'}
+          </div>
+        ) : (
+          activities.map(activity => (
+            <div key={activity.id} className="p-4">
+              <div className="flex gap-3">
+                {/* Icon */}
+                <div className={cn(
+                  "w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0",
+                  getActivityColor(activity.type)
+                )}>
+                  {getActivityIcon(activity.type)}
+                </div>
+
+                {/* Content */}
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-start justify-between">
+                    <div>
+                      <span className="font-medium text-slate-900 dark:text-white">
+                        {activity.userName}
+                      </span>
+                      <span className="text-slate-600 dark:text-slate-400">
+                        {' '}{activity.title}
+                      </span>
+                    </div>
+                    <span className="text-xs text-slate-400 flex items-center gap-1 flex-shrink-0">
+                      <Clock className="w-3 h-3" />
+                      {formatTimeAgo(activity.createdAt)}
+                    </span>
+                  </div>
+                  
+                  <p className="text-sm text-slate-600 dark:text-slate-400 mt-1">
+                    {activity.description}
+                  </p>
+
+                  {/* Actions */}
+                  <div className="flex items-center gap-4 mt-3">
+                    <button
+                      onClick={() => handleLike(activity.id, activity.isLiked)}
+                      className={cn(
+                        "flex items-center gap-1 text-sm",
+                        activity.isLiked ? "text-red-500" : "text-slate-400 hover:text-red-500"
+                      )}
+                    >
+                      <Heart className={cn("w-4 h-4", activity.isLiked && "fill-current")} />
+                      <span>{activity.likes}</span>
+                    </button>
+                    
+                    <button 
+                      onClick={() => setExpandedActivity(expandedActivity === activity.id ? null : activity.id)}
+                      className="flex items-center gap-1 text-sm text-slate-400 hover:text-blue-500"
+                    >
+                      <MessageCircle className="w-4 h-4" />
+                      <span>{activity.comments}</span>
+                    </button>
+                    
+                    <button className="flex items-center gap-1 text-sm text-slate-400 hover:text-teal-500">
+                      <Share2 className="w-4 h-4" />
+                    </button>
+                  </div>
+
+                  {/* Expanded Comments */}
+                  {expandedActivity === activity.id && (
+                    <div className="mt-3 pt-3 border-t border-slate-200 dark:border-slate-700">
+                      <div className="flex gap-2">
+                        <input
+                          type="text"
+                          placeholder={language === 'my' ? 'မှတ်ချက်ရေးပါ...' : 'Write a comment...'}
+                          className="flex-1 px-3 py-2 bg-slate-100 dark:bg-slate-700 rounded-lg text-sm text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none"
+                        />
+                        <button className="px-4 py-2 bg-teal-500 text-white rounded-lg text-sm font-medium">
+                          {language === 'my' ? 'ပို့ပါ' : 'Post'}
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          ))
+        )}
+      </div>
+    </div>
+  );
+}
+=== END FILE ===
+
+=== FILE: src/components/social/DiscussionBoard.tsx ===
+'use client';
+
+import { useState, useEffect, useCallback } from 'react';
+import { 
+  MessageSquare, 
+  Heart, 
+  Eye, 
+  MessageCircle,
+  Pin,
+  Flame,
+  Clock,
+  Search,
+  Plus,
+  ChevronRight,
+  RefreshCw,
+  Check
+} from 'lucide-react';
+import { cn } from '@/lib/utils';
+
+interface Discussion {
+  id: string;
+  title: string;
+  content: string;
+  category: string;
+  authorId: string;
+  authorName: string;
+  authorTitle?: string;
+  tags: string[];
+  views: number;
+  likes: number;
+  comments: number;
+  isLiked: boolean;
+  isPinned: boolean;
+  isHot: boolean;
+  createdAt: string;
+  lastActivityAt: string;
+}
+
+interface Category {
+  id: string;
+  name: string;
+  nameMy: string;
+  icon: string;
+}
+
+interface DiscussionBoardProps {
+  language?: 'en' | 'my';
+}
+
+export default function DiscussionBoard({ language = 'en' }: DiscussionBoardProps) {
+  const [discussions, setDiscussions] = useState<Discussion[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [selectedCategory, setSelectedCategory] = useState<string>('all');
+  const [sortBy, setSortBy] = useState<string>('latest');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [selectedDiscussion, setSelectedDiscussion] = useState<Discussion | null>(null);
+
+  const loadDiscussions = useCallback(async () => {
+    setLoading(true);
+    try {
+      const params = new URLSearchParams();
+      if (selectedCategory !== 'all') params.append('category', selectedCategory);
+      params.append('sort', sortBy);
+      if (searchQuery) params.append('search', searchQuery);
+      params.append('limit', '20');
+
+      const response = await fetch(`/api/social/discussions?${params}`);
+      const data = await response.json();
+
+      if (data.success) {
+        setDiscussions(data.discussions);
+        setCategories(data.categories);
+      }
+    } catch (error) {
+      console.error('Failed to load discussions:', error);
+    } finally {
+      setLoading(false);
+    }
+  }, [selectedCategory, sortBy, searchQuery]);
+
+  useEffect(() => {
+    loadDiscussions();
+  }, [loadDiscussions]);
+
+  const formatTimeAgo = (dateString: string) => {
+    const date = new Date(dateString);
+    const now = new Date();
+    const diff = now.getTime() - date.getTime();
+    
+    const hours = Math.floor(diff / 3600000);
+    const days = Math.floor(hours / 24);
+
+    if (days > 0) return language === 'my' ? `${days} ရက်ကြာ` : `${days}d`;
+    if (hours > 0) return language === 'my' ? `${hours} နာရီကြာ` : `${hours}h`;
+    return language === 'my' ? 'ယခု' : 'now';
+  };
+
+  const texts = {
+    en: {
+      title: 'Community Discussions',
+      subtitle: 'Join the conversation',
+      search: 'Search discussions...',
+      allCategories: 'All Categories',
+      latest: 'Latest',
+      popular: 'Popular',
+      trending: 'Trending',
+      newDiscussion: 'New Discussion',
+      views: 'views',
+      replies: 'replies',
+      pinned: 'Pinned',
+      hot: 'Hot',
+      refresh: 'Refresh',
+      back: 'Back',
+      lastActivity: 'Last activity',
+    },
+    my: {
+      title: 'အသိုင်းအဝိုင်း ဆွေးနွေးမှုများ',
+      subtitle: 'ဆွေးနွေးမှုတွင် ပါဝင်ပါ',
+      search: 'ဆွေးနွေးမှုများ ရှာဖွေပါ...',
+      allCategories: 'အမျိုးအစားအားလုံး',
+      latest: 'နောက်ဆုံး',
+      popular: 'ရေပန်းစား',
+      trending: 'လူကြိုက်များ',
+      newDiscussion: 'ဆွေးနွေးမှုအသစ်',
+      views: 'ကြည့်ရှုမှု',
+      replies: 'အဖြေများ',
+      pinned: 'အရေးကြီး',
+      hot: 'ပူပြင်း',
+      refresh: 'ပြန်လည်ဖော်ပြပါ',
+      back: 'နောက်သို့',
+      lastActivity: 'နောက်ဆုံးလှုပ်ရှားမှု',
+    },
+  };
+
+  const t = texts[language];
+
+  if (selectedDiscussion) {
+    return (
+      <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 overflow-hidden">
+        {/* Header */}
+        <div className="p-4 border-b border-slate-200 dark:border-slate-700">
+          <button
+            onClick={() => setSelectedDiscussion(null)}
+            className="flex items-center gap-2 text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
+          >
+            <ChevronRight className="w-4 h-4 rotate-180" />
+            {t.back}
+          </button>
+        </div>
+
+        {/* Discussion Detail */}
+        <div className="p-6">
+          <h1 className="text-xl font-bold text-slate-900 dark:text-white mb-4">
+            {selectedDiscussion.title}
+          </h1>
+          
+          <div className="flex items-center gap-4 mb-4 text-sm text-slate-500">
+            <span>{selectedDiscussion.authorName}</span>
+            <span>{selectedDiscussion.authorTitle}</span>
+            <span>{formatTimeAgo(selectedDiscussion.createdAt)}</span>
+          </div>
+
+          <p className="text-slate-600 dark:text-slate-400 mb-6">
+            {selectedDiscussion.content}
+          </p>
+
+          <div className="flex flex-wrap gap-2 mb-6">
+            {selectedDiscussion.tags.map((tag, i) => (
+              <span key={i} className="px-3 py-1 bg-slate-100 dark:bg-slate-700 rounded-full text-sm text-slate-600 dark:text-slate-400">
+                #{tag}
+              </span>
+            ))}
+          </div>
+
+          <div className="flex items-center gap-6 text-sm text-slate-500">
+            <span className="flex items-center gap-1">
+              <Eye className="w-4 h-4" />
+              {selectedDiscussion.views} {t.views}
+            </span>
+            <span className="flex items-center gap-1">
+              <Heart className="w-4 h-4" />
+              {selectedDiscussion.likes}
+            </span>
+            <span className="flex items-center gap-1">
+              <MessageCircle className="w-4 h-4" />
+              {selectedDiscussion.comments} {t.replies}
+            </span>
+          </div>
+        </div>
+
+        {/* Reply Input */}
+        <div className="p-4 border-t border-slate-200 dark:border-slate-700">
+          <div className="flex gap-2">
+            <textarea
+              placeholder={language === 'my' ? 'သင့်အဖြေကို ရေးပါ...' : 'Write your reply...'}
+              rows={3}
+              className="flex-1 px-4 py-3 border border-slate-200 dark:border-slate-700 rounded-xl bg-white dark:bg-slate-800 text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:border-teal-500 resize-none"
+            />
+          </div>
+          <div className="flex justify-end mt-2">
+            <button className="px-6 py-2 bg-teal-500 text-white rounded-xl font-medium hover:bg-teal-600">
+              {language === 'my' ? 'အဖြေပို့ပါ' : 'Post Reply'}
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 overflow-hidden">
+      {/* Header */}
+      <div className="p-4 border-b border-slate-200 dark:border-slate-700">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <MessageSquare className="w-5 h-5 text-teal-500" />
+            <h2 className="font-semibold text-slate-900 dark:text-white">{t.title}</h2>
+          </div>
+          <div className="flex gap-2">
+            <button
+              onClick={loadDiscussions}
+              disabled={loading}
+              className="p-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
+            >
+              <RefreshCw className={cn("w-4 h-4", loading && "animate-spin")} />
+            </button>
+            <button className="px-4 py-2 bg-teal-500 text-white rounded-lg text-sm font-medium flex items-center gap-2 hover:bg-teal-600">
+              <Plus className="w-4 h-4" />
+              {t.newDiscussion}
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Search and Filters */}
+      <div className="p-4 border-b border-slate-200 dark:border-slate-700 space-y-4">
+        {/* Search */}
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+          <input
+            type="text"
+            placeholder={t.search}
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full pl-10 pr-4 py-2 border border-slate-200 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:border-teal-500"
+          />
+        </div>
+
+        {/* Categories */}
+        <div className="flex gap-2 overflow-x-auto pb-2">
+          <button
+            onClick={() => setSelectedCategory('all')}
+            className={cn(
+              "px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-colors",
+              selectedCategory === 'all'
+                ? "bg-teal-500 text-white"
+                : "bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-400"
+            )}
+          >
+            {t.allCategories}
+          </button>
+          {categories.map(cat => (
+            <button
+              key={cat.id}
+              onClick={() => setSelectedCategory(cat.id)}
+              className={cn(
+                "px-4 py-2 rounded-full text-sm whitespace-nowrap transition-colors",
+                selectedCategory === cat.id
+                  ? "bg-teal-500 text-white"
+                  : "bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-400"
+              )}
+            >
+              {language === 'my' ? cat.nameMy : cat.name}
+            </button>
+          ))}
+        </div>
+
+        {/* Sort */}
+        <div className="flex gap-2">
+          {[
+            { id: 'latest', label: t.latest },
+            { id: 'popular', label: t.popular },
+            { id: 'trending', label: t.trending },
+          ].map(sort => (
+            <button
+              key={sort.id}
+              onClick={() => setSortBy(sort.id)}
+              className={cn(
+                "px-3 py-1.5 rounded-lg text-sm transition-colors",
+                sortBy === sort.id
+                  ? "bg-slate-200 dark:bg-slate-600 text-slate-900 dark:text-white"
+                  : "text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-700"
+              )}
+            >
+              {sort.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Discussions List */}
+      <div className="divide-y divide-slate-200 dark:divide-slate-700">
+        {loading ? (
+          <div className="flex items-center justify-center py-12">
+            <RefreshCw className="w-8 h-8 animate-spin text-teal-500" />
+          </div>
+        ) : discussions.length === 0 ? (
+          <div className="text-center py-12 text-slate-500">
+            {language === 'my' ? 'ဆွေးနွေးမှုများ မရှိသေးပါ' : 'No discussions yet'}
+          </div>
+        ) : (
+          discussions.map(discussion => (
+            <button
+              key={discussion.id}
+              onClick={() => setSelectedDiscussion(discussion)}
+              className="w-full text-left p-4 hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors"
+            >
+              <div className="flex items-start gap-4">
+                {/* Badges */}
+                <div className="flex flex-col gap-1 pt-1">
+                  {discussion.isPinned && (
+                    <div className="w-8 h-8 bg-amber-100 dark:bg-amber-900/30 rounded-lg flex items-center justify-center">
+                      <Pin className="w-4 h-4 text-amber-500" />
+                    </div>
+                  )}
+                  {discussion.isHot && !discussion.isPinned && (
+                    <div className="w-8 h-8 bg-red-100 dark:bg-red-900/30 rounded-lg flex items-center justify-center">
+                      <Flame className="w-4 h-4 text-red-500" />
+                    </div>
+                  )}
+                </div>
+
+                {/* Content */}
+                <div className="flex-1 min-w-0">
+                  <h3 className="font-medium text-slate-900 dark:text-white line-clamp-2">
+                    {discussion.title}
+                  </h3>
+                  
+                  <div className="flex items-center gap-2 mt-1 text-sm text-slate-500">
+                    <span>{discussion.authorName}</span>
+                    <span className="text-slate-300">|</span>
+                    <span className="flex items-center gap-1">
+                      <Clock className="w-3 h-3" />
+                      {formatTimeAgo(discussion.lastActivityAt)}
+                    </span>
+                  </div>
+
+                  <div className="flex flex-wrap gap-2 mt-2">
+                    {discussion.tags.slice(0, 3).map((tag, i) => (
+                      <span key={i} className="px-2 py-0.5 bg-slate-100 dark:bg-slate-700 rounded text-xs text-slate-500">
+                        #{tag}
+                      </span>
+                    ))}
+                  </div>
+
+                  <div className="flex items-center gap-4 mt-3 text-sm text-slate-400">
+                    <span className="flex items-center gap-1">
+                      <Eye className="w-4 h-4" />
+                      {discussion.views}
+                    </span>
+                    <span className={cn(
+                      "flex items-center gap-1",
+                      discussion.isLiked && "text-red-500"
+                    )}>
+                      <Heart className={cn("w-4 h-4", discussion.isLiked && "fill-current")} />
+                      {discussion.likes}
+                    </span>
+                    <span className="flex items-center gap-1">
+                      <MessageCircle className="w-4 h-4" />
+                      {discussion.comments}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </button>
+          ))
+        )}
+      </div>
+    </div>
+  );
+}
+=== END FILE ===
+
+################################################################################
+# SECTION: DATA FILES
+################################################################################
+
+=== FILE: src/data/jobs.ts ===
+// Real Job Listings from Excel Files (January & February 2026)
+// Source: Urgent Positions For January.xlsx, Urgent Positions For February 2026.xlsx
+
+export interface Job {
+  id: string;
+  title: string;
+  titleMm?: string;
+  company: string;
+  location: string;
+  salary: string;
+  salaryMin?: number;
+  salaryMax?: number;
+  reward: number; // Referral reward in thousands (MMK)
+  skills: string[];
+  type: 'Full-time' | 'Part-time' | 'Contract' | 'Remote';
+  level: 'Entry' | 'Mid' | 'Senior' | 'Lead';
+  urgent: boolean;
+  posted: string;
+  description?: string;
+}
+
+export const jobs: Job[] = [
+  {
+    id: '1',
+    title: 'Senior Supervisor',
+    company: 'RK Yangon Steel',
+    location: 'Thanlyin',
+    salary: '7.5 - 10 Lakhs',
+    salaryMin: 750000,
+    salaryMax: 1000000,
+    reward: 300,
+    skills: ['Leadership', 'Manufacturing', 'Management', 'Quality Control'],
+    type: 'Full-time',
+    level: 'Senior',
+    urgent: true,
+    posted: '2 days ago',
+    description: 'Lead manufacturing operations and supervise production teams at our steel plant.'
+  },
+  {
+    id: '2',
+    title: 'Warehouse Supervisor',
+    company: 'Universal Energy',
+    location: 'Thingangyun',
+    salary: 'Negotiable',
+    reward: 200,
+    skills: ['Inventory Management', 'Logistics', 'Team Leadership', 'SAP'],
+    type: 'Full-time',
+    level: 'Mid',
+    urgent: false,
+    posted: '1 day ago',
+    description: 'Oversee warehouse operations, inventory control, and logistics coordination.'
+  },
+  {
+    id: '3',
+    title: 'Content & Script Writer',
+    company: 'Shwe Taung Htun',
+    location: 'Mingalar Taung Nyunt',
+    salary: '4 - 6 Lakhs',
+    salaryMin: 400000,
+    salaryMax: 600000,
+    reward: 150,
+    skills: ['Content Writing', 'Creative Writing', 'Burmese', 'Social Media'],
+    type: 'Full-time',
+    level: 'Mid',
+    urgent: false,
+    posted: '3 days ago',
+    description: 'Create engaging content and scripts for marketing campaigns and social media.'
+  },
+  {
+    id: '4',
+    title: 'Site Engineer',
+    company: 'Sun Myat Tun',
+    location: 'Botahtaung',
+    salary: '7.5 Lakhs',
+    salaryMin: 750000,
+    salaryMax: 750000,
+    reward: 250,
+    skills: ['Civil Engineering', 'Construction', 'AutoCAD', 'Project Management'],
+    type: 'Full-time',
+    level: 'Senior',
+    urgent: true,
+    posted: '1 day ago',
+    description: 'Manage construction site operations and ensure quality standards.'
+  },
+  {
+    id: '5',
+    title: 'Data Collector',
+    company: 'NielsenIQ Myanmar',
+    location: 'Mandalay, Sagaing, Meikhtila',
+    salary: '3.5 Lakhs',
+    salaryMin: 350000,
+    salaryMax: 350000,
+    reward: 100,
+    skills: ['Data Collection', 'Research', 'Communication', 'Mobile Apps'],
+    type: 'Full-time',
+    level: 'Entry',
+    urgent: false,
+    posted: '4 days ago',
+    description: 'Collect market research data across multiple regions in Myanmar.'
+  },
+  {
+    id: '6',
+    title: 'Loan Officer',
+    company: 'Real Aid Microfinance',
+    location: 'Ayeyarwady',
+    salary: '4 - 5 Lakhs',
+    salaryMin: 400000,
+    salaryMax: 500000,
+    reward: 150,
+    skills: ['Finance', 'Customer Service', 'Sales', 'Risk Assessment'],
+    type: 'Full-time',
+    level: 'Mid',
+    urgent: false,
+    posted: '3 days ago',
+    description: 'Process loan applications and manage client relationships in the Ayeyarwady region.'
+  },
+  {
+    id: '7',
+    title: 'Cashier',
+    company: 'Real Aid Microfinance',
+    location: 'Ayeyarwady',
+    salary: 'Above 3 Lakhs',
+    salaryMin: 300000,
+    salaryMax: 400000,
+    reward: 80,
+    skills: ['Cash Handling', 'Customer Service', 'Basic Accounting', 'Excel'],
+    type: 'Full-time',
+    level: 'Entry',
+    urgent: false,
+    posted: '5 days ago',
+    description: 'Handle cash transactions and maintain accurate financial records.'
+  },
+  {
+    id: '8',
+    title: 'Brand Executive',
+    company: 'Unicharm Myanmar',
+    location: 'Yankin',
+    salary: '7 - 9 Lakhs',
+    salaryMin: 700000,
+    salaryMax: 900000,
+    reward: 250,
+    skills: ['Brand Management', 'Marketing', 'FMCG', 'Market Analysis'],
+    type: 'Full-time',
+    level: 'Mid',
+    urgent: true,
+    posted: '2 days ago',
+    description: 'Execute brand strategies and manage product portfolios for FMCG products.'
+  },
+  {
+    id: '9',
+    title: 'Assistant Brand Manager',
+    company: 'Unicharm Myanmar',
+    location: 'Yankin',
+    salary: '15 - 17 Lakhs',
+    salaryMin: 1500000,
+    salaryMax: 1700000,
+    reward: 400,
+    skills: ['Brand Strategy', 'Marketing', 'Team Leadership', 'Budget Management'],
+    type: 'Full-time',
+    level: 'Senior',
+    urgent: true,
+    posted: '1 day ago',
+    description: 'Lead brand development initiatives and manage marketing campaigns.'
+  },
+  {
+    id: '10',
+    title: 'Receptionist',
+    company: 'Myanmar Information Technology',
+    location: 'Insein',
+    salary: '3 - 4 Lakhs',
+    salaryMin: 300000,
+    salaryMax: 400000,
+    reward: 80,
+    skills: ['Communication', 'Microsoft Office', 'Customer Service', 'Phone Etiquette'],
+    type: 'Full-time',
+    level: 'Entry',
+    urgent: false,
+    posted: '1 week ago',
+    description: 'Manage front desk operations and provide administrative support.'
+  },
+  {
+    id: '11',
+    title: 'Assistant Accountant',
+    company: 'KBZ Life Insurance',
+    location: 'Bahan',
+    salary: '4 - 5 Lakhs',
+    salaryMin: 400000,
+    salaryMax: 500000,
+    reward: 150,
+    skills: ['Accounting', 'Excel', 'Financial Reporting', 'Attention to Detail'],
+    type: 'Full-time',
+    level: 'Entry',
+    urgent: false,
+    posted: '4 days ago',
+    description: 'Support accounting operations and prepare financial documents.'
+  },
+  {
+    id: '12',
+    title: 'Accountant',
+    company: 'Universal Energy',
+    location: 'Thingangyun',
+    salary: '6 - 7 Lakhs',
+    salaryMin: 600000,
+    salaryMax: 700000,
+    reward: 200,
+    skills: ['Accounting', 'Tax', 'Financial Analysis', 'SAP'],
+    type: 'Full-time',
+    level: 'Mid',
+    urgent: false,
+    posted: '3 days ago',
+    description: 'Manage financial records, prepare reports, and ensure compliance.'
+  },
+  {
+    id: '13',
+    title: 'Online Sale Executive',
+    company: 'Salpyar',
+    location: 'North Dagon',
+    salary: '2.4 Lakhs',
+    salaryMin: 240000,
+    salaryMax: 240000,
+    reward: 60,
+    skills: ['E-commerce', 'Sales', 'Social Media', 'Customer Service'],
+    type: 'Full-time',
+    level: 'Entry',
+    urgent: false,
+    posted: '1 week ago',
+    description: 'Manage online sales channels and customer inquiries.'
+  },
+  {
+    id: '14',
+    title: 'Graphic Designer',
+    company: 'WOW Sport',
+    location: 'Kamaryut',
+    salary: 'Around 10 Lakhs',
+    salaryMin: 1000000,
+    salaryMax: 1000000,
+    reward: 250,
+    skills: ['Adobe Creative Suite', 'Design', 'Illustration', 'Social Media Graphics'],
+    type: 'Full-time',
+    level: 'Mid',
+    urgent: false,
+    posted: '5 days ago',
+    description: 'Create visual designs for marketing materials and social media.'
+  },
+  {
+    id: '15',
+    title: 'Senior Sales Executive',
+    company: 'WOW Sport',
+    location: 'Kamaryut',
+    salary: '10 Lakhs',
+    salaryMin: 1000000,
+    salaryMax: 1000000,
+    reward: 280,
+    skills: ['Sales', 'Negotiation', 'Retail', 'Customer Relationship'],
+    type: 'Full-time',
+    level: 'Senior',
+    urgent: true,
+    posted: '2 days ago',
+    description: 'Drive sales growth and manage key customer relationships.'
+  },
+  {
+    id: '16',
+    title: 'Senior Agency Sales Representative',
+    company: 'AMI',
+    location: 'Kamaryut',
+    salary: '5 - 6.5 Lakhs',
+    salaryMin: 500000,
+    salaryMax: 650000,
+    reward: 180,
+    skills: ['Sales', 'Insurance', 'Relationship Building', 'Presentation'],
+    type: 'Full-time',
+    level: 'Mid',
+    urgent: false,
+    posted: '4 days ago',
+    description: 'Develop and manage insurance agency partnerships.'
+  },
+  {
+    id: '17',
+    title: 'Admin Supervisor',
+    company: 'TOMO',
+    location: 'South Dagon',
+    salary: '5 - 6 Lakhs',
+    salaryMin: 500000,
+    salaryMax: 600000,
+    reward: 170,
+    skills: ['Administration', 'Team Management', 'MS Office', 'Organization'],
+    type: 'Full-time',
+    level: 'Mid',
+    urgent: false,
+    posted: '3 days ago',
+    description: 'Supervise administrative operations and support team coordination.'
+  },
+  {
+    id: '18',
+    title: 'IT Supervisor',
+    company: 'Wave Plus',
+    location: 'Mingalardon',
+    salary: '6 Lakhs',
+    salaryMin: 600000,
+    salaryMax: 600000,
+    reward: 200,
+    skills: ['IT Support', 'Network Administration', 'Troubleshooting', 'Hardware'],
+    type: 'Full-time',
+    level: 'Mid',
+    urgent: true,
+    posted: '1 day ago',
+    description: 'Manage IT infrastructure and provide technical support.'
+  },
+  {
+    id: '19',
+    title: 'Sales Staff',
+    company: 'Yangoods',
+    location: 'Pyin Oo Lwin',
+    salary: '2.04 Lakhs',
+    salaryMin: 204000,
+    salaryMax: 204000,
+    reward: 50,
+    skills: ['Sales', 'Customer Service', 'Retail', 'Product Knowledge'],
+    type: 'Full-time',
+    level: 'Entry',
+    urgent: false,
+    posted: '1 week ago',
+    description: 'Assist customers and drive sales in retail environment.'
+  },
+  {
+    id: '20',
+    title: 'Senior Page Admin',
+    company: 'TOMO',
+    location: 'Tamwe',
+    salary: 'Negotiable',
+    reward: 200,
+    skills: ['Social Media Management', 'Content Creation', 'Analytics', 'Marketing'],
+    type: 'Full-time',
+    level: 'Senior',
+    urgent: false,
+    posted: '3 days ago',
+    description: 'Manage social media pages and develop content strategies.'
+  },
+  {
+    id: '21',
+    title: 'Junior Page Admin',
+    company: 'TOMO',
+    location: 'Tamwe',
+    salary: '3 - 3.5 Lakhs',
+    salaryMin: 300000,
+    salaryMax: 350000,
+    reward: 90,
+    skills: ['Social Media', 'Content Creation', 'Canva', 'Communication'],
+    type: 'Full-time',
+    level: 'Entry',
+    urgent: false,
+    posted: '4 days ago',
+    description: 'Support social media management and content creation.'
+  },
+  {
+    id: '22',
+    title: 'Junior Accountant',
+    company: 'Unicharm Myanmar',
+    location: 'Yankin',
+    salary: '3.5 - 4 Lakhs',
+    salaryMin: 350000,
+    salaryMax: 400000,
+    reward: 100,
+    skills: ['Accounting', 'Excel', 'Data Entry', 'Financial Records'],
+    type: 'Full-time',
+    level: 'Entry',
+    urgent: false,
+    posted: '5 days ago',
+    description: 'Support accounting team with daily financial operations.'
+  },
+  {
+    id: '23',
+    title: 'Accountant',
+    company: 'GK International Company',
+    location: 'Kamaryut',
+    salary: '6.5 - 8 Lakhs',
+    salaryMin: 650000,
+    salaryMax: 800000,
+    reward: 220,
+    skills: ['Accounting', 'Tax', 'Financial Reports', 'ERP'],
+    type: 'Full-time',
+    level: 'Mid',
+    urgent: false,
+    posted: '2 days ago',
+    description: 'Manage financial accounting and reporting functions.'
+  },
+  {
+    id: '24',
+    title: 'Assistant Project Coordinator',
+    company: 'GK International Company',
+    location: 'Kamaryut',
+    salary: '3.5 - 5 Lakhs',
+    salaryMin: 350000,
+    salaryMax: 500000,
+    reward: 130,
+    skills: ['Project Management', 'Coordination', 'Communication', 'Documentation'],
+    type: 'Full-time',
+    level: 'Entry',
+    urgent: false,
+    posted: '4 days ago',
+    description: 'Support project coordination and documentation.'
+  },
+  {
+    id: '25',
+    title: 'Interior Designer',
+    company: 'Delight Amatat',
+    location: 'Thingangyun',
+    salary: '10 - 15 Lakhs',
+    salaryMin: 1000000,
+    salaryMax: 1500000,
+    reward: 350,
+    skills: ['Interior Design', 'AutoCAD', '3D Modeling', 'SketchUp'],
+    type: 'Full-time',
+    level: 'Senior',
+    urgent: true,
+    posted: '1 day ago',
+    description: 'Design interior spaces and create detailed drawings.'
+  },
+  {
+    id: '26',
+    title: 'Quantity Surveyor',
+    company: 'Delight Amatat',
+    location: 'Thingangyun',
+    salary: '10 - 15 Lakhs',
+    salaryMin: 1000000,
+    salaryMax: 1500000,
+    reward: 350,
+    skills: ['Quantity Surveying', 'Construction', 'Cost Estimation', 'Measurement'],
+    type: 'Full-time',
+    level: 'Senior',
+    urgent: true,
+    posted: '1 day ago',
+    description: 'Prepare cost estimates and manage construction quantities.'
+  }
+];
+
+// Helper functions
+export function getJobsByLevel(level: Job['level']): Job[] {
+  return jobs.filter(job => job.level === level);
+}
+
+export function getJobsByCompany(company: string): Job[] {
+  return jobs.filter(job => job.company.toLowerCase().includes(company.toLowerCase()));
+}
+
+export function getUrgentJobs(): Job[] {
+  return jobs.filter(job => job.urgent);
+}
+
+export function getJobsByLocation(location: string): Job[] {
+  return jobs.filter(job => job.location.toLowerCase().includes(location.toLowerCase()));
+}
+
+export function getTotalRewards(): number {
+  return jobs.reduce((sum, job) => sum + job.reward, 0);
+}
+
+export function getJobStats() {
+  return {
+    total: jobs.length,
+    urgent: jobs.filter(j => j.urgent).length,
+    totalRewards: getTotalRewards(),
+    byLevel: {
+      Entry: jobs.filter(j => j.level === 'Entry').length,
+      Mid: jobs.filter(j => j.level === 'Mid').length,
+      Senior: jobs.filter(j => j.level === 'Senior').length,
+    },
+    companies: [...new Set(jobs.map(j => j.company))].length,
+  };
+}
+=== END FILE ===
+
+=== FILE: src/data/companies.ts ===
+// Real Myanmar Companies with Corporate Logos
+// Company logos use public URLs from their official sources or logo CDN
+
+export interface Company {
+  id: string;
+  name: string;
+  nameMm?: string;
+  logo: string; // Emoji fallback or URL to logo
+  logoUrl?: string; // Real corporate logo URL
+  industry: string;
+  location: string;
+  size: string;
+  rating: number;
+  reviewCount: number;
+  recommendPercent: number;
+  salaryMin: number;
+  salaryMax: number;
+  openJobs: number;
+  description: string;
+  ratings: {
+    workLifeBalance: number;
+    compensation: number;
+    jobSecurity: number;
+    management: number;
+    culture: number;
+  };
+  featured?: boolean;
+  verified?: boolean;
+  founded?: string;
+  website?: string;
+  voteCount?: number; // For People's Award voting
+  awardYear?: number; // Year they won People's Award
+  awardRank?: number; // Rank in People's Award
+}
+
+// Industries for filtering
+export const industries = [
+  'All',
+  'Banking & Finance',
+  'Technology',
+  'Telecommunications',
+  'FMCG',
+  'Manufacturing',
+  'Retail',
+  'Healthcare',
+  'Education',
+  'Insurance',
+  'Construction',
+  'Real Estate',
+  'Hospitality',
+  'Logistics',
+  'Energy',
+  'Agriculture',
+  'Media',
+  'Automotive',
+  'Consulting',
+  'NGO',
+];
+
+// 100+ Real Myanmar Companies
+export const companies: Company[] = [
+  // ===== BANKING & FINANCE =====
+  {
+    id: 'kbz-bank',
+    name: 'KBZ Bank',
+    nameMm: 'KBZ ဘဏ်',
+    logo: '🏦',
+    logoUrl: 'https://www.kbzbank.com/favicon.ico',
+    industry: 'Banking & Finance',
+    location: 'Yangon',
+    size: '5000+',
+    rating: 4.3,
+    reviewCount: 156,
+    recommendPercent: 85,
+    salaryMin: 400000,
+    salaryMax: 2500000,
+    openJobs: 8,
+    description: 'Myanmar\'s largest private bank, part of KBZ Group, offering comprehensive banking services nationwide.',
+    ratings: { workLifeBalance: 4.0, compensation: 4.5, jobSecurity: 4.5, management: 4.0, culture: 4.3 },
+    featured: true,
+    verified: true,
+    founded: '1994',
+    website: 'https://www.kbzbank.com',
+    voteCount: 4523,
+  },
+  {
+    id: 'cb-bank',
+    name: 'CB Bank',
+    nameMm: 'စီဘီဘဏ်',
+    logo: '🏦',
+    logoUrl: 'https://www.cbbank.com.mm/favicon.ico',
+    industry: 'Banking & Finance',
+    location: 'Yangon',
+    size: '3000+',
+    rating: 4.2,
+    reviewCount: 98,
+    recommendPercent: 82,
+    salaryMin: 380000,
+    salaryMax: 2200000,
+    openJobs: 5,
+    description: 'Leading commercial bank in Myanmar with innovative digital banking solutions.',
+    ratings: { workLifeBalance: 4.1, compensation: 4.3, jobSecurity: 4.2, management: 4.0, culture: 4.2 },
+    featured: true,
+    verified: true,
+    founded: '1992',
+    website: 'https://www.cbbank.com.mm',
+    voteCount: 3856,
+  },
+  {
+    id: 'aya-bank',
+    name: 'AYA Bank',
+    nameMm: 'အာရုံယူဘဏ်',
+    logo: '🏦',
+    industry: 'Banking & Finance',
+    location: 'Yangon',
+    size: '2000+',
+    rating: 4.1,
+    reviewCount: 87,
+    recommendPercent: 80,
+    salaryMin: 350000,
+    salaryMax: 2000000,
+    openJobs: 4,
+    description: 'A comprehensive banking institution with strong digital presence and customer service.',
+    ratings: { workLifeBalance: 4.0, compensation: 4.2, jobSecurity: 4.1, management: 3.9, culture: 4.1 },
+    verified: true,
+    founded: '2010',
+    voteCount: 2934,
+  },
+  {
+    id: 'mab-bank',
+    name: 'MAB Bank',
+    nameMm: 'ဧမအေဘီဘဏ်',
+    logo: '🏦',
+    industry: 'Banking & Finance',
+    location: 'Yangon',
+    size: '1000+',
+    rating: 3.9,
+    reviewCount: 65,
+    recommendPercent: 78,
+    salaryMin: 320000,
+    salaryMax: 1800000,
+    openJobs: 3,
+    description: 'Modern banking services with focus on SME and retail customers.',
+    ratings: { workLifeBalance: 3.8, compensation: 4.0, jobSecurity: 3.9, management: 3.8, culture: 4.0 },
+    verified: true,
+    founded: '2010',
+    voteCount: 1876,
+  },
+  {
+    id: 'uab-bank',
+    name: 'UAB Bank',
+    nameMm: 'ယူအေဘီဘဏ်',
+    logo: '🏦',
+    industry: 'Banking & Finance',
+    location: 'Yangon',
+    size: '800+',
+    rating: 3.8,
+    reviewCount: 52,
+    recommendPercent: 76,
+    salaryMin: 300000,
+    salaryMax: 1700000,
+    openJobs: 2,
+    description: 'Progressive bank offering innovative financial solutions.',
+    ratings: { workLifeBalance: 3.7, compensation: 3.9, jobSecurity: 3.8, management: 3.7, culture: 3.9 },
+    voteCount: 1543,
+  },
+  {
+    id: 'yoma-bank',
+    name: 'Yoma Bank',
+    nameMm: 'ရုပ်မဘဏ်',
+    logo: '🏦',
+    industry: 'Banking & Finance',
+    location: 'Yangon',
+    size: '1500+',
+    rating: 4.0,
+    reviewCount: 71,
+    recommendPercent: 79,
+    salaryMin: 340000,
+    salaryMax: 1900000,
+    openJobs: 4,
+    description: 'Part of Yoma Group, one of Myanmar\'s leading business conglomerates.',
+    ratings: { workLifeBalance: 3.9, compensation: 4.1, jobSecurity: 4.0, management: 3.9, culture: 4.0 },
+    verified: true,
+    founded: '1993',
+    voteCount: 2134,
+  },
+  {
+    id: 'agd-bank',
+    name: 'AGD Bank',
+    nameMm: 'အဂျီဒီဘဏ်',
+    logo: '🏦',
+    industry: 'Banking & Finance',
+    location: 'Yangon',
+    size: '500+',
+    rating: 3.7,
+    reviewCount: 43,
+    recommendPercent: 74,
+    salaryMin: 280000,
+    salaryMax: 1500000,
+    openJobs: 2,
+    description: 'Community-focused banking with agricultural and rural development focus.',
+    ratings: { workLifeBalance: 3.6, compensation: 3.8, jobSecurity: 3.7, management: 3.6, culture: 3.8 },
+    voteCount: 987,
+  },
+
+  // ===== TECHNOLOGY =====
+  {
+    id: 'wave-money',
+    name: 'Wave Money',
+    nameMm: 'ဝေဖ်ငွေပေးချေမှု',
+    logo: '📱',
+    logoUrl: 'https://wavemoney.com.mm/favicon.ico',
+    industry: 'Technology',
+    location: 'Yangon',
+    size: '1000+',
+    rating: 4.5,
+    reviewCount: 134,
+    recommendPercent: 91,
+    salaryMin: 500000,
+    salaryMax: 3000000,
+    openJobs: 6,
+    description: 'Myanmar\'s leading mobile financial services provider, revolutionizing digital payments.',
+    ratings: { workLifeBalance: 4.4, compensation: 4.6, jobSecurity: 4.3, management: 4.5, culture: 4.7 },
+    featured: true,
+    verified: true,
+    founded: '2016',
+    website: 'https://wavemoney.com.mm',
+    voteCount: 5632,
+    awardYear: 2024,
+    awardRank: 1,
+  },
+  {
+    id: 'kbz-pay',
+    name: 'KBZ Pay',
+    nameMm: 'KBZ ေပးချေ',
+    logo: '💳',
+    industry: 'Technology',
+    location: 'Yangon',
+    size: '500+',
+    rating: 4.3,
+    reviewCount: 98,
+    recommendPercent: 87,
+    salaryMin: 450000,
+    salaryMax: 2500000,
+    openJobs: 5,
+    description: 'Myanmar\'s most popular mobile wallet with millions of users nationwide.',
+    ratings: { workLifeBalance: 4.2, compensation: 4.4, jobSecurity: 4.3, management: 4.2, culture: 4.4 },
+    featured: true,
+    verified: true,
+    founded: '2018',
+    voteCount: 4876,
+    awardYear: 2024,
+    awardRank: 2,
+  },
+  {
+    id: 'cb-pay',
+    name: 'CB Pay',
+    nameMm: 'စီဘီေပးချေ',
+    logo: '💳',
+    industry: 'Technology',
+    location: 'Yangon',
+    size: '300+',
+    rating: 4.1,
+    reviewCount: 67,
+    recommendPercent: 83,
+    salaryMin: 400000,
+    salaryMax: 2200000,
+    openJobs: 3,
+    description: 'Digital payment platform by CB Bank with innovative features.',
+    ratings: { workLifeBalance: 4.0, compensation: 4.2, jobSecurity: 4.1, management: 4.0, culture: 4.2 },
+    verified: true,
+    voteCount: 3421,
+  },
+  {
+    id: 'true-money',
+    name: 'TrueMoney',
+    nameMm: 'TrueMoney',
+    logo: '💚',
+    industry: 'Technology',
+    location: 'Yangon',
+    size: '400+',
+    rating: 4.0,
+    reviewCount: 72,
+    recommendPercent: 81,
+    salaryMin: 380000,
+    salaryMax: 2000000,
+    openJobs: 4,
+    description: 'Regional e-wallet service with presence across Southeast Asia.',
+    ratings: { workLifeBalance: 3.9, compensation: 4.1, jobSecurity: 4.0, management: 3.9, culture: 4.1 },
+    verified: true,
+    voteCount: 2876,
+  },
+  {
+    id: 'myanma-ict',
+    name: 'Myanma ICT',
+    nameMm: 'မြန်မာ ICT',
+    logo: '💻',
+    industry: 'Technology',
+    location: 'Yangon',
+    size: '200+',
+    rating: 3.9,
+    reviewCount: 45,
+    recommendPercent: 78,
+    salaryMin: 400000,
+    salaryMax: 1800000,
+    openJobs: 3,
+    description: 'Local IT solutions provider serving businesses across Myanmar.',
+    ratings: { workLifeBalance: 3.8, compensation: 4.0, jobSecurity: 3.8, management: 3.7, culture: 4.0 },
+    voteCount: 1234,
+  },
+  {
+    id: 'fsm',
+    name: 'Frontiir',
+    nameMm: 'Frontiir',
+    logo: '🌐',
+    industry: 'Technology',
+    location: 'Yangon',
+    size: '300+',
+    rating: 4.2,
+    reviewCount: 56,
+    recommendPercent: 84,
+    salaryMin: 450000,
+    salaryMax: 2500000,
+    openJobs: 4,
+    description: 'Technology company behind Myanmar\'s popular internet services.',
+    ratings: { workLifeBalance: 4.1, compensation: 4.3, jobSecurity: 4.2, management: 4.1, culture: 4.3 },
+    verified: true,
+    voteCount: 2145,
+  },
+
+  // ===== TELECOMMUNICATIONS =====
+  {
+    id: 'mpt',
+    name: 'MPT',
+    nameMm: 'MPT',
+    logo: '📡',
+    logoUrl: 'https://www.mpt.com.mm/favicon.ico',
+    industry: 'Telecommunications',
+    location: 'Yangon',
+    size: '5000+',
+    rating: 4.0,
+    reviewCount: 189,
+    recommendPercent: 80,
+    salaryMin: 350000,
+    salaryMax: 2800000,
+    openJobs: 7,
+    description: 'Myanmar\'s largest telecommunications provider with nationwide coverage.',
+    ratings: { workLifeBalance: 3.9, compensation: 4.2, jobSecurity: 4.1, management: 3.9, culture: 4.0 },
+    featured: true,
+    verified: true,
+    founded: '1885',
+    website: 'https://www.mpt.com.mm',
+    voteCount: 5432,
+    awardYear: 2024,
+    awardRank: 3,
+  },
+  {
+    id: 'telenor-myanmar',
+    name: 'Telenor Myanmar',
+    nameMm: 'တယ်လီနော',
+    logo: '📱',
+    industry: 'Telecommunications',
+    location: 'Yangon',
+    size: '2000+',
+    rating: 4.2,
+    reviewCount: 145,
+    recommendPercent: 84,
+    salaryMin: 400000,
+    salaryMax: 3000000,
+    openJobs: 5,
+    description: 'International telecommunications company with strong presence in Myanmar.',
+    ratings: { workLifeBalance: 4.1, compensation: 4.4, jobSecurity: 4.0, management: 4.2, culture: 4.3 },
+    featured: true,
+    verified: true,
+    founded: '2013',
+    voteCount: 4321,
+  },
+  {
+    id: 'ooredoo-myanmar',
+    name: 'Ooredoo Myanmar',
+    nameMm: 'အိုရီဒူ',
+    logo: '📡',
+    industry: 'Telecommunications',
+    location: 'Yangon',
+    size: '1500+',
+    rating: 4.1,
+    reviewCount: 112,
+    recommendPercent: 82,
+    salaryMin: 380000,
+    salaryMax: 2700000,
+    openJobs: 4,
+    description: 'Qatar-based telecommunications provider with innovative services.',
+    ratings: { workLifeBalance: 4.0, compensation: 4.3, jobSecurity: 4.0, management: 4.0, culture: 4.2 },
+    verified: true,
+    founded: '2013',
+    voteCount: 3654,
+  },
+  {
+    id: 'mytel',
+    name: 'Mytel',
+    nameMm: 'မိုင်တယ်',
+    logo: '📡',
+    industry: 'Telecommunications',
+    location: 'Yangon',
+    size: '2000+',
+    rating: 3.8,
+    reviewCount: 87,
+    recommendPercent: 76,
+    salaryMin: 320000,
+    salaryMax: 2200000,
+    openJobs: 5,
+    description: 'Vietnam-backed telecommunications company with growing network.',
+    ratings: { workLifeBalance: 3.7, compensation: 4.0, jobSecurity: 3.8, management: 3.7, culture: 3.9 },
+    verified: true,
+    voteCount: 2876,
+  },
+
+  // ===== FMCG =====
+  {
+    id: 'unicharm-myanmar',
+    name: 'Unicharm Myanmar',
+    nameMm: 'ယူနီချမ်မြန်မာ',
+    logo: '🧴',
+    industry: 'FMCG',
+    location: 'Yangon',
+    size: '500+',
+    rating: 4.2,
+    reviewCount: 78,
+    recommendPercent: 85,
+    salaryMin: 350000,
+    salaryMax: 1700000,
+    openJobs: 4,
+    description: 'Leading consumer goods company known for personal care products.',
+    ratings: { workLifeBalance: 4.0, compensation: 4.3, jobSecurity: 4.2, management: 4.0, culture: 4.4 },
+    featured: true,
+    verified: true,
+    voteCount: 3212,
+  },
+  {
+    id: 'unilever-myanmar',
+    name: 'Unilever Myanmar',
+    nameMm: 'ယူနီလီဗာမြန်မာ',
+    logo: '🧼',
+    industry: 'FMCG',
+    location: 'Yangon',
+    size: '400+',
+    rating: 4.4,
+    reviewCount: 92,
+    recommendPercent: 89,
+    salaryMin: 400000,
+    salaryMax: 2500000,
+    openJobs: 5,
+    description: 'Global consumer goods giant with strong presence in Myanmar market.',
+    ratings: { workLifeBalance: 4.3, compensation: 4.5, jobSecurity: 4.4, management: 4.3, culture: 4.5 },
+    featured: true,
+    verified: true,
+    voteCount: 4567,
+  },
+  {
+    id: 'p-g-myanmar',
+    name: 'P&G Myanmar',
+    nameMm: 'ပီ&ဂျီမြန်မာ',
+    logo: '🧴',
+    industry: 'FMCG',
+    location: 'Yangon',
+    size: '200+',
+    rating: 4.3,
+    reviewCount: 67,
+    recommendPercent: 87,
+    salaryMin: 420000,
+    salaryMax: 2600000,
+    openJobs: 3,
+    description: 'Procter & Gamble\'s operations in Myanmar with premium consumer brands.',
+    ratings: { workLifeBalance: 4.2, compensation: 4.5, jobSecurity: 4.3, management: 4.2, culture: 4.4 },
+    verified: true,
+    voteCount: 3543,
+  },
+  {
+    id: 'nestle-myanmar',
+    name: 'Nestle Myanmar',
+    nameMm: 'နက်စလေမြန်မာ',
+    logo: '☕',
+    industry: 'FMCG',
+    location: 'Yangon',
+    size: '300+',
+    rating: 4.2,
+    reviewCount: 71,
+    recommendPercent: 85,
+    salaryMin: 380000,
+    salaryMax: 2300000,
+    openJobs: 4,
+    description: 'World\'s largest food and beverage company in Myanmar.',
+    ratings: { workLifeBalance: 4.1, compensation: 4.4, jobSecurity: 4.2, management: 4.1, culture: 4.3 },
+    verified: true,
+    voteCount: 3321,
+  },
+  {
+    id: 'coca-cola-myanmar',
+    name: 'Coca-Cola Pinya Beverages',
+    nameMm: 'ကိုကာကိုလာပင်းယ',
+    logo: '🥤',
+    industry: 'FMCG',
+    location: 'Yangon',
+    size: '600+',
+    rating: 4.1,
+    reviewCount: 83,
+    recommendPercent: 83,
+    salaryMin: 360000,
+    salaryMax: 2100000,
+    openJobs: 5,
+    description: 'Official Coca-Cola bottler and distributor in Myanmar.',
+    ratings: { workLifeBalance: 4.0, compensation: 4.2, jobSecurity: 4.1, management: 4.0, culture: 4.2 },
+    verified: true,
+    voteCount: 3187,
+  },
+  {
+    id: 'laska-myanmar',
+    name: 'Laska Myanmar',
+    nameMm: 'လက်စကာမြန်မာ',
+    logo: '🥛',
+    industry: 'FMCG',
+    location: 'Yangon',
+    size: '200+',
+    rating: 3.9,
+    reviewCount: 45,
+    recommendPercent: 78,
+    salaryMin: 300000,
+    salaryMax: 1500000,
+    openJobs: 3,
+    description: 'Local FMCG company producing food and beverage products.',
+    ratings: { workLifeBalance: 3.8, compensation: 4.0, jobSecurity: 3.9, management: 3.8, culture: 4.0 },
+    voteCount: 1876,
+  },
+
+  // ===== MANUFACTURING =====
+  {
+    id: 'mpe',
+    name: 'Myanmar Petroleum',
+    nameMm: 'မြန်မာပတ်ထရိုလီယံ',
+    logo: '⛽',
+    industry: 'Manufacturing',
+    location: 'Yangon',
+    size: '1000+',
+    rating: 4.0,
+    reviewCount: 67,
+    recommendPercent: 80,
+    salaryMin: 350000,
+    salaryMax: 2000000,
+    openJobs: 4,
+    description: 'Major petroleum products manufacturer and distributor.',
+    ratings: { workLifeBalance: 3.9, compensation: 4.2, jobSecurity: 4.1, management: 3.9, culture: 4.0 },
+    verified: true,
+    voteCount: 2345,
+  },
+  {
+    id: 'mm-pulp',
+    name: 'Myanmar Pulp & Paper',
+    nameMm: 'မြန်မာစက္ကူ',
+    logo: '📄',
+    industry: 'Manufacturing',
+    location: 'Yangon',
+    size: '500+',
+    rating: 3.8,
+    reviewCount: 43,
+    recommendPercent: 76,
+    salaryMin: 280000,
+    salaryMax: 1400000,
+    openJobs: 2,
+    description: 'Leading paper and pulp manufacturer in Myanmar.',
+    ratings: { workLifeBalance: 3.7, compensation: 3.9, jobSecurity: 3.8, management: 3.7, culture: 3.9 },
+    voteCount: 1234,
+  },
+  {
+    id: 'diamond-peak',
+    name: 'Diamond Peak',
+    nameMm: 'စိန်ထိပ်',
+    logo: '🏭',
+    industry: 'Manufacturing',
+    location: 'Yangon',
+    size: '300+',
+    rating: 3.9,
+    reviewCount: 38,
+    recommendPercent: 77,
+    salaryMin: 300000,
+    salaryMax: 1600000,
+    openJobs: 3,
+    description: 'Consumer goods manufacturer with diverse product portfolio.',
+    ratings: { workLifeBalance: 3.8, compensation: 4.0, jobSecurity: 3.9, management: 3.8, culture: 4.0 },
+    voteCount: 1543,
+  },
+  {
+    id: 'great-wall',
+    name: 'Great Wall Industries',
+    nameMm: 'ဂရိတ်ဝေါလ်',
+    logo: '🏭',
+    industry: 'Manufacturing',
+    location: 'Mandalay',
+    size: '400+',
+    rating: 3.7,
+    reviewCount: 35,
+    recommendPercent: 74,
+    salaryMin: 260000,
+    salaryMax: 1300000,
+    openJobs: 2,
+    description: 'Industrial manufacturing company producing consumer goods.',
+    ratings: { workLifeBalance: 3.6, compensation: 3.8, jobSecurity: 3.7, management: 3.6, culture: 3.8 },
+    voteCount: 1123,
+  },
+
+  // ===== RETAIL =====
+  {
+    id: 'city-mart',
+    name: 'City Mart Holdings',
+    nameMm: 'စီးတီးမတ်',
+    logo: '🛒',
+    logoUrl: 'https://www.citymart.com.mm/favicon.ico',
+    industry: 'Retail',
+    location: 'Yangon',
+    size: '3000+',
+    rating: 4.1,
+    reviewCount: 134,
+    recommendPercent: 82,
+    salaryMin: 250000,
+    salaryMax: 1500000,
+    openJobs: 8,
+    description: 'Myanmar\'s largest retail chain with supermarkets, convenience stores, and more.',
+    ratings: { workLifeBalance: 4.0, compensation: 4.2, jobSecurity: 4.1, management: 4.0, culture: 4.2 },
+    featured: true,
+    verified: true,
+    founded: '1996',
+    website: 'https://www.citymart.com.mm',
+    voteCount: 3987,
+  },
+  {
+    id: 'ocean-supercenter',
+    name: 'Ocean Supercenter',
+    nameMm: 'ရေပြင်စူပါစင်တာ',
+    logo: '🏬',
+    industry: 'Retail',
+    location: 'Yangon',
+    size: '2000+',
+    rating: 4.0,
+    reviewCount: 98,
+    recommendPercent: 80,
+    salaryMin: 240000,
+    salaryMax: 1400000,
+    openJobs: 6,
+    description: 'Popular hypermarket chain with stores across major cities.',
+    ratings: { workLifeBalance: 3.9, compensation: 4.1, jobSecurity: 4.0, management: 3.9, culture: 4.1 },
+    verified: true,
+    voteCount: 2876,
+  },
+  {
+    id: 'capital-hypermarket',
+    name: 'Capital Hypermarket',
+    nameMm: 'ကယ်ပီတယ်စူပါမာကက်',
+    logo: '🛒',
+    industry: 'Retail',
+    location: 'Yangon',
+    size: '1500+',
+    rating: 3.9,
+    reviewCount: 76,
+    recommendPercent: 78,
+    salaryMin: 230000,
+    salaryMax: 1300000,
+    openJobs: 5,
+    description: 'Growing retail chain offering wide variety of products.',
+    ratings: { workLifeBalance: 3.8, compensation: 4.0, jobSecurity: 3.9, management: 3.8, culture: 4.0 },
+    voteCount: 2234,
+  },
+  {
+    id: 'wow-sport',
+    name: 'WOW Sport',
+    nameMm: 'WOW အားကစား',
+    logo: '⚽',
+    industry: 'Retail',
+    location: 'Yangon',
+    size: '500+',
+    rating: 3.8,
+    reviewCount: 52,
+    recommendPercent: 75,
+    salaryMin: 280000,
+    salaryMax: 1200000,
+    openJobs: 3,
+    description: 'Leading sports retail chain with multiple locations.',
+    ratings: { workLifeBalance: 3.7, compensation: 3.9, jobSecurity: 3.8, management: 3.7, culture: 3.9 },
+    verified: true,
+    voteCount: 1876,
+  },
+  {
+    id: 'mandalar-mobile',
+    name: 'Mandalar Mobile',
+    nameMm: 'မန္တလာမိုဘိုင်း',
+    logo: '📱',
+    industry: 'Retail',
+    location: 'Mandalay',
+    size: '400+',
+    rating: 3.7,
+    reviewCount: 45,
+    recommendPercent: 74,
+    salaryMin: 250000,
+    salaryMax: 1100000,
+    openJobs: 2,
+    description: 'Mobile phone and accessories retail chain.',
+    ratings: { workLifeBalance: 3.6, compensation: 3.8, jobSecurity: 3.7, management: 3.6, culture: 3.8 },
+    voteCount: 1432,
+  },
+
+  // ===== HEALTHCARE =====
+  {
+    id: 'pun-hlaing-hospital',
+    name: 'Pun Hlaing Hospital',
+    nameMm: 'ပွင့်လှိုင်ဆေးရုံ',
+    logo: '🏥',
+    industry: 'Healthcare',
+    location: 'Yangon',
+    size: '500+',
+    rating: 4.3,
+    reviewCount: 89,
+    recommendPercent: 87,
+    salaryMin: 350000,
+    salaryMax: 3000000,
+    openJobs: 6,
+    description: 'Myanmar\'s premier international standard hospital.',
+    ratings: { workLifeBalance: 4.1, compensation: 4.4, jobSecurity: 4.3, management: 4.2, culture: 4.4 },
+    featured: true,
+    verified: true,
+    voteCount: 3654,
+  },
+  {
+    id: 'asia-royal-hospital',
+    name: 'Asia Royal Hospital',
+    nameMm: 'အေရှားရွိုင်ယယ်ဆေးရုံ',
+    logo: '🏥',
+    industry: 'Healthcare',
+    location: 'Yangon',
+    size: '400+',
+    rating: 4.2,
+    reviewCount: 76,
+    recommendPercent: 85,
+    salaryMin: 320000,
+    salaryMax: 2800000,
+    openJobs: 5,
+    description: 'Leading private hospital with comprehensive medical services.',
+    ratings: { workLifeBalance: 4.0, compensation: 4.3, jobSecurity: 4.2, management: 4.1, culture: 4.3 },
+    verified: true,
+    voteCount: 3123,
+  },
+  {
+    id: 'shwe-gon-dagon-hospital',
+    name: 'Shwe Gon Dagon Hospital',
+    nameMm: 'ရွှေဂုံဒဂုံဆေးရုံ',
+    logo: '🏥',
+    industry: 'Healthcare',
+    location: 'Yangon',
+    size: '300+',
+    rating: 4.0,
+    reviewCount: 58,
+    recommendPercent: 82,
+    salaryMin: 280000,
+    salaryMax: 2200000,
+    openJobs: 4,
+    description: 'Well-established private healthcare facility.',
+    ratings: { workLifeBalance: 3.9, compensation: 4.1, jobSecurity: 4.0, management: 3.9, culture: 4.1 },
+    voteCount: 2345,
+  },
+  {
+    id: 'parami-hospital',
+    name: 'Parami Hospital',
+    nameMm: 'ပရမီဆေးရုံ',
+    logo: '🏥',
+    industry: 'Healthcare',
+    location: 'Yangon',
+    size: '200+',
+    rating: 3.9,
+    reviewCount: 45,
+    recommendPercent: 79,
+    salaryMin: 260000,
+    salaryMax: 1800000,
+    openJobs: 3,
+    description: 'Modern healthcare facility with specialized services.',
+    ratings: { workLifeBalance: 3.8, compensation: 4.0, jobSecurity: 3.9, management: 3.8, culture: 4.0 },
+    voteCount: 1876,
+  },
+
+  // ===== EDUCATION =====
+  {
+    id: 'yangon-university',
+    name: 'Yangon University',
+    nameMm: 'ရန်ကုန်တက္ကသိုလ်',
+    logo: '🎓',
+    industry: 'Education',
+    location: 'Yangon',
+    size: '1000+',
+    rating: 4.1,
+    reviewCount: 156,
+    recommendPercent: 84,
+    salaryMin: 250000,
+    salaryMax: 1200000,
+    openJobs: 5,
+    description: 'Myanmar\'s oldest and most prestigious university.',
+    ratings: { workLifeBalance: 4.2, compensation: 3.8, jobSecurity: 4.3, management: 4.0, culture: 4.2 },
+    verified: true,
+    founded: '1920',
+    voteCount: 4231,
+  },
+  {
+    id: 'myanmar-maritime-university',
+    name: 'Myanmar Maritime University',
+    nameMm: 'မြန်မာနိုင်ငံပင်လယ်ရေကြောင်းတက္ကသိုလ်',
+    logo: '🎓',
+    industry: 'Education',
+    location: 'Yangon',
+    size: '300+',
+    rating: 4.0,
+    reviewCount: 67,
+    recommendPercent: 82,
+    salaryMin: 280000,
+    salaryMax: 1400000,
+    openJobs: 3,
+    description: 'Specialized university for maritime studies.',
+    ratings: { workLifeBalance: 4.1, compensation: 3.9, jobSecurity: 4.2, management: 4.0, culture: 4.0 },
+    verified: true,
+    voteCount: 2345,
+  },
+  {
+    id: 'uct',
+    name: 'University of Computer Studies',
+    nameMm: 'နည်းပညာတက္ကသိုလ်',
+    logo: '💻',
+    industry: 'Education',
+    location: 'Yangon',
+    size: '200+',
+    rating: 3.9,
+    reviewCount: 89,
+    recommendPercent: 79,
+    salaryMin: 250000,
+    salaryMax: 1100000,
+    openJobs: 4,
+    description: 'Leading institution for computer science education.',
+    ratings: { workLifeBalance: 4.0, compensation: 3.8, jobSecurity: 4.1, management: 3.8, culture: 4.0 },
+    verified: true,
+    voteCount: 2765,
+  },
+  {
+    id: 'brain-work',
+    name: 'Brain Work Education',
+    nameMm: 'ဘရိန်းဝပ်ပညာရေး',
+    logo: '📚',
+    industry: 'Education',
+    location: 'Yangon',
+    size: '100+',
+    rating: 4.2,
+    reviewCount: 45,
+    recommendPercent: 86,
+    salaryMin: 300000,
+    salaryMax: 1000000,
+    openJobs: 2,
+    description: 'Private education institution specializing in language and professional training.',
+    ratings: { workLifeBalance: 4.1, compensation: 4.0, jobSecurity: 4.0, management: 4.2, culture: 4.3 },
+    voteCount: 1543,
+  },
+
+  // ===== INSURANCE =====
+  {
+    id: 'kbz-life',
+    name: 'KBZ Life Insurance',
+    nameMm: 'KBZ လူမှုဖူလုံရေး',
+    logo: '🛡️',
+    industry: 'Insurance',
+    location: 'Yangon',
+    size: '1000+',
+    rating: 4.0,
+    reviewCount: 78,
+    recommendPercent: 81,
+    salaryMin: 300000,
+    salaryMax: 1800000,
+    openJobs: 4,
+    description: 'Myanmar\'s leading life insurance provider.',
+    ratings: { workLifeBalance: 3.9, compensation: 4.2, jobSecurity: 4.1, management: 3.9, culture: 4.1 },
+    verified: true,
+    voteCount: 2876,
+  },
+  {
+    id: 'dawei-insurance',
+    name: 'Dawei Insurance',
+    nameMm: 'ဒေသန္တရီအာမခံ',
+    logo: '🛡️',
+    industry: 'Insurance',
+    location: 'Yangon',
+    size: '300+',
+    rating: 3.8,
+    reviewCount: 34,
+    recommendPercent: 76,
+    salaryMin: 280000,
+    salaryMax: 1400000,
+    openJobs: 2,
+    description: 'Growing insurance company with diverse products.',
+    ratings: { workLifeBalance: 3.7, compensation: 3.9, jobSecurity: 3.8, management: 3.7, culture: 3.9 },
+    voteCount: 1234,
+  },
+  {
+    id: 'aung-myint-mo',
+    name: 'Aung Myint Mo Insurance',
+    nameMm: 'အောင်မြင့်မိုရ်အာမခံ',
+    logo: '🛡️',
+    industry: 'Insurance',
+    location: 'Yangon',
+    size: '200+',
+    rating: 3.7,
+    reviewCount: 28,
+    recommendPercent: 74,
+    salaryMin: 260000,
+    salaryMax: 1200000,
+    openJobs: 2,
+    description: 'Local insurance provider with personal lines focus.',
+    ratings: { workLifeBalance: 3.6, compensation: 3.8, jobSecurity: 3.7, management: 3.6, culture: 3.8 },
+    voteCount: 987,
+  },
+
+  // ===== CONSTRUCTION =====
+  {
+    id: 'delight-amatat',
+    name: 'Delight Amatat',
+    nameMm: 'ဒိလိုက်အမတတ်',
+    logo: '🏗️',
+    industry: 'Construction',
+    location: 'Yangon',
+    size: '300+',
+    rating: 4.1,
+    reviewCount: 45,
+    recommendPercent: 83,
+    salaryMin: 400000,
+    salaryMax: 2000000,
+    openJobs: 4,
+    description: 'Premium interior design and construction company.',
+    ratings: { workLifeBalance: 3.9, compensation: 4.3, jobSecurity: 4.0, management: 4.0, culture: 4.1 },
+    featured: true,
+    voteCount: 2345,
+  },
+  {
+    id: 'sp-construction',
+    name: 'SP Construction',
+    nameMm: 'အက်စ်ပီတည်ဆောက်ရေး',
+    logo: '🏗️',
+    industry: 'Construction',
+    location: 'Yangon',
+    size: '500+',
+    rating: 3.9,
+    reviewCount: 56,
+    recommendPercent: 78,
+    salaryMin: 350000,
+    salaryMax: 1800000,
+    openJobs: 5,
+    description: 'Major construction company with infrastructure projects.',
+    ratings: { workLifeBalance: 3.7, compensation: 4.1, jobSecurity: 3.9, management: 3.8, culture: 3.9 },
+    voteCount: 2134,
+  },
+  {
+    id: 'max-construction',
+    name: 'MAX Construction',
+    nameMm: 'မက်စ်တည်ဆောက်ရေး',
+    logo: '🏗️',
+    industry: 'Construction',
+    location: 'Yangon',
+    size: '400+',
+    rating: 3.8,
+    reviewCount: 42,
+    recommendPercent: 76,
+    salaryMin: 320000,
+    salaryMax: 1600000,
+    openJobs: 3,
+    description: 'Building construction and real estate development.',
+    ratings: { workLifeBalance: 3.6, compensation: 4.0, jobSecurity: 3.8, management: 3.7, culture: 3.9 },
+    voteCount: 1765,
+  },
+
+  // ===== REAL ESTATE =====
+  {
+    id: 'yoma-land',
+    name: 'Yoma Land',
+    nameMm: 'ရုပ်မမြေ',
+    logo: '🏢',
+    industry: 'Real Estate',
+    location: 'Yangon',
+    size: '300+',
+    rating: 4.2,
+    reviewCount: 67,
+    recommendPercent: 85,
+    salaryMin: 400000,
+    salaryMax: 2500000,
+    openJobs: 4,
+    description: 'Myanmar\'s premier real estate developer with landmark projects.',
+    ratings: { workLifeBalance: 4.0, compensation: 4.4, jobSecurity: 4.2, management: 4.1, culture: 4.3 },
+    featured: true,
+    verified: true,
+    voteCount: 3234,
+  },
+  {
+    id: 'fmi',
+    name: 'First Myanmar Investment',
+    nameMm: 'ပထမဆုံးမြန်မာရင်းနှီးမြှုပ်နှံမှု',
+    logo: '🏢',
+    industry: 'Real Estate',
+    location: 'Yangon',
+    size: '200+',
+    rating: 4.0,
+    reviewCount: 54,
+    recommendPercent: 82,
+    salaryMin: 380000,
+    salaryMax: 2300000,
+    openJobs: 3,
+    description: 'Leading investment company with diverse real estate portfolio.',
+    ratings: { workLifeBalance: 3.9, compensation: 4.3, jobSecurity: 4.1, management: 3.9, culture: 4.1 },
+    verified: true,
+    voteCount: 2567,
+  },
+  {
+    id: 'dagon-international',
+    name: 'Dagon International',
+    nameMm: 'ဒဂုံနိုင်ငံတကာ',
+    logo: '🏢',
+    industry: 'Real Estate',
+    location: 'Yangon',
+    size: '150+',
+    rating: 3.8,
+    reviewCount: 38,
+    recommendPercent: 77,
+    salaryMin: 350000,
+    salaryMax: 1800000,
+    openJobs: 2,
+    description: 'Property development and management company.',
+    ratings: { workLifeBalance: 3.7, compensation: 4.0, jobSecurity: 3.8, management: 3.7, culture: 3.9 },
+    voteCount: 1654,
+  },
+
+  // ===== HOSPITALITY =====
+  {
+    id: 'hotel-emporium',
+    name: 'Hotel Emporium',
+    nameMm: 'ဟိုတယ်အမ်ပိုရီယမ်',
+    logo: '🏨',
+    industry: 'Hospitality',
+    location: 'Yangon',
+    size: '400+',
+    rating: 4.1,
+    reviewCount: 72,
+    recommendPercent: 83,
+    salaryMin: 280000,
+    salaryMax: 1500000,
+    openJobs: 5,
+    description: 'Luxury hotel management company in Myanmar.',
+    ratings: { workLifeBalance: 4.0, compensation: 4.2, jobSecurity: 4.1, management: 4.0, culture: 4.2 },
+    verified: true,
+    voteCount: 2543,
+  },
+  {
+    id: 'chatrium-hotel',
+    name: 'Chatrium Hotel',
+    nameMm: 'ချာတီယမ်ဟိုတယ်',
+    logo: '🏨',
+    industry: 'Hospitality',
+    location: 'Yangon',
+    size: '300+',
+    rating: 4.2,
+    reviewCount: 58,
+    recommendPercent: 85,
+    salaryMin: 300000,
+    salaryMax: 1600000,
+    openJobs: 4,
+    description: 'International 5-star hotel brand in Myanmar.',
+    ratings: { workLifeBalance: 4.1, compensation: 4.3, jobSecurity: 4.2, management: 4.1, culture: 4.3 },
+    verified: true,
+    voteCount: 2345,
+  },
+  {
+    id: 'sedona-hotel',
+    name: 'Sedona Hotel',
+    nameMm: 'ဆီဒိုနာဟိုတယ်',
+    logo: '🏨',
+    industry: 'Hospitality',
+    location: 'Yangon',
+    size: '250+',
+    rating: 4.0,
+    reviewCount: 47,
+    recommendPercent: 81,
+    salaryMin: 270000,
+    salaryMax: 1400000,
+    openJobs: 3,
+    description: 'Premier hotel with excellent service standards.',
+    ratings: { workLifeBalance: 3.9, compensation: 4.1, jobSecurity: 4.0, management: 3.9, culture: 4.1 },
+    verified: true,
+    voteCount: 1987,
+  },
+  {
+    id: 'ginki-restaurant',
+    name: 'Ginki Japanese Restaurant',
+    nameMm: 'ဂင်ကီဂျပန်စားသောက်ဆိုင်',
+    logo: '🍣',
+    industry: 'Hospitality',
+    location: 'Yangon',
+    size: '50+',
+    rating: 3.9,
+    reviewCount: 23,
+    recommendPercent: 80,
+    salaryMin: 250000,
+    salaryMax: 900000,
+    openJobs: 2,
+    description: 'Authentic Japanese dining experience.',
+    ratings: { workLifeBalance: 3.8, compensation: 4.0, jobSecurity: 3.9, management: 3.8, culture: 4.0 },
+    voteCount: 876,
+  },
+
+  // ===== LOGISTICS =====
+  {
+    id: 'dhl-myanmar',
+    name: 'DHL Myanmar',
+    nameMm: 'DHL မြန်မာ',
+    logo: '📦',
+    industry: 'Logistics',
+    location: 'Yangon',
+    size: '200+',
+    rating: 4.3,
+    reviewCount: 56,
+    recommendPercent: 88,
+    salaryMin: 350000,
+    salaryMax: 2000000,
+    openJobs: 4,
+    description: 'Global logistics leader with comprehensive services in Myanmar.',
+    ratings: { workLifeBalance: 4.1, compensation: 4.5, jobSecurity: 4.3, management: 4.2, culture: 4.4 },
+    featured: true,
+    verified: true,
+    voteCount: 3432,
+  },
+  {
+    id: 'kerry-logistics',
+    name: 'Kerry Logistics',
+    nameMm: 'ကယ်ရီလော်ဂျစ်စတစ်',
+    logo: '📦',
+    industry: 'Logistics',
+    location: 'Yangon',
+    size: '150+',
+    rating: 4.1,
+    reviewCount: 43,
+    recommendPercent: 84,
+    salaryMin: 320000,
+    salaryMax: 1800000,
+    openJobs: 3,
+    description: 'Asian logistics specialist with regional network.',
+    ratings: { workLifeBalance: 4.0, compensation: 4.3, jobSecurity: 4.1, management: 4.0, culture: 4.2 },
+    verified: true,
+    voteCount: 2567,
+  },
+  {
+    id: 'myanma-post',
+    name: 'Myanma Post',
+    nameMm: 'မြန်မာစာတိုက်',
+    logo: '📬',
+    industry: 'Logistics',
+    location: 'Yangon',
+    size: '500+',
+    rating: 3.7,
+    reviewCount: 67,
+    recommendPercent: 73,
+    salaryMin: 220000,
+    salaryMax: 1000000,
+    openJobs: 4,
+    description: 'National postal service provider.',
+    ratings: { workLifeBalance: 3.6, compensation: 3.8, jobSecurity: 3.8, management: 3.6, culture: 3.8 },
+    verified: true,
+    voteCount: 1876,
+  },
+  {
+    id: 'myawaddy-transport',
+    name: 'Myawaddy Transport',
+    nameMm: 'မြဝတီသယ်ယူပို့ဆောင်ရေး',
+    logo: '🚚',
+    industry: 'Logistics',
+    location: 'Yangon',
+    size: '200+',
+    rating: 3.8,
+    reviewCount: 34,
+    recommendPercent: 76,
+    salaryMin: 260000,
+    salaryMax: 1200000,
+    openJobs: 3,
+    description: 'Local transportation and logistics company.',
+    ratings: { workLifeBalance: 3.6, compensation: 3.9, jobSecurity: 3.8, management: 3.7, culture: 3.8 },
+    voteCount: 1234,
+  },
+
+  // ===== ENERGY =====
+  {
+    id: 'moge',
+    name: 'MOGE',
+    nameMm: 'မြန်မာရေနံနှင့်သဘာဝဓာတ်ငွေ့',
+    logo: '⛽',
+    industry: 'Energy',
+    location: 'Yangon',

@@ -1,0 +1,28 @@
+{
+  "choices": [
+    {
+      "finish_reason": "stop",
+      "index": 0,
+      "message": {
+        "content": "The screenshot displays a **dark-themed web interface** for a platform named \"ReferTRM,\" focused on learning tracks. Here’s a detailed breakdown:  \n\n\n### 1. **Header & Navigation**  \n- **Logo/Branding**: Top-left shows \"TRM\" (stylized) and \"ReferTRM\" (brand name).  \n- **Navigation Menu**: Horizontal menu with options: *Home, Jobs, Companies, Refer, Academy* (highlighted in teal, indicating the current page).  \n- **CTA Button**: \"Join Telegram\" (teal button, right-aligned).  \n- **Decorative Element**: A horizontal orange-yellow gradient bar below the header, adding visual flair.  \n\n\n### 2. **Main Content: Learning Tracks Section**  \n- **Title**: \"Learning Tracks\" (white text, with \"Tracks\" in orange). Below it, a subtitle in a non-Latin script (likely Burmese) translates to *\"Choose your learning path\"*.  \n\n- **Two Learning Track Cards**:  \n  - **Left Card: Recruitment**  \n    - Icon: Teal briefcase icon.  \n    - Title: \"Recruitment\" (white text).  \n    - Subtitle (non-Latin script): Likely \"Recruitment\" in Burmese.  \n    - Description: *\"Master the art of finding and placing top talent\"* (white text).  \n    - Progress: \"2/8 modules\" (white text) + a teal progress bar at 25%.  \n\n  - **Right Card: Sales & Marketing**  \n    - Icon: Blue upward-trending graph icon.  \n    - Title: \"Sales & Marketing\" (white text).  \n    - Subtitle (non-Latin script): Likely \"Sales & Marketing\" in Burmese.  \n    - Description: *\"Learn modern sales techniques and marketing strategies\"* (white text).  \n    - Progress: \"1/5 modules\" (white text) + a teal progress bar at 20%.  \n\n\n### 3. **Bottom UI Elements**  \n- **Mode Toggles**: Two buttons in the bottom-right:  \n  - \"Text Mode\" (with a text icon).  \n  - \"Low Data\" (with a data-saving icon).  \n\n\n### Overall UI Style  \n- **Color Scheme**: Dark background (near-black) with teal, orange, and white accents.  \n- **Layout**: Clean, card-based design for learning tracks, with clear hierarchy (titles, descriptions, progress bars).  \n- **Accessibility/UX**: Progress bars and module counts provide quick status updates; mode toggles suggest adaptability for different user needs (e.g., text-heavy or data-saving modes).  \n\n\nThis interface emphasizes structured learning paths, with visual cues (icons, progress bars) to guide users through their development journey.",
+        "role": "assistant"
+      }
+    }
+  ],
+  "created": 1771157560,
+  "id": "20260215201212ea92f6c6695846b9",
+  "model": "glm-4.6v",
+  "object": "chat.completion",
+  "request_id": "20260215201212ea92f6c6695846b9",
+  "usage": {
+    "completion_tokens": 574,
+    "completion_tokens_details": {
+      "reasoning_tokens": 0
+    },
+    "prompt_tokens": 703,
+    "prompt_tokens_details": {
+      "cached_tokens": 5
+    },
+    "total_tokens": 1277
+  }
+}

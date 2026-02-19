@@ -1,0 +1,3000 @@
+    if (timeSinceLastTap < delay) {
+      callback();
+      lastTapRef.current = 0;
+    } else {
+      lastTapRef.current = now;
+    }
+  }, [callback, delay]);
+
+  return {
+    onTap: handleTap,
+  };
+}
+
+// Hook for pinch to zoom
+export function usePinchZoom(
+  callback: (scale: number) => void,
+  options?: { minScale?: number; maxScale?: number }
+) {
+  const minScale = options?.minScale || 0.5;
+  const maxScale = options?.maxScale || 3;
+  const initialDistanceRef = useRef<number>(0);
+  const [scale, setScale] = useState(1);
+
+  const getDistance = (touches: React.TouchList): number => {
+    return Math.hypot(
+      touches[0].clientX - touches[1].clientX,
+      touches[0].clientY - touches[1].clientY
+    );
+  };
+
+  const handleTouchStart = useCallback((e: React.TouchEvent) => {
+    if (e.touches.length === 2) {
+      initialDistanceRef.current = getDistance(e.touches);
+    }
+  }, []);
+
+  const handleTouchMove = useCallback((e: React.TouchEvent) => {
+    if (e.touches.length === 2 && initialDistanceRef.current > 0) {
+      e.preventDefault();
+      
+      const currentDistance = getDistance(e.touches);
+      const newScale = currentDistance / initialDistanceRef.current;
+      const clampedScale = Math.max(minScale, Math.min(maxScale, newScale));
+      
+      setScale(clampedScale);
+      callback(clampedScale);
+    }
+  }, [callback, minScale, maxScale]);
+
+  const handleTouchEnd = useCallback(() => {
+    initialDistanceRef.current = 0;
+  }, []);
+
+  return {
+    scale,
+    handlers: {
+      onTouchStart: handleTouchStart,
+      onTouchMove: handleTouchMove,
+      onTouchEnd: handleTouchEnd,
+    },
+  };
+}
+
+// Hook for mobile haptic feedback (vibration)
+export function useHapticFeedback() {
+  const vibrate = useCallback((pattern: number | number[] = 10) => {
+    if ('vibrate' in navigator) {
+      navigator.vibrate(pattern);
+    }
+  }, []);
+
+  const light = useCallback(() => vibrate(10), [vibrate]);
+  const medium = useCallback(() => vibrate(20), [vibrate]);
+  const heavy = useCallback(() => vibrate(30), [vibrate]);
+  const success = useCallback(() => vibrate([10, 50, 10]), [vibrate]);
+  const error = useCallback(() => vibrate([30, 50, 30]), [vibrate]);
+
+  return {
+    vibrate,
+    light,
+    medium,
+    heavy,
+    success,
+    error,
+    isSupported: typeof navigator !== 'undefined' && 'vibrate' in navigator,
+  };
+}
+=== END FILE ===
+
+################################################################################
+# SECTION: APP CORE FILES
+################################################################################
+
+=== FILE: src/app/layout.tsx ===
+import type { Metadata } from "next";
+import { Inter } from "next/font/google";
+import localFont from "next/font/local";
+import "./globals.css";
+import { Toaster } from "@/components/ui/toaster";
+import { Providers } from "./providers";
+import { PWAInstallPrompt } from "@/components/pwa-install";
+
+const inter = Inter({
+  variable: "--font-inter",
+  subsets: ["latin"],
+  display: "swap",
+});
+
+const padauk = localFont({
+  src: [
+    {
+      path: "../../public/fonts/Padauk-Regular.ttf",
+      weight: "400",
+      style: "normal",
+    },
+    {
+      path: "../../public/fonts/Padauk-Bold.ttf",
+      weight: "700",
+      style: "normal",
+    },
+  ],
+  variable: "--font-padauk",
+  display: "swap",
+  fallback: ["Pyidaungsu", "sans-serif"],
+});
+
+export const metadata: Metadata = {
+  title: "ReferTRM - Myanmar's #1 Referral Hiring Platform",
+  description: "Refer friends, earn rewards. Connect talent with opportunities in Myanmar. သူငယ်ချင်းများကို ရည်ညွှန်းပါ၊ ဆုကြေးရယူပါ။",
+  keywords: ["ReferTRM", "Myanmar", "jobs", "referral", "hiring", "KPay", "Yangon", "အလုပ်", "ရည်ညွှန်း", "မြန်မာ"],
+  authors: [{ name: "Talent Solutions Myanmar" }],
+  icons: {
+    icon: [
+      { url: "/logo.svg", type: "image/svg+xml" },
+      { url: "/logo.png", sizes: "192x192", type: "image/png" },
+    ],
+    apple: [
+      { url: "/logo.png", sizes: "180x180", type: "image/png" },
+    ],
+  },
+  manifest: "/manifest.json",
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#14B8A6" },
+    { media: "(prefers-color-scheme: dark)", color: "#14B8A6" },
+  ],
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "black-translucent",
+    title: "ReferTRM",
+  },
+  formatDetection: {
+    telephone: false,
+  },
+  openGraph: {
+    title: "ReferTRM - Myanmar's #1 Referral Hiring Platform",
+    description: "Refer friends and earn up to 500,000 MMK via KPay. Companies pay only 50,000 MMK flat success fee.",
+    url: "https://refertrm.com",
+    siteName: "ReferTRM",
+    type: "website",
+    locale: "my_MM",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "ReferTRM - Myanmar's #1 Referral Hiring Platform",
+    description: "Refer friends and earn up to 500,000 MMK via KPay",
+  },
+};
+
+export default function RootLayout({
+  children,
+}: Readonly<{
+  children: React.ReactNode;
+}>) {
+  return (
+    <html lang="my" suppressHydrationWarning className="dark">
+      <head>
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+      </head>
+      <body
+        className={`${inter.variable} ${padauk.variable} antialiased bg-background text-foreground min-h-screen`}
+      >
+        <Providers>
+          {children}
+          <Toaster />
+          <PWAInstallPrompt />
+        </Providers>
+      </body>
+    </html>
+  );
+}
+=== END FILE ===
+
+=== FILE: src/app/page.tsx ===
+'use client';
+
+import { useState, useEffect } from 'react';
+import Link from 'next/link';
+import { motion } from 'framer-motion';
+import { 
+  Briefcase, Users, FileText, ArrowDown, Send, Star, Flame, Trophy, Sparkles, Menu, X,
+  Check, Building2, CreditCard, Crown, Zap, Target, Award, BookOpen, TrendingUp,
+  Globe, Shield, Heart, Cpu, Languages, Megaphone, DollarSign, BarChart3, Rocket, FileEdit,
+  Brain, MessageSquare, Wallet, ArrowUpRight
+} from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+
+const defaultStats = [
+  { icon: Briefcase, value: 'Loading...', label: 'Open Positions', labelMm: 'အလုပ်နေရာများ' },
+  { icon: Users, value: 'Loading...', label: 'Active Referrers', labelMm: 'ရည်ညွှန်းသူများ' },
+  { icon: Building2, value: '50+', label: 'Partner Companies', labelMm: 'မိတ်ဖက်ကုမ္ပဏီများ' },
+];
+
+// Trust signals - Company logos
+const trustedCompanies = [
+  'RK Yangon Steel', 'Universal Energy', 'NielsenIQ Myanmar', 
+  'Shwe Taung Htun', 'Sun Myat Tun', 'KBZ Life Insurance'
+];
+
+// Testimonials
+const testimonials = [
+  {
+    name: 'Thida A.',
+    role: 'HR Professional',
+    earned: '960,000 MMK',
+    text: 'I earned almost 10 lakhs in just 2 months by referring my network. The platform is super easy to use!',
+    textMm: 'နှစ်လအတွင်း ၁၀သိန်းနီးပါး ရရှိခဲ့ပါပြီ။ အသုံးပြုရလွယ်ကူပါတယ်။'
+  },
+  {
+    name: 'Myo K.',
+    role: 'Sales Executive',
+    earned: '720,000 MMK',
+    text: 'Best referral platform in Myanmar. Fast payouts via KPay and great job opportunities.',
+    textMm: 'မြန်မာနိုင်ငံ၏ အကောင်းဆုံး referral platform ပါ။ KPay ဖြင့် မြန်မြန်ဆန်ဆန် ပေးချေနိုင်ပါတယ်။'
+  },
+  {
+    name: 'Su L.',
+    role: 'University Student',
+    earned: '560,000 MMK',
+    text: 'As a student, this platform helped me earn while helping my friends find jobs. Win-win!',
+    textMm: 'ကျောင်းသားတစ်ဦးအနေဖြင့် သူငယ်ချင်းများကို အလုပ်ရှာပေးရင်း ငွေရရှိခဲ့ပါတယ်။'
+  },
+];
+
+const features = [
+  { icon: Trophy, title: 'Earn Real Money', titleMm: 'ငွေအမှန် ရှာပါ', desc: 'Up to 500,000 MMK per successful referral' },
+  { icon: Shield, title: 'Licensed Agency', titleMm: 'လိုင်စင်ရ အေဂျင်စီ', desc: 'Officially registered with Ministry of Labor' },
+  { icon: Star, title: 'Referrer Score', titleMm: 'ရည်ညွှန်းသူ ရမှက်', desc: 'Build reputation, unlock exclusive jobs' },
+  { icon: Award, title: 'Verified Badges', titleMm: 'အတည်ပြု ဘိတ်ချ်များ', desc: 'Get recognized for your achievements' },
+];
+
+// LinkedIn-style Professional Avatars
+const professionalAvatars = [
+  // Starter (Free)
+  { 
+    initials: 'JS', 
+    name: 'Job Seeker', 
+    title: 'Getting Started',
+    tier: 'starter', 
+    bgColor: 'bg-slate-600',
+    borderColor: 'border-slate-500',
+    badge: null
+  },
+  // Professional (5K pts)
+  { 
+    initials: 'RP', 
+    name: 'Referral Pro', 
+    title: 'Professional',
+    tier: 'professional', 
+    bgColor: 'bg-gradient-to-br from-teal-500 to-cyan-600',
+    borderColor: 'border-teal-400',
+    badge: 'verified'
+  },
+  // Expert (15K pts)
+  { 
+    initials: 'EX', 
+    name: 'Expert Recruiter', 
+    title: 'Expert',
+    tier: 'expert', 
+    bgColor: 'bg-gradient-to-br from-amber-500 to-yellow-500',
+    borderColor: 'border-amber-400',
+    badge: 'premium'
+  },
+  // Master (25K pts)
+  { 
+    initials: 'MR', 
+    name: 'Master Recruiter', 
+    title: 'Master',
+    tier: 'master', 
+    bgColor: 'bg-gradient-to-br from-purple-500 to-pink-500',
+    borderColor: 'border-purple-400',
+    badge: 'pro'
+  },
+];
+
+// Referrer Score System - Reputation Capital
+const referrerScoreLevels = [
+  { 
+    min: 80, 
+    max: 100, 
+    level: 'Elite Recruiter', 
+    levelMm: 'ထိပ်တန်း ရည်ညွှန်းသူ',
+    access: 'Exclusive high-paying jobs, priority support',
+    badge: 'gold',
+    color: 'from-amber-400 to-yellow-500'
+  },
+  { 
+    min: 60, 
+    max: 79, 
+    level: 'Pro Recruiter', 
+    levelMm: 'ပရို ရည်ညွှန်းသူ',
+    access: 'Standard job access, verified badge',
+    badge: 'blue',
+    color: 'from-teal-400 to-cyan-500'
+  },
+  { 
+    min: 40, 
+    max: 59, 
+    level: 'Active Referrer', 
+    levelMm: 'တက်ကြွသော ရည်ညွှန်းသူ',
+    access: 'Basic job access',
+    badge: 'gray',
+    color: 'from-slate-400 to-slate-500'
+  },
+  { 
+    min: 0, 
+    max: 39, 
+    level: 'Newcomer', 
+    levelMm: 'အသစ် ရည်ညွှန်းသူ',
+    access: 'Limited access, manual review required',
+    badge: null,
+    color: 'from-slate-600 to-slate-700'
+  },
+];
+
+// Trust indicators - Updated with Licensed Business
+const trustIndicators = [
+  { icon: Shield, label: 'Licensed Agency', value: 'Ministry of Labor', sublabel: 'Verified by MOL' },
+  { icon: Check, label: 'Successful Placements', value: '200+', sublabel: 'Candidates hired' },
+  { icon: DollarSign, label: 'Paid to Referrers', value: '15M+ MMK', sublabel: 'Total bonuses paid' },
+  { icon: Award, label: 'Replacement Warranty', value: '60-90 Days', sublabel: 'Free replacement' },
+];
+
+// B2B Pricing Plans - Job Posting Slots (NOT guaranteed hires - that's outcome, not what we sell)
+const b2bPlans = [
+  {
+    name: 'Starter',
+    nameMm: 'စတင်သူ',
+    price: 'Free',
+    period: 'Forever',
+    slots: '3 Job Slots',
+    features: ['3 active job postings', 'Basic job visibility', 'Email support', 'Standard listing', '1 week visibility per post'],
+    popular: false,
+    color: 'from-slate-500 to-slate-600',
+  },
+  {
+    name: 'Bronze',
+    nameMm: 'ကြေးနီ',
+    priceMonthly: '150K',
+    priceAnnual: '99K',
+    period: '/month',
+    periodAnnual: '/month (billed annually)',
+    slots: '5 Job Slots',
+    features: ['5 active job postings', 'Featured job listings', 'Priority support', 'Applicant tracking', 'Company branding', '2 week visibility per post'],
+    popular: false,
+    color: 'from-amber-600 to-orange-600',
+    annualNote: 'Save 34%',
+  },
+  {
+    name: 'Silver',
+    nameMm: 'ငွေ',
+    priceMonthly: '350K',
+    priceAnnual: '299K',
+    period: '/month',
+    periodAnnual: '/month (billed annually)',
+    slots: '15 Job Slots',
+    features: ['15 active job postings', 'Premium job listings', 'Dedicated account manager', 'Advanced analytics & reports', 'Bulk job posting', 'Social media promotion', '30 day visibility per post'],
+    popular: true,
+    color: 'from-gray-400 to-slate-500',
+    annualNote: 'Save 14%',
+  },
+  {
+    name: 'Gold',
+    nameMm: 'ရွှေ',
+    priceMonthly: '950K',
+    priceAnnual: '799K',
+    period: '/month',
+    periodAnnual: '/month (billed annually)',
+    slots: 'Unlimited Slots',
+    features: ['Unlimited job postings', 'Top of search results', '24/7 priority support', 'Full analytics dashboard', 'Custom branding', 'API access', 'Talent pool access', 'Salary market reports', 'Company profile premium'],
+    popular: false,
+    color: 'from-yellow-500 to-amber-500',
+    annualNote: 'Save 16%',
+  },
+  {
+    name: 'Diamond',
+    nameMm: 'စိန်',
+    price: 'Custom',
+    period: 'Enterprise',
+    slots: 'Unlimited+ Priority',
+    features: ['Negotiated pricing', 'Everything in Gold', 'White-label solution', 'Custom integrations', 'SLA guarantee', 'Dedicated success team', 'Training sessions', 'Exclusive salary data'],
+    popular: false,
+    color: 'from-cyan-400 to-teal-500',
+  },
+];
+
+// Monetization breakdown
+const monetizationExample = [
+  { reward: '100,000', platform: '20,000', referrer: '80,000' },
+  { reward: '200,000', platform: '40,000', referrer: '160,000' },
+  { reward: '300,000', platform: '60,000', referrer: '240,000' },
+  { reward: '500,000', platform: '100,000', referrer: '400,000' },
+];
+
+// Premium plans for users - Affordable for Myanmar market
+const userPlans = [
+  {
+    name: 'Free',
+    nameMm: 'အခမဲ့',
+    price: '0',
+    features: ['Basic job access', 'Limited academy courses', 'Standard referral code', 'Basic avatar'],
+    popular: false,
+  },
+  {
+    name: 'Premium',
+    nameMm: 'ပရီမီယံ',
+    price: '5,000',
+    period: 'MMK/month',
+    features: ['All job access', 'Full academy access', 'Priority referral matching', 'Premium avatars', 'Double points', 'Early job alerts'],
+    popular: true,
+  },
+  {
+    name: 'Pro',
+    nameMm: 'ပရို',
+    price: '15,000',
+    period: 'MMK/month',
+    features: ['Everything in Premium', 'Exclusive high-reward jobs', 'Personal referral coach', 'VIP badge', 'Triple points', 'First access to new features', 'Diploma discounts'],
+    popular: false,
+  },
+];
+
+// Job and Lead interfaces
+interface Job {
+  id: string;
+  title: string;
+  title_mm?: string;
+  company: string;
+  location?: string;
+  salary?: string;
+  reward: number;
+  urgent?: boolean;
+  skills?: string[];
+  level?: string;
+}
+
+// Live Jobs Display Component - Shows real jobs from Supabase
+function LiveJobsSection() {
+  const [jobs, setJobs] = useState<Job[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function fetchJobs() {
+      try {
+        const res = await fetch('/api/supabase/jobs?limit=8');
+        const data = await res.json();
+        setJobs(data.jobs || []);
+      } catch (error) {
+        console.error('Error fetching jobs:', error);
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchJobs();
+  }, []);
+
+  if (loading) {
+    return (
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        {[...Array(4)].map((_, i) => (
+          <div key={i} className="glass-card p-5 animate-pulse">
+            <div className="h-4 bg-slate-700 rounded w-3/4 mb-3"></div>
+            <div className="h-3 bg-slate-700 rounded w-1/2 mb-4"></div>
+            <div className="h-6 bg-slate-700 rounded w-full mb-3"></div>
+            <div className="flex gap-2">
+              <div className="h-5 bg-slate-700 rounded w-16"></div>
+              <div className="h-5 bg-slate-700 rounded w-12"></div>
+            </div>
+          </div>
+        ))}
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      {/* Jobs Grid - Enhanced Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
+        {jobs.slice(0, 8).map((job, index) => (
+          <motion.div
+            key={job.id || index}
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: index * 0.08 }}
+            whileHover={{ y: -6, transition: { duration: 0.2 } }}
+            className="relative group cursor-pointer"
+          >
+            {/* Card Background with gradient border effect */}
+            <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-teal-500/20 via-transparent to-amber-500/10 opacity-0 group-hover:opacity-100 transition-opacity blur-xl" />
+            
+            <div className="relative glass-card p-0 overflow-hidden rounded-2xl border border-white/5 group-hover:border-teal-500/30 transition-all">
+              {/* Top Section - Company Header */}
+              <div className="px-5 pt-5 pb-3 bg-gradient-to-b from-slate-800/50 to-transparent">
+                {/* Urgent Badge */}
+                {job.urgent && (
+                  <div className="absolute top-0 right-0">
+                    <div className="bg-gradient-to-l from-red-500 to-red-600 text-white text-[10px] font-bold px-3 py-1.5 rounded-bl-xl flex items-center gap-1 shadow-lg">
+                      <Flame className="h-3 w-3" />
+                      URGENT
+                    </div>
+                  </div>
+                )}
+                
+                {/* Company Badge */}
+                <div className="flex items-center gap-3 mb-3">
+                  <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-teal-500/20 to-cyan-500/20 border border-teal-500/20 flex items-center justify-center">
+                    <Building2 className="h-5 w-5 text-teal-400" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-slate-400 text-xs truncate">{job.company}</p>
+                    {job.location && (
+                      <div className="flex items-center gap-1 text-xs text-slate-500">
+                        <Briefcase className="h-3 w-3" />
+                        <span className="truncate">{job.location}</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+                
+                {/* Job Title */}
+                <h4 className="font-bold text-white group-hover:text-teal-400 transition-colors text-base mb-1 line-clamp-2 leading-tight">
+                  {job.title}
+                </h4>
+                {job.title_mm && (
+                  <p className="text-slate-500 text-xs burmese-text mb-2 line-clamp-1">{job.title_mm}</p>
+                )}
+              </div>
+              
+              {/* Middle Section - Salary & Skills */}
+              <div className="px-5 py-3 border-y border-white/5 bg-slate-800/20">
+                {/* Salary */}
+                {job.salary && (
+                  <div className="flex items-center gap-2 text-sm mb-2">
+                    <span className="text-slate-500">💰</span>
+                    <span className="text-slate-200 font-medium">{job.salary}</span>
+                  </div>
+                )}
+                
+                {/* Skills Tags */}
+                {job.skills && job.skills.length > 0 && (
+                  <div className="flex flex-wrap gap-1.5">
+                    {job.skills.slice(0, 2).map((skill, i) => (
+                      <span 
+                        key={i}
+                        className="px-2 py-0.5 text-[10px] rounded-full bg-slate-700/50 text-slate-300 border border-slate-600/30"
+                      >
+                        {skill}
+                      </span>
+                    ))}
+                    {job.skills.length > 2 && (
+                      <span className="px-2 py-0.5 text-[10px] rounded-full bg-teal-500/10 text-teal-400 border border-teal-500/20">
+                        +{job.skills.length - 2} more
+                      </span>
+                    )}
+                  </div>
+                )}
+              </div>
+              
+              {/* Bottom Section - Reward & CTA */}
+              <div className="px-5 py-4">
+                {/* Reward Display */}
+                <div className="flex items-center justify-between mb-4">
+                  <div className="text-center">
+                    <div className="text-[10px] text-slate-500 uppercase tracking-wide mb-1">Total Reward</div>
+                    <div className="text-amber-400 font-bold text-lg">
+                      {(job.reward || 0).toLocaleString()}
+                      <span className="text-xs text-slate-400 ml-1">MMK</span>
+                    </div>
+                  </div>
+                  <div className="w-px h-10 bg-white/10" />
+                  <div className="text-center">
+                    <div className="text-[10px] text-slate-500 uppercase tracking-wide mb-1">You Keep</div>
+                    <div className="text-teal-400 font-bold text-lg">
+                      {Math.round((job.reward || 0) * 0.8).toLocaleString()}
+                      <span className="text-xs text-slate-400 ml-1">MMK</span>
+                    </div>
+                  </div>
+                </div>
+                
+                {/* Refer Button */}
+                <Link href="/register">
+                  <button className="w-full py-3 rounded-xl bg-gradient-to-r from-teal-500 to-cyan-500 hover:from-teal-600 hover:to-cyan-600 text-white text-sm font-medium transition-all flex items-center justify-center gap-2 group-hover:shadow-lg group-hover:shadow-teal-500/25 active:scale-[0.98]">
+                    <Send className="h-4 w-4" />
+                    Refer & Earn
+                    <ArrowUpRight className="h-3.5 w-3.5 ml-0.5 opacity-0 group-hover:opacity-100 transition-opacity" />
+                  </button>
+                </Link>
+              </div>
+            </div>
+          </motion.div>
+        ))}
+      </div>
+
+      {/* View All Jobs */}
+      <div className="flex justify-center pt-4">
+        <Link href="/dashboard/jobs">
+          <button className="inline-flex items-center gap-2 px-8 py-4 rounded-xl bg-gradient-to-r from-slate-800 to-slate-700 border border-white/10 hover:border-teal-500/40 text-slate-200 hover:text-white transition-all shadow-lg hover:shadow-teal-500/10">
+            <Briefcase className="h-5 w-5 text-teal-400" />
+            <span>View All Available Jobs</span>
+            <ArrowUpRight className="h-4 w-4 text-teal-400" />
+          </button>
+        </Link>
+      </div>
+    </div>
+  );
+}
+
+export default function HomePage() {
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState<'referrer' | 'company'>('referrer');
+  const [stats, setStats] = useState(defaultStats);
+  const [isLoading, setIsLoading] = useState(true);
+
+  // Fetch real stats from Supabase
+  useEffect(() => {
+    async function fetchStats() {
+      try {
+        const response = await fetch('/api/stats');
+        const data = await response.json();
+        
+        if (data.success) {
+          setStats([
+            { icon: Briefcase, value: `${data.stats.jobs}+`, label: 'Open Positions', labelMm: 'အလုပ်နေရာများ' },
+            { icon: Users, value: '150+', label: 'Active Referrers', labelMm: 'ရည်ညွှန်းသူများ' },
+            { icon: Building2, value: '50+', label: 'Partner Companies', labelMm: 'မိတ်ဖက်ကုမ္ပဏီများ' },
+          ]);
+        }
+      } catch (error) {
+        console.error('Failed to fetch stats:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    }
+    fetchStats();
+  }, []);
+
+  return (
+    <div className="min-h-screen bg-background">
+      {/* Navigation */}
+      <nav className="fixed top-0 left-0 right-0 z-50 backdrop-blur-xl bg-slate-900/80 border-b border-white/5">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex items-center justify-between h-16">
+            {/* Logo */}
+            <Link href="/" className="flex flex-col items-start gap-0">
+              <div className="flex items-center gap-2">
+                <img src="/logo.png" alt="ReferTRM Logo" className="h-10 w-auto rounded-lg" />
+                <span className="text-lg font-bold">
+                  <span className="text-teal-400">Refer</span>
+                  <span className="text-white">TRM</span>
+                </span>
+              </div>
+              <span className="text-[10px] text-teal-400/80 flex items-center gap-1 ml-12">
+                Made with <Heart className="w-3 h-3 text-red-400 inline" fill="currentColor" /> in Myanmar <span className="text-slate-500">(မြန်မာပြည်)</span>
+              </span>
+            </Link>
+
+            {/* Desktop Nav */}
+            <div className="hidden md:flex items-center gap-6">
+              <Link href="/dashboard" className="text-slate-300 hover:text-white transition-colors">Dashboard</Link>
+              <Link href="/dashboard/jobs" className="text-slate-300 hover:text-white transition-colors">Jobs</Link>
+              <Link href="/dashboard/academy" className="text-slate-300 hover:text-white transition-colors">Academy</Link>
+              <Link href="/company" className="text-slate-300 hover:text-white transition-colors">For Companies</Link>
+              <Link href="/login" className="btn-primary text-sm">
+                Get Started
+              </Link>
+            </div>
+
+            {/* Mobile Menu Button */}
+            <button onClick={() => setMobileMenuOpen(!mobileMenuOpen)} className="md:hidden text-slate-400">
+              {mobileMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
+            </button>
+          </div>
+        </div>
+
+        {/* Mobile Menu */}
+        {mobileMenuOpen && (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="md:hidden bg-slate-900 border-b border-white/5">
+            <div className="px-4 py-4 space-y-3">
+              <Link href="/dashboard" className="block text-slate-300 hover:text-white">Dashboard</Link>
+              <Link href="/dashboard/jobs" className="block text-slate-300 hover:text-white">Jobs</Link>
+              <Link href="/dashboard/academy" className="block text-slate-300 hover:text-white">Academy</Link>
+              <Link href="/company" className="block text-slate-300 hover:text-white">For Companies</Link>
+              <Link href="/login" className="block btn-primary text-center text-sm">Get Started</Link>
+            </div>
+          </motion.div>
+        )}
+      </nav>
+
+      {/* Hero Section */}
+      <section className="relative min-h-screen flex items-center justify-center pt-20 overflow-hidden">
+        {/* Background Effects */}
+        <div className="absolute inset-0">
+          <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-teal-500/20 rounded-full blur-3xl" />
+          <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-amber-500/10 rounded-full blur-3xl" />
+        </div>
+
+        <div className="relative z-10 max-w-5xl mx-auto px-4 text-center">
+          {/* Badge */}
+          <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/5 border border-white/10 mb-8">
+            <span className="w-2 h-2 bg-teal-400 rounded-full animate-pulse" />
+            <span className="text-sm text-slate-300">Trusted Referral Hiring Platform for Myanmar</span>
+          </motion.div>
+
+          {/* Main Title */}
+          <motion.h1 initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="text-4xl md:text-6xl lg:text-7xl font-bold mb-6">
+            <span className="text-gradient-primary">Refer Friends.</span>
+            <br />
+            <span className="text-gradient-secondary">Earn Rewards.</span>
+          </motion.h1>
+
+          {/* Subtitle */}
+          <motion.p initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="text-xl text-slate-300 mb-4">
+            Earn up to <span className="text-amber-400 font-bold">500,000 MMK</span> per successful referral
+          </motion.p>
+          <motion.p initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }} className="text-slate-400 mb-2">
+            via KPay • Up to 80% to you • Platform takes only 20-30%
+          </motion.p>
+          <motion.p initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }} className="text-slate-500 burmese-text mb-8">
+            သူငယ်ချင်းများကို ရည်ညွှန်းပါ • KPay မှတဆင့် ကျပ် ၅သိန်းထိ ရရှိပါ • ၈၀% သင့်ထံ
+          </motion.p>
+
+          {/* CTA Buttons */}
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.5 }} className="flex flex-col sm:flex-row gap-4 justify-center mb-12">
+            <Link href="/register">
+              <Button size="lg" className="btn-primary text-lg px-8 py-6">
+                <Briefcase className="mr-2 h-5 w-5" />
+                Start Earning Now
+              </Button>
+            </Link>
+            <Link href="/dashboard/jobs">
+              <Button size="lg" className="btn-secondary text-lg px-8 py-6">
+                <Send className="mr-2 h-5 w-5" />
+                Browse Jobs
+              </Button>
+            </Link>
+          </motion.div>
+
+          {/* Trust Stats - Real Data */}
+          <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.6 }} className="grid grid-cols-1 sm:grid-cols-3 gap-4 max-w-3xl mx-auto">
+            {stats.map((stat, index) => (
+              <motion.div key={stat.label} initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.7 + index * 0.1 }} className="glass-card p-5 text-center">
+                <stat.icon className="h-7 w-7 text-teal-400 mx-auto mb-2" />
+                <div className="text-2xl font-bold text-white">{stat.value}</div>
+                <div className="text-slate-300 text-sm">{stat.label}</div>
+                <div className="text-slate-500 text-xs burmese-text">{stat.labelMm}</div>
+              </motion.div>
+            ))}
+          </motion.div>
+        </div>
+      </section>
+
+      {/* Monetization Model Section */}
+      <section className="py-20 px-4 bg-gradient-to-b from-slate-900 to-slate-950">
+        <div className="max-w-6xl mx-auto">
+          <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} className="text-center mb-12">
+            <h2 className="text-3xl md:text-4xl font-bold mb-4">
+              {activeTab === 'referrer' ? (
+                <>
+                  <span className="text-white">How You </span>
+                  <span className="text-gradient-primary">Earn Money</span>
+                </>
+              ) : (
+                <>
+                  <span className="text-white">Access </span>
+                  <span className="text-gradient-primary">Top Talent</span>
+                  <span className="text-white"> Fast</span>
+                </>
+              )}
+            </h2>
+            <p className="text-slate-400 burmese-text">
+              {activeTab === 'referrer' 
+                ? 'သင်မည်ကဲ့သို့ ငွေရရှိမည်နည်း'
+                : 'အရည်အချင်းများကို မြန်ဆန်စွာ ရှာဖွေပါ'}
+            </p>
+          </motion.div>
+
+          {/* Tab Switcher */}
+          <div className="flex justify-center mb-8">
+            <div className="inline-flex rounded-xl bg-slate-800 p-1">
+              <button
+                onClick={() => setActiveTab('referrer')}
+                className={`px-6 py-3 rounded-lg font-medium transition-all ${activeTab === 'referrer' ? 'bg-teal-500 text-white' : 'text-slate-400 hover:text-white'}`}
+              >
+                For Referrers
+              </button>
+              <button
+                onClick={() => setActiveTab('company')}
+                className={`px-6 py-3 rounded-lg font-medium transition-all ${activeTab === 'company' ? 'bg-teal-500 text-white' : 'text-slate-400 hover:text-white'}`}
+              >
+                For Companies
+              </button>
+            </div>
+          </div>
+
+          {activeTab === 'referrer' ? (
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-8">
+              {/* Revenue Split */}
+              <div className="glass-card p-8 text-center">
+                <h3 className="text-2xl font-bold text-white mb-6">Revenue Split: You Keep Up to 80%!</h3>
+                <p className="text-slate-400 mb-8 burmese-text">ဝင်ငွေခွဲမျူမှု: သင် ၈၀% ထိ ရယူနိုင်သည်!</p>
+                
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+                  {monetizationExample.map((item, index) => (
+                    <div key={index} className="p-4 rounded-xl bg-slate-800/50 border border-white/5">
+                      <div className="text-amber-400 font-bold text-lg mb-2">{item.reward} MMK</div>
+                      <div className="text-slate-500 text-xs mb-3">Company Reward</div>
+                      <div className="flex justify-between text-sm">
+                        <div>
+                          <div className="text-teal-400 font-bold">{item.referrer}</div>
+                          <div className="text-slate-500 text-xs">You (80%)</div>
+                        </div>
+                        <div>
+                          <div className="text-slate-400 font-bold">{item.platform}</div>
+                          <div className="text-slate-500 text-xs">Platform (20%)</div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="flex items-center justify-center gap-8 text-sm">
+                  <div className="flex items-center gap-2">
+                    <div className="w-4 h-4 rounded bg-teal-500"></div>
+                    <span className="text-slate-300">Your Earnings (70-80%)</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="w-4 h-4 rounded bg-slate-600"></div>
+                    <span className="text-slate-300">Platform Fee (20-30%)</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* How It Works */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div className="glass-card p-6 text-center">
+                  <div className="w-16 h-16 rounded-full bg-gradient-to-r from-teal-500 to-cyan-500 flex items-center justify-center mx-auto mb-4">
+                    <Users className="h-8 w-8 text-white" />
+                  </div>
+                  <h4 className="text-lg font-bold text-white mb-2">1. Share Jobs</h4>
+                  <p className="text-slate-400 text-sm">Share job opportunities with qualified candidates using your referral code</p>
+                </div>
+                <div className="glass-card p-6 text-center">
+                  <div className="w-16 h-16 rounded-full bg-gradient-to-r from-amber-500 to-orange-500 flex items-center justify-center mx-auto mb-4">
+                    <Target className="h-8 w-8 text-white" />
+                  </div>
+                  <h4 className="text-lg font-bold text-white mb-2">2. Candidate Gets Hired</h4>
+                  <p className="text-slate-400 text-sm">When your referred candidate successfully gets the job</p>
+                </div>
+                <div className="glass-card p-6 text-center">
+                  <div className="w-16 h-16 rounded-full bg-gradient-to-r from-teal-500 to-cyan-500 flex items-center justify-center mx-auto mb-4">
+                    <CreditCard className="h-8 w-8 text-white" />
+                  </div>
+                  <h4 className="text-lg font-bold text-white mb-2">3. Get Paid!</h4>
+                  <p className="text-slate-400 text-sm">Receive up to 80% of the reward directly to your KPay wallet</p>
+                </div>
+              </div>
+            </motion.div>
+          ) : (
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+              {/* Company Pricing */}
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+                {b2bPlans.map((plan, index) => (
+                  <div
+                    key={index}
+                    className={`glass-card p-6 relative ${plan.popular ? 'ring-2 ring-teal-500 scale-105' : ''}`}
+                  >
+                    {plan.popular && (
+                      <div className="absolute -top-3 left-1/2 -translate-x-1/2">
+                        <Badge className="bg-teal-500 text-white">Most Popular</Badge>
+                      </div>
+                    )}
+                    {plan.annualNote && (
+                      <div className="absolute -top-3 right-2">
+                        <Badge className="bg-teal-500/20 text-teal-400 text-xs">{plan.annualNote}</Badge>
+                      </div>
+                    )}
+                    <div className={`text-xl font-bold bg-gradient-to-r ${plan.color} bg-clip-text text-transparent mb-1`}>
+                      {plan.name}
+                    </div>
+                    <div className="text-slate-500 text-xs burmese-text mb-4">{plan.nameMm}</div>
+                    
+                    {/* Pricing - show annual vs monthly */}
+                    {plan.price ? (
+                      <div>
+                        <div className="text-3xl font-bold text-white mb-1">{plan.price}</div>
+                        <div className="text-slate-500 text-sm mb-4">{plan.period}</div>
+                      </div>
+                    ) : (
+                      <div>
+                        <div className="flex items-baseline gap-2 mb-1">
+                          <span className="text-3xl font-bold text-white">{plan.priceAnnual}</span>
+                          <span className="text-slate-500 text-sm line-through">{plan.priceMonthly}</span>
+                        </div>
+                        <div className="text-teal-400 text-xs mb-2">{plan.periodAnnual}</div>
+                        <div className="text-slate-500 text-sm mb-4">or {plan.priceMonthly}{plan.period}</div>
+                      </div>
+                    )}
+                    
+                    <div className="text-teal-400 text-sm font-medium mb-4">{plan.slots}</div>
+                    <ul className="space-y-2">
+                      {plan.features.map((feature, i) => (
+                        <li key={i} className="flex items-start gap-2 text-sm text-slate-400">
+                          <Check className="h-4 w-4 text-teal-400 shrink-0 mt-0.5" />
+                          {feature}
+                        </li>
+                      ))}
+                    </ul>
+                    <Link href="/company" className="block mt-6">
+                      <Button className={`w-full ${plan.popular ? 'btn-primary' : 'btn-secondary'}`}>
+                        Get Started
+                      </Button>
+                    </Link>
+                  </div>
+                ))}
+              </div>
+              
+              {/* Annual Pricing Note */}
+              <div className="mt-8 text-center">
+                <div className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-teal-500/10 border border-teal-500/20">
+                  <Check className="h-4 w-4 text-teal-400" />
+                  <span className="text-teal-400 text-sm">Save up to 34% with annual billing</span>
+                </div>
+              </div>
+            </motion.div>
+          )}
+        </div>
+      </section>
+
+      {/* Premium Subscription Section */}
+      <section className="py-20 px-4">
+        <div className="max-w-4xl mx-auto">
+          <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} className="text-center mb-12">
+            <Crown className="h-12 w-12 text-amber-400 mx-auto mb-4" />
+            <h2 className="text-3xl md:text-4xl font-bold mb-4">
+              <span className="text-white">Premium </span>
+              <span className="text-gradient-primary">Membership</span>
+            </h2>
+            <p className="text-slate-400 burmese-text">အဆင့်မြင့်အသင်းဝင် - ပိုမိုအခွင့်အလမ်းများ</p>
+          </motion.div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {userPlans.map((plan, index) => (
+              <div
+                key={index}
+                className={`glass-card p-6 ${plan.popular ? 'ring-2 ring-teal-500 relative' : ''}`}
+              >
+                {plan.popular && (
+                  <div className="absolute -top-3 left-1/2 -translate-x-1/2">
+                    <Badge className="bg-teal-500 text-white">Recommended</Badge>
+                  </div>
+                )}
+                <div className="text-xl font-bold text-white mb-1">{plan.name}</div>
+                <div className="text-slate-500 text-xs burmese-text mb-4">{plan.nameMm}</div>
+                <div className="flex items-baseline gap-1 mb-4">
+                  <span className="text-3xl font-bold text-white">{plan.price}</span>
+                  {plan.period && <span className="text-slate-500 text-sm">{plan.period}</span>}
+                </div>
+                <ul className="space-y-2 mb-6">
+                  {plan.features.map((feature, i) => (
+                    <li key={i} className="flex items-start gap-2 text-sm text-slate-400">
+                      <Check className="h-4 w-4 text-teal-400 shrink-0 mt-0.5" />
+                      {feature}
+                    </li>
+                  ))}
+                </ul>
+                <Link href="/register">
+                  <Button className={`w-full ${plan.popular ? 'btn-primary' : 'btn-secondary'}`}>
+                    {plan.price === '0' ? 'Get Started Free' : 'Subscribe Now'}
+                  </Button>
+                </Link>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Features Section */}
+      <section className="py-20 px-4">
+        <div className="max-w-6xl mx-auto">
+          <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} className="text-center mb-12">
+            <h2 className="text-3xl md:text-4xl font-bold mb-4">
+              <span className="text-white">Why Choose </span>
+              <span className="text-gradient-primary">ReferTRM?</span>
+            </h2>
+            <p className="text-slate-400 burmese-text">ReferTRM ကို ဘာကြောင့် ရွေးချယ်သင့်သလဲ</p>
+          </motion.div>
+
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            {features.map((feature, index) => (
+              <motion.div key={index} initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: index * 0.1 }}>
+                <div className="glass-card p-4 md:p-6 text-center h-full group hover:border-amber-500/30 transition-all">
+                  <div className="w-12 h-12 md:w-14 md:h-14 rounded-xl bg-gradient-to-r from-amber-500/20 to-yellow-500/20 flex items-center justify-center mx-auto mb-3 md:mb-4 group-hover:scale-110 transition-transform">
+                    <feature.icon className="h-6 w-6 md:h-7 md:w-7 text-amber-400" />
+                  </div>
+                  <h3 className="text-base md:text-lg font-bold text-white mb-1">{feature.title}</h3>
+                  <p className="text-slate-500 text-xs md:text-sm burmese-text mb-2">{feature.titleMm}</p>
+                  <p className="text-slate-400 text-xs md:text-sm">{feature.desc}</p>
+                </div>
+              </motion.div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Referrer Score & Professional Profiles Section */}
+      <section className="py-16 md:py-20 px-4 bg-gradient-to-b from-slate-900 via-slate-950 to-slate-900">
+        <div className="max-w-6xl mx-auto">
+          {/* Referrer Score System */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            className="text-center mb-12"
+          >
+            <Badge className="bg-amber-500/20 text-amber-400 mb-4">📊 Reputation System</Badge>
+            <h2 className="text-2xl md:text-4xl font-bold mb-4">
+              <span className="text-white">Referrer </span>
+              <span className="text-gradient-primary">Score</span>
+            </h2>
+            <p className="text-slate-400 mb-2">Build your reputation, unlock exclusive opportunities</p>
+            <p className="text-slate-500 burmese-text text-sm">သင့်ကျော်ကြားမှုကို တည်ဆောက်ပါ - အထူးအခွင့်အလမ်းများ ရယူပါ</p>
+          </motion.div>
+
+          {/* Score Levels */}
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-12">
+            {referrerScoreLevels.map((level, index) => (
+              <motion.div
+                key={index}
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: index * 0.1 }}
+                className="glass-card p-6 text-center"
+              >
+                {/* Score Badge */}
+                <div className={`inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gradient-to-r ${level.color} mb-4`}>
+                  {level.badge === 'gold' && <Crown className="h-4 w-4 text-slate-900" />}
+                  {level.badge === 'blue' && <Check className="h-4 w-4 text-white" />}
+                  <span className="font-bold text-white">{level.min}-{level.max}</span>
+                </div>
+                
+                <h3 className="text-lg font-bold text-white mb-1">{level.level}</h3>
+                <p className="text-slate-500 text-xs burmese-text mb-3">{level.levelMm}</p>
+                
+                {/* Access Level */}
+                <div className="p-3 rounded-lg bg-slate-800/50">
+                  <p className="text-slate-300 text-sm">{level.access}</p>
+                </div>
+              </motion.div>
+            ))}
+          </div>
+
+          {/* Professional Avatar Preview - LinkedIn Style */}
+          <div className="glass-card p-6 md:p-8">
+            <h3 className="text-xl font-bold text-white mb-6 text-center">
+              Professional Profile Levels
+              <span className="text-slate-500 text-sm font-normal ml-2">(LinkedIn-style)</span>
+            </h3>
+            
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+              {professionalAvatars.map((avatar, index) => (
+                <motion.div
+                  key={index}
+                  initial={{ opacity: 0, y: 10 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ delay: index * 0.1 }}
+                  className="text-center"
+                >
+                  {/* Avatar Circle */}
+                  <div className="relative inline-block mb-3">
+                    <div className={`w-20 h-20 md:w-24 md:h-24 rounded-full ${avatar.bgColor} border-4 ${avatar.borderColor} flex items-center justify-center shadow-xl`}>
+                      <span className="text-2xl md:text-3xl font-bold text-white">{avatar.initials}</span>
+                    </div>
+                    
+                    {/* Badge */}
+                    {avatar.badge && (
+                      <div className="absolute -bottom-1 -right-1 w-7 h-7 rounded-full bg-white flex items-center justify-center shadow-lg">
+                        {avatar.badge === 'verified' && <Check className="h-4 w-4 text-teal-500" />}
+                        {avatar.badge === 'premium' && <Star className="h-4 w-4 text-amber-500 fill-amber-500" />}
+                        {avatar.badge === 'pro' && <Crown className="h-4 w-4 text-amber-500" />}
+                      </div>
+                    )}
+                  </div>
+                  
+                  <h4 className="text-white font-bold">{avatar.name}</h4>
+                  <p className="text-slate-400 text-sm">{avatar.title}</p>
+                  
+                  {/* Tier Badge */}
+                  <Badge className={`mt-2 ${avatar.tier === 'master' ? 'bg-purple-500/20 text-purple-400' : avatar.tier === 'expert' ? 'bg-amber-500/20 text-amber-400' : avatar.tier === 'professional' ? 'bg-teal-500/20 text-teal-400' : 'bg-slate-500/20 text-slate-400'}`}>
+                    {avatar.tier.charAt(0).toUpperCase() + avatar.tier.slice(1)}
+                  </Badge>
+                </motion.div>
+              ))}
+            </div>
+            
+            {/* Legend */}
+            <div className="mt-8 pt-6 border-t border-white/5">
+              <div className="flex flex-wrap justify-center gap-6">
+                <div className="flex items-center gap-2">
+                  <div className="w-6 h-6 rounded-full bg-white flex items-center justify-center">
+                    <Check className="h-3 w-3 text-teal-500" />
+                  </div>
+                  <span className="text-slate-300 text-sm">Verified Badge</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-6 h-6 rounded-full bg-white flex items-center justify-center">
+                    <Star className="h-3 w-3 text-amber-500 fill-amber-500" />
+                  </div>
+                  <span className="text-slate-300 text-sm">Premium Badge</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-6 h-6 rounded-full bg-white flex items-center justify-center">
+                    <Crown className="h-3 w-3 text-amber-500" />
+                  </div>
+                  <span className="text-slate-300 text-sm">Pro Badge (Gold)</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Academy Preview Section */}
+      <section className="py-20 px-4 bg-gradient-to-b from-slate-950 to-slate-900">
+        <div className="max-w-6xl mx-auto">
+          <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} className="text-center mb-12">
+            <BookOpen className="h-12 w-12 text-teal-400 mx-auto mb-4" />
+            <h2 className="text-3xl md:text-4xl font-bold mb-4">
+              <span className="text-white">Learning </span>
+              <span className="text-gradient-primary">Academy</span>
+            </h2>
+            <p className="text-slate-400 burmese-text mb-2">သင်ကြားရေးအကယ်ဒမီ</p>
+            <p className="text-slate-500 text-sm">10+ Courses • 80+ Modules • Free Certificates</p>
+          </motion.div>
+
+          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4">
+            {[
+              { name: 'AI & Technology', nameMm: 'AI နှင့်နည်းပညာ', Icon: Cpu, color: 'from-violet-600 to-indigo-600' },
+              { name: 'English Language', nameMm: 'အင်္ဂလိပ်ဘာသာ', Icon: Languages, color: 'from-blue-600 to-cyan-600' },
+              { name: 'Digital Marketing', nameMm: 'ဒစ်ဂျစ်တယ်မာကeting်ကင်း', Icon: Megaphone, color: 'from-pink-600 to-rose-600' },
+              { name: 'Business Skills', nameMm: 'စီးပွားရေးကျွမ်းကျင်မှု', Icon: Briefcase, color: 'from-amber-600 to-orange-600' },
+              { name: 'Job Interview', nameMm: 'အလုပ်အင်တာဗျူး', Icon: MessageSquare, color: 'from-emerald-600 to-green-600' },
+              { name: 'Financial Literacy', nameMm: 'ဘဏ္ဍာရေးဗဟုသုတ', Icon: Wallet, color: 'from-amber-600 to-yellow-600' },
+              { name: 'Microsoft Office', nameMm: 'Microsoft Office', Icon: BarChart3, color: 'from-blue-600 to-indigo-600' },
+              { name: 'Entrepreneurship', nameMm: 'စီးပွားရေးလုပ်ငန်း', Icon: Rocket, color: 'from-red-600 to-orange-600' },
+              { name: 'Soft Skills', nameMm: 'ဆော့စကီးလ်များ', Icon: Brain, color: 'from-teal-600 to-cyan-600' },
+              { name: 'Resume Writing', nameMm: 'Resume ရေးသားခြင်း', Icon: FileEdit, color: 'from-slate-600 to-gray-600' },
+            ].map((course, index) => (
+              <motion.div
+                key={index}
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: index * 0.05 }}
+                className="glass-card p-4 text-center hover:border-teal-500/30 transition-all cursor-pointer group"
+              >
+                <div className={`w-12 h-12 rounded-xl bg-gradient-to-r ${course.color} flex items-center justify-center mx-auto mb-3 group-hover:scale-110 transition-transform`}>
+                  <course.Icon className="w-6 h-6 text-white" />
+                </div>
+                <div className="text-sm font-medium text-white">{course.name}</div>
+                <div className="text-xs text-slate-500 burmese-text">{course.nameMm}</div>
+                <Badge variant="outline" className="mt-2 border-white/10 text-slate-400 text-xs">8 Modules</Badge>
+              </motion.div>
+            ))}
+          </div>
+
+          <div className="text-center mt-8">
+            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-teal-500/10 border border-teal-500/20 mb-4">
+              <Award className="h-4 w-4 text-teal-400" />
+              <span className="text-teal-400 text-sm">100% Free - No hidden fees</span>
+            </div>
+            <p className="text-slate-400 text-sm mb-4">
+              Complete courses to earn certificates • Diploma programs coming soon!
+            </p>
+            <Link href="/dashboard/academy">
+              <Button className="btn-primary">
+                <BookOpen className="mr-2 h-4 w-4" />
+                Start Learning Free
+              </Button>
+            </Link>
+          </div>
+        </div>
+      </section>
+
+      {/* Licensed Agency Section */}
+      <section className="py-16 px-4 bg-gradient-to-b from-slate-950 to-slate-900">
+        <div className="max-w-6xl mx-auto">
+          <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} className="text-center mb-12">
+            <div className="inline-flex items-center gap-3 px-6 py-3 rounded-2xl bg-amber-500/10 border border-amber-500/30 mb-6">
+              <Shield className="h-6 w-6 text-amber-400" />
+              <span className="text-amber-400 font-bold">LICENSED RECRUITMENT AGENCY</span>
+              <Badge className="bg-green-500/20 text-green-400 text-xs">✓ Verified</Badge>
+            </div>
+            <h2 className="text-3xl md:text-4xl font-bold mb-4">
+              <span className="text-white">Talent Resources </span>
+              <span className="text-gradient-primary">Myanmar (TRM)</span>
+            </h2>
+            <p className="text-slate-300 text-lg mb-2">Officially Licensed by Ministry of Labor, Myanmar</p>
+            <p className="text-slate-500 burmese-text">ဝန်ကြီးဌာနမှ တရားဝင်လိုင်စင်ရ အလုပ်အမှုဆောင်ရွက်ခွင့်လိုင်စင်</p>
+          </motion.div>
+          
+          {/* License Info Card */}
+          <div className="glass-card p-6 md:p-8 max-w-4xl mx-auto">
+            <div className="grid md:grid-cols-2 gap-8">
+              <div>
+                <h3 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
+                  <Check className="h-5 w-5 text-green-400" />
+                  Why Trust TRM?
+                </h3>
+                <ul className="space-y-3 text-slate-300">
+                  <li className="flex items-start gap-2">
+                    <Shield className="h-4 w-4 text-amber-400 mt-1 shrink-0" />
+                    <span>Registered with <strong>Ministry of Labor</strong> - verifiable on official government list</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <DollarSign className="h-4 w-4 text-amber-400 mt-1 shrink-0" />
+                    <span>Transparent payment via <strong>KPay/Wave Money</strong> with proper receipts</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <Award className="h-4 w-4 text-amber-400 mt-1 shrink-0" />
+                    <span><strong>Replacement Warranty</strong>: 60-90 days free replacement</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <Check className="h-4 w-4 text-amber-400 mt-1 shrink-0" />
+                    <span><strong>No scams</strong> - Contract-based, legally binding agreements</span>
+                  </li>
+                </ul>
+              </div>
+              <div>
+                <h3 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
+                  <BarChart3 className="h-5 w-5 text-teal-400" />
+                  Referral Payment Flow
+                </h3>
+                <div className="space-y-3">
+                  <div className="flex items-center gap-3 p-3 rounded-lg bg-slate-800/50">
+                    <div className="w-8 h-8 rounded-full bg-amber-500/20 flex items-center justify-center text-amber-400 font-bold text-sm">1</div>
+                    <div className="text-slate-300 text-sm">Client signs contract & pays success fee</div>
+                  </div>
+                  <div className="flex items-center gap-3 p-3 rounded-lg bg-slate-800/50">
+                    <div className="w-8 h-8 rounded-full bg-amber-500/20 flex items-center justify-center text-amber-400 font-bold text-sm">2</div>
+                    <div className="text-slate-300 text-sm">Candidate completes probation period</div>
+                  </div>
+                  <div className="flex items-center gap-3 p-3 rounded-lg bg-slate-800/50">
+                    <div className="w-8 h-8 rounded-full bg-amber-500/20 flex items-center justify-center text-amber-400 font-bold text-sm">3</div>
+                    <div className="text-slate-300 text-sm">TRM pays referrer bonus (tax absorbed 1st year)</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            {/* Verification Notice */}
+            <div className="mt-6 p-4 rounded-xl bg-teal-500/10 border border-teal-500/20 text-center">
+              <p className="text-teal-400 text-sm">
+                🔐 Verify our license at <strong>Ministry of Labor Official Website</strong> - Search "Talent Resources Myanmar"
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Live Jobs Section - Shows Real Jobs from Supabase */}
+      <section className="py-20 px-4 bg-gradient-to-b from-slate-900 to-slate-950">
+        <div className="max-w-6xl mx-auto">
+          <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} className="text-center mb-12">
+            <Briefcase className="h-12 w-12 text-amber-400 mx-auto mb-4" />
+            <h2 className="text-3xl md:text-4xl font-bold mb-4">
+              <span className="text-white">Live </span>
+              <span className="text-gradient-primary">Job Openings</span>
+            </h2>
+            <p className="text-slate-400">Real opportunities updated in real-time from our database</p>
+          </motion.div>
+
+          <LiveJobsSection />
+        </div>
+      </section>
+
+      {/* Trust Indicators Section */}
+      <section className="py-12 px-4 bg-slate-900/50 border-y border-white/5">
+        <div className="max-w-6xl mx-auto">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+            {trustIndicators.map((item, index) => (
+              <motion.div
+                key={index}
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: index * 0.1 }}
+                className="text-center p-4"
+              >
+                <item.icon className="h-8 w-8 text-amber-400 mx-auto mb-2" />
+                <div className="text-xl md:text-2xl font-bold text-white">{item.value}</div>
+                <div className="text-slate-300 text-sm">{item.label}</div>
+                <div className="text-slate-500 text-xs">{item.sublabel}</div>
+              </motion.div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Trusted Companies Section */}
+      <section className="py-16 px-4">
+        <div className="max-w-6xl mx-auto">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            className="text-center mb-8"
+          >
+            <p className="text-slate-400 mb-4">Trusted by leading companies in Myanmar</p>
+            <p className="text-slate-500 burmese-text text-sm">မြန်မာနိုင်ငံ၏ ထိပ်တန်းကုမ္ပဏီများမှ ယုံကြည်အားထားရသည်</p>
+          </motion.div>
+          
+          <div className="flex flex-wrap justify-center gap-6">
+            {trustedCompanies.map((company, index) => (
+              <motion.div
+                key={index}
+                initial={{ opacity: 0 }}
+                whileInView={{ opacity: 1 }}
+                viewport={{ once: true }}
+                transition={{ delay: index * 0.1 }}
+                className="px-6 py-3 rounded-xl bg-slate-800/50 border border-slate-700 text-slate-300 font-medium"
+              >
+                {company}
+              </motion.div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Testimonials Section */}
+      <section className="py-20 px-4 bg-gradient-to-b from-slate-950 to-slate-900">
+        <div className="max-w-6xl mx-auto">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            className="text-center mb-12"
+          >
+            <h2 className="text-3xl md:text-4xl font-bold mb-4">
+              <span className="text-white">Success </span>
+              <span className="text-gradient-primary">Stories</span>
+            </h2>
+            <p className="text-slate-400 burmese-text">အောင်မြင်မှုပုံပြင်များ</p>
+          </motion.div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {testimonials.map((testimonial, index) => (
+              <motion.div
+                key={index}
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: index * 0.1 }}
+                className="glass-card p-6"
+              >
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="w-12 h-12 rounded-full bg-gradient-to-r from-teal-500 to-cyan-500 flex items-center justify-center text-white font-bold">
+                    {testimonial.name.charAt(0)}
+                  </div>
+                  <div>
+                    <div className="font-bold text-white">{testimonial.name}</div>
+                    <div className="text-slate-400 text-sm">{testimonial.role}</div>
+                  </div>
+                </div>
+                
+                <div className="flex items-center gap-1 mb-3">
+                  {[...Array(5)].map((_, i) => (
+                    <Star key={i} className="h-4 w-4 text-amber-400 fill-amber-400" />
+                  ))}
+                </div>
+                
+                <p className="text-slate-300 text-sm mb-2">{testimonial.text}</p>
+                <p className="text-slate-500 burmese-text text-xs mb-4">{testimonial.textMm}</p>
+                
+                <div className="pt-4 border-t border-white/5">
+                  <span className="text-teal-400 font-bold">{testimonial.earned}</span>
+                  <span className="text-slate-500 text-sm ml-2">earned</span>
+                </div>
+              </motion.div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Early Adopter Bonus Section - Addressing Chicken-Egg Problem */}
+      <section className="py-16 px-4">
+        <div className="max-w-4xl mx-auto">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            className="glass-card p-8 bg-gradient-to-r from-amber-500/10 to-orange-500/10 border-amber-500/20"
+          >
+            <div className="flex items-start gap-4">
+              <div className="w-16 h-16 rounded-full bg-amber-500/20 flex items-center justify-center shrink-0">
+                <Zap className="h-8 w-8 text-amber-400" />
+              </div>
+              <div>
+                <Badge className="bg-amber-500/20 text-amber-400 mb-2">Limited Time Offer</Badge>
+                <h3 className="text-xl font-bold text-white mb-2">Early Adopter Bonus: First 100 Referrers Get 90%!</h3>
+                <p className="text-slate-400 mb-4">
+                  Be among the first 100 active referrers and earn <span className="text-amber-400 font-bold">90% of rewards</span> instead of 80%. 
+                  That&apos;s an extra 10% bonus on every successful hire!
+                </p>
+                <p className="text-slate-500 burmese-text text-sm mb-4">
+                  ပထမဆုံး ၁၀၀ ဦးသော referrer များအတွက် ၉၀% ဆုကြေးရရှိမည်။
+                </p>
+                <div className="flex items-center gap-4">
+                  <div className="text-sm">
+                    <span className="text-slate-400">Spots remaining:</span>
+                    <span className="text-amber-400 font-bold ml-2">67/100</span>
+                  </div>
+                  <Link href="/register">
+                    <Button className="btn-primary">
+                      Claim Your Spot
+                    </Button>
+                  </Link>
+                </div>
+              </div>
+            </div>
+          </motion.div>
+        </div>
+      </section>
+
+      {/* CTA Section */}
+      <section className="py-20 px-4">
+        <div className="max-w-4xl mx-auto">
+          <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} className="glass-card p-8 text-center bg-gradient-to-r from-teal-500/10 to-cyan-500/10 border-teal-500/20">
+            <h2 className="text-2xl md:text-3xl font-bold text-white mb-4">Ready to Start Earning?</h2>
+            <p className="text-slate-400 mb-6">Join thousands of Myanmar youth building their careers through referrals and learning.</p>
+            <p className="text-slate-500 burmese-text mb-8">သင့်အသက်မွေးဝမ်းကြောင်းကို စတင်တည်ဆောက်ပါ။</p>
+            <Link href="/register">
+              <Button size="lg" className="btn-primary text-lg px-8 py-6">
+                Create Free Account
+                <ArrowDown className="ml-2 h-5 w-5" />
+              </Button>
+            </Link>
+          </motion.div>
+        </div>
+      </section>
+
+      {/* Footer */}
+      <footer className="border-t border-white/5 py-8 px-4">
+        <div className="max-w-6xl mx-auto text-center">
+          <div className="flex items-center justify-center gap-2 mb-2">
+            <img src="/logo.png" alt="ReferTRM Logo" className="h-8 w-auto rounded-lg" />
+            <span className="font-bold"><span className="text-teal-400">Refer</span><span className="text-white">TRM</span></span>
+          </div>
+          <p className="text-teal-400 text-sm font-medium flex items-center justify-center gap-1 mb-3">
+            Made with <Heart className="w-4 h-4 text-red-400 inline" fill="currentColor" /> in Myanmar <span className="text-slate-400">(မြန်မာပြည်)</span>
+          </p>
+          <p className="text-slate-500 text-sm mb-2">© 2025 ReferTRM by Talent Solutions Myanmar</p>
+          <p className="text-slate-600 text-xs burmese-text">Talent Solutions Myanmar မှ ReferTRM</p>
+        </div>
+      </footer>
+    </div>
+  );
+}
+=== END FILE ===
+
+=== FILE: src/app/providers.tsx ===
+'use client';
+
+import { ThemeProvider } from 'next-themes';
+import { AuthProvider } from '@/contexts/AuthContext';
+import { TranslationProvider } from '@/contexts/TranslationContext';
+
+export function Providers({ children }: { children: React.ReactNode }) {
+  return (
+    <ThemeProvider
+      attribute="class"
+      defaultTheme="dark"
+      enableSystem={false}
+      disableTransitionOnChange
+    >
+      <AuthProvider>
+        <TranslationProvider>
+          {children}
+        </TranslationProvider>
+      </AuthProvider>
+    </ThemeProvider>
+  );
+}
+=== END FILE ===
+
+################################################################################
+# SECTION: DASHBOARD LAYOUT
+################################################################################
+
+=== FILE: src/app/(dashboard)/layout.tsx ===
+'use client';
+
+import { useState, useEffect } from 'react';
+import Link from 'next/link';
+import { usePathname, useRouter } from 'next/navigation';
+import { motion, AnimatePresence } from 'framer-motion';
+import {
+  Home,
+  Briefcase,
+  GraduationCap,
+  Users,
+  Gift,
+  Settings,
+  LogOut,
+  Menu,
+  X,
+  Bell,
+  Search,
+  ChevronDown,
+  Flame,
+  Heart,
+  BookOpen,
+  Trophy,
+  MessageSquare,
+  Shield,
+  AlertTriangle,
+  Droplets,
+  Sparkles,
+  Compass,
+  Bot,
+  Lightbulb,
+  BarChart3,
+  Zap,
+  Target,
+  ShoppingCart,
+} from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { useAuth } from '@/contexts/AuthContext';
+import { 
+  ServiceWorkerRegistration, 
+  PWAUpdateNotification,
+  OfflineBanner,
+  MobileBottomNav 
+} from '@/components/pwa';
+import { useTranslation } from '@/contexts/TranslationContext';
+
+// Navigation items
+const mainNav = [
+  { name: 'Dashboard', href: '/dashboard', icon: Home },
+  { name: 'Jobs', href: '/dashboard/jobs', icon: Briefcase },
+  { name: 'Companies', href: '/dashboard/companies', icon: BarChart3 },
+  { name: 'Referrals', href: '/dashboard/referrals', icon: Users },
+];
+
+const learningNav = [
+  { name: 'Academy', href: '/dashboard/academy', icon: GraduationCap },
+  { name: 'Career Roadmaps', href: '/dashboard/careers', icon: Target },
+  { name: 'Edu-Marketplace', href: '/dashboard/marketplace', icon: ShoppingCart },
+  { name: 'Daily Knowledge', href: '/dashboard/academy/knowledge', icon: Lightbulb },
+  { name: 'AI Tutor', href: '/dashboard/academy/buddy', icon: Bot },
+  { name: 'Zodiac Career', href: '/dashboard/zodiac', icon: Sparkles },
+];
+
+const communityNav = [
+  { name: 'Community', href: '/dashboard/community', icon: MessageSquare },
+  { name: 'Leaderboard', href: '/dashboard/leaderboard', icon: Trophy },
+  { name: 'Rewards', href: '/dashboard/rewards', icon: Gift },
+];
+
+const safetyNav = [
+  { name: 'Safety Hub', href: '/dashboard/safety', icon: AlertTriangle },
+  { name: 'Blood Network', href: '/dashboard/blood', icon: Droplets },
+];
+
+export default function DashboardLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  const pathname = usePathname();
+  const router = useRouter();
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [userMenuOpen, setUserMenuOpen] = useState(false);
+  
+  // Use AuthContext instead of localStorage
+  const { user, loading, logout } = useAuth();
+  const { language } = useTranslation();
+
+  // Redirect to login if not authenticated
+  useEffect(() => {
+    if (!loading && !user) {
+      console.log('🚫 No user found, redirecting to login');
+      router.replace('/login');
+    }
+  }, [user, loading, router]);
+
+  const handleLogout = async () => {
+    await logout();
+    router.push('/');
+  };
+
+  // Show loading state while checking auth
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-12 h-12 border-4 border-teal-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Show redirect state if no user
+  if (!user) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-muted-foreground">Redirecting to login...</p>
+        </div>
+      </div>
+    );
+  }
+
+  const displayName = user.displayName || user.name || 'Demo User';
+
+  return (
+    <div className="min-h-screen bg-background">
+      {/* Mobile Overlay */}
+      <AnimatePresence>
+        {sidebarOpen && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-40 bg-black/50 lg:hidden"
+            onClick={() => setSidebarOpen(false)}
+          />
+        )}
+      </AnimatePresence>
+
+      {/* Sidebar */}
+      <aside
+        className={`fixed top-0 left-0 z-50 h-full w-72 bg-card border-r border-border transform transition-transform duration-300 lg:translate-x-0 ${
+          sidebarOpen ? 'translate-x-0' : '-translate-x-full'
+        }`}
+      >
+        <div className="flex flex-col h-full">
+          {/* Logo */}
+          <div className="p-6 border-b border-border">
+            <div className="flex items-center justify-between">
+              <Link href="/dashboard" className="flex items-center gap-3">
+                <img src="/logo.png" alt="ReferTRM" className="h-10 w-auto rounded-lg" />
+                <span className="text-lg font-bold">
+                  <span className="text-teal-400">Refer</span>
+                  <span className="text-foreground">TRM</span>
+                </span>
+              </Link>
+              <button
+                onClick={() => setSidebarOpen(false)}
+                className="lg:hidden text-muted-foreground hover:text-foreground"
+              >
+                <X className="h-6 w-6" />
+              </button>
+            </div>
+            <p className="text-[10px] text-teal-400/80 flex items-center gap-1 mt-1 pl-[52px]">
+              Made with <Heart className="w-3 h-3 text-red-400 inline" fill="currentColor" /> in Myanmar
+            </p>
+          </div>
+
+          {/* User Info */}
+          <div className="p-4 border-b border-border">
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 rounded-xl overflow-hidden border-2 border-teal-500/50 bg-teal-500/20 flex items-center justify-center">
+                {user.avatarUrl ? (
+                  <img src={user.avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
+                ) : (
+                  <span className="text-2xl">{user.avatar || '🧑'}</span>
+                )}
+              </div>
+              <div className="flex-1">
+                <p className="font-medium text-foreground truncate">{displayName}</p>
+                <p className="text-xs text-muted-foreground">{user.level || 'Amateur'}</p>
+              </div>
+              <div className="flex items-center gap-1 px-2 py-1 rounded-lg bg-amber-500/10">
+                <Flame className="h-4 w-4 text-amber-400" />
+                <span className="text-sm font-bold text-amber-400">{user.streak || 1}</span>
+              </div>
+            </div>
+            <div className="mt-3 flex justify-between text-sm">
+              <span className="text-amber-400 font-bold">{user.points || 50} pts</span>
+              <span className="text-muted-foreground">{user.referralCode || 'REFXXXXX'}</span>
+            </div>
+          </div>
+
+          {/* Navigation */}
+          <nav className="flex-1 p-3 overflow-y-auto">
+            {/* Main */}
+            <div className="mb-4">
+              <p className="px-3 text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-2 flex items-center gap-2">
+                <Compass className="h-3 w-3" /> Main
+              </p>
+              {mainNav.map((item) => (
+                <Link
+                  key={item.name}
+                  href={item.href}
+                  onClick={() => setSidebarOpen(false)}
+                  className={`flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all ${
+                    pathname === item.href
+                      ? 'bg-teal-500/15 text-teal-400 border border-teal-500/30'
+                      : 'text-muted-foreground hover:text-foreground hover:bg-secondary'
+                  }`}
+                >
+                  <item.icon className="h-4 w-4" />
+                  <span className="text-sm">{item.name}</span>
+                </Link>
+              ))}
+            </div>
+
+            {/* Learning */}
+            <div className="mb-4">
+              <p className="px-3 text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-2 flex items-center gap-2">
+                <GraduationCap className="h-3 w-3" /> Learning
+              </p>
+              {learningNav.map((item) => (
+                <Link
+                  key={item.name}
+                  href={item.href}
+                  onClick={() => setSidebarOpen(false)}
+                  className={`flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all ${
+                    pathname === item.href
+                      ? 'bg-violet-500/15 text-violet-400 border border-violet-500/30'
+                      : 'text-muted-foreground hover:text-foreground hover:bg-secondary'
+                  }`}
+                >
+                  <item.icon className="h-4 w-4" />
+                  <span className="text-sm">{item.name}</span>
+                </Link>
+              ))}
+            </div>
+
+            {/* Community */}
+            <div className="mb-4">
+              <p className="px-3 text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-2 flex items-center gap-2">
+                <Users className="h-3 w-3" /> Community
+              </p>
+              {communityNav.map((item) => (
+                <Link
+                  key={item.name}
+                  href={item.href}
+                  onClick={() => setSidebarOpen(false)}
+                  className={`flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all ${
+                    pathname === item.href
+                      ? 'bg-green-500/15 text-green-400 border border-green-500/30'
+                      : 'text-muted-foreground hover:text-foreground hover:bg-secondary'
+                  }`}
+                >
+                  <item.icon className="h-4 w-4" />
+                  <span className="text-sm">{item.name}</span>
+                </Link>
+              ))}
+            </div>
+
+            {/* Safety */}
+            <div className="mb-4">
+              <p className="px-3 text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-2 flex items-center gap-2">
+                <Shield className="h-3 w-3" /> Safety
+              </p>
+              {safetyNav.map((item) => (
+                <Link
+                  key={item.name}
+                  href={item.href}
+                  onClick={() => setSidebarOpen(false)}
+                  className={`flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all ${
+                    pathname === item.href
+                      ? 'bg-red-500/15 text-red-400 border border-red-500/30'
+                      : 'text-muted-foreground hover:text-foreground hover:bg-secondary'
+                  }`}
+                >
+                  <item.icon className="h-4 w-4" />
+                  <span className="text-sm">{item.name}</span>
+                </Link>
+              ))}
+            </div>
+
+            {/* Settings */}
+            <div className="pt-2 border-t border-border">
+              <Link
+                href="/dashboard/settings"
+                onClick={() => setSidebarOpen(false)}
+                className={`flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all ${
+                  pathname === '/dashboard/settings'
+                    ? 'bg-secondary text-foreground'
+                    : 'text-muted-foreground hover:text-foreground hover:bg-secondary'
+                }`}
+              >
+                <Settings className="h-4 w-4" />
+                <span className="text-sm">Settings</span>
+              </Link>
+            </div>
+          </nav>
+
+          {/* Logout */}
+          <div className="p-4 border-t border-border">
+            <button
+              onClick={handleLogout}
+              className="flex items-center gap-3 w-full px-4 py-3 rounded-xl text-muted-foreground hover:text-red-400 hover:bg-red-500/10 transition-all"
+            >
+              <LogOut className="h-5 w-5" />
+              <span>Log out</span>
+            </button>
+          </div>
+        </div>
+      </aside>
+
+      {/* Main Content */}
+      <div className="lg:pl-72">
+        {/* Top Bar */}
+        <header className="sticky top-0 z-30 h-16 bg-background/80 backdrop-blur-xl border-b border-border">
+          <div className="flex items-center justify-between h-full px-4 lg:px-8">
+            <div className="flex items-center gap-4">
+              <button
+                onClick={() => setSidebarOpen(true)}
+                className="lg:hidden text-muted-foreground hover:text-foreground"
+              >
+                <Menu className="h-6 w-6" />
+              </button>
+              <div className="hidden md:flex items-center">
+                <Search className="absolute left-3 h-4 w-4 text-muted-foreground pointer-events-none" />
+                <input
+                  type="text"
+                  placeholder="Search..."
+                  className="w-64 lg:w-80 pl-10 pr-4 py-2 bg-secondary border border-border rounded-xl text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-teal-500/50"
+                />
+              </div>
+            </div>
+
+            <div className="flex items-center gap-4">
+              <button className="relative p-2 text-muted-foreground hover:text-foreground transition-colors">
+                <Bell className="h-5 w-5" />
+                <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full" />
+              </button>
+
+              <div className="relative">
+                <button
+                  onClick={() => setUserMenuOpen(!userMenuOpen)}
+                  className="flex items-center gap-3 p-2 rounded-xl hover:bg-secondary transition-colors"
+                >
+                  <div className="w-10 h-10 rounded-xl overflow-hidden border-2 border-teal-500/50 bg-teal-500/20 flex items-center justify-center">
+                    {user.avatarUrl ? (
+                      <img src={user.avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
+                    ) : (
+                      <span className="text-lg">{user.avatar || '🧑'}</span>
+                    )}
+                  </div>
+                  <div className="hidden md:block text-left">
+                    <p className="text-sm font-medium text-foreground">{displayName}</p>
+                    <p className="text-xs text-muted-foreground">{user.level || 'Amateur'}</p>
+                  </div>
+                  <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                </button>
+
+                <AnimatePresence>
+                  {userMenuOpen && (
+                    <motion.div
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: 10 }}
+                      className="absolute right-0 mt-2 w-48 bg-card border border-border rounded-xl shadow-lg overflow-hidden"
+                    >
+                      <Link
+                        href="/dashboard/settings"
+                        onClick={() => setUserMenuOpen(false)}
+                        className="flex items-center gap-2 px-4 py-3 text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"
+                      >
+                        <Settings className="h-4 w-4" />
+                        Settings
+                      </Link>
+                      <button
+                        onClick={handleLogout}
+                        className="flex items-center gap-2 w-full px-4 py-3 text-muted-foreground hover:text-red-400 hover:bg-red-500/10 transition-colors"
+                      >
+                        <LogOut className="h-4 w-4" />
+                        Log out
+                      </button>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+            </div>
+          </div>
+        </header>
+
+        {/* Page Content */}
+        <main className="p-4 lg:p-8 pb-24 lg:pb-8">
+          {children}
+        </main>
+      </div>
+      
+      {/* PWA Components */}
+      <ServiceWorkerRegistration />
+      <PWAUpdateNotification />
+      <OfflineBanner language={language} />
+      
+      {/* Mobile Bottom Navigation */}
+      <div className="lg:hidden">
+        <MobileBottomNav language={language} />
+      </div>
+    </div>
+  );
+}
+=== END FILE ===
+
+=== FILE: src/app/(dashboard)/dashboard/page.tsx ===
+'use client';
+
+import { useState, useEffect } from 'react';
+import Link from 'next/link';
+import { motion } from 'framer-motion';
+import {
+  Star,
+  Flame,
+  Trophy,
+  Users,
+  BookOpen,
+  Gift,
+  Zap,
+  Copy,
+  Share2,
+  Crown,
+  Briefcase,
+  Check,
+  Building2,
+} from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader } from '@/components/ui/card';
+import { Progress } from '@/components/ui/progress';
+import { Badge } from '@/components/ui/badge';
+import { useAuth } from '@/contexts/AuthContext';
+
+const quickActions = [
+  { icon: BookOpen, label: 'Continue Learning', href: '/dashboard/academy', color: 'from-purple-500 to-pink-500' },
+  { icon: Briefcase, label: 'Browse Jobs', href: '/dashboard/jobs', color: 'from-teal-500 to-emerald-500' },
+  { icon: Users, label: 'Invite Friends', href: '/dashboard/referrals', color: 'from-amber-500 to-orange-500' },
+  { icon: Gift, label: 'Redeem Points', href: '/dashboard/rewards', color: 'from-cyan-500 to-blue-500' },
+];
+
+const levelColors: Record<string, string> = {
+  Amateur: 'text-green-400',
+  Professional: 'text-blue-400',
+  Expert: 'text-purple-400',
+  Master: 'text-amber-400',
+};
+
+const levelIcons: Record<string, string> = {
+  Amateur: '🌱',
+  Professional: '💼',
+  Expert: '⭐',
+  Master: '👑',
+};
+
+const STREAK_MILESTONES = [
+  { days: 3, bonus: 5 },
+  { days: 7, bonus: 10 },
+  { days: 14, bonus: 20 },
+  { days: 30, bonus: 35 },
+  { days: 60, bonus: 50 },
+  { days: 100, bonus: 75 },
+];
+
+export default function DashboardPage() {
+  const [copied, setCopied] = useState(false);
+  const { user, loading } = useAuth();
+  
+  const streak = user?.streak || 1;
+  const points = user?.points || 50;
+  const maxStreak = user?.maxStreak || 1;
+  const level = user?.level || 'Amateur';
+  const displayName = user?.displayName || user?.name || 'Demo User';
+  const referralCode = user?.referralCode || 'REFXXXXX';
+
+  const nextMilestone = STREAK_MILESTONES.find(m => m.days > streak) || STREAK_MILESTONES[STREAK_MILESTONES.length - 1];
+  const nextBonus = STREAK_MILESTONES.find(m => m.days > streak)?.bonus || 75;
+
+  const copyReferralCode = () => {
+    if (referralCode) {
+      navigator.clipboard.writeText(referralCode);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    }
+  };
+
+  return (
+    <div className="max-w-7xl mx-auto space-y-6">
+      {/* Welcome Header */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="glass-card p-6"
+      >
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+          <div className="flex items-center gap-5">
+            {/* Avatar */}
+            <Link href="/dashboard/settings" className="relative group">
+              <div className="w-20 h-20 rounded-2xl overflow-hidden border-2 border-teal-500/50 shadow-lg shadow-teal-500/25 group-hover:border-teal-400 transition-colors bg-gradient-to-br from-teal-500 to-cyan-500 flex items-center justify-center text-4xl">
+                🧑
+              </div>
+              <div className="absolute -bottom-2 -right-2 bg-amber-500 rounded-lg px-2 py-1 text-xs font-bold text-slate-900 shadow">
+                Lv.{level === 'Amateur' ? 1 : level === 'Professional' ? 2 : level === 'Expert' ? 3 : 4}
+              </div>
+            </Link>
+
+            {/* User Info */}
+            <div>
+              <h1 className="text-2xl font-bold text-foreground mb-1">
+                Welcome back, {displayName}! 👋
+              </h1>
+              <p className="text-muted-foreground mb-3">
+                ကောင်းသောနေ့လေးပါ
+              </p>
+              <div className="flex flex-wrap items-center gap-2">
+                <Badge className={`${levelColors[level]} bg-white/5 border-current`}>
+                  <Crown className="h-3 w-3 mr-1" />
+                  {level} {levelIcons[level]}
+                </Badge>
+                <Badge className="bg-orange-500/20 text-orange-400 border-orange-500/30">
+                  <Flame className="h-3 w-3 mr-1" />
+                  {streak} Day Streak
+                </Badge>
+                <Badge className="bg-amber-500/20 text-amber-400 border-amber-500/30">
+                  <Star className="h-3 w-3 mr-1" />
+                  {points.toLocaleString()} pts
+                </Badge>
+              </div>
+            </div>
+          </div>
+
+          {/* Quick Stats */}
+          <div className="flex gap-6">
+            <div className="text-center">
+              <div className="text-3xl font-bold text-amber-400">{points.toLocaleString()}</div>
+              <div className="text-sm text-muted-foreground">Points</div>
+            </div>
+            <div className="text-center">
+              <div className="text-3xl font-bold text-teal-400">{user?.completedModules?.length || 0}</div>
+              <div className="text-sm text-muted-foreground">Modules</div>
+            </div>
+            <div className="text-center">
+              <div className="text-3xl font-bold text-green-400">{user?.successfulReferrals || 0}</div>
+              <div className="text-sm text-muted-foreground">Referrals</div>
+            </div>
+          </div>
+        </div>
+
+        {/* Level Progress */}
+        <div className="mt-6">
+          <div className="flex justify-between text-sm mb-2">
+            <span className="text-muted-foreground">Level Progress</span>
+            <span className="text-teal-400">{points} / {level === 'Master' ? '∞' : (level === 'Expert' ? 1000 : level === 'Professional' ? 600 : 300)} XP</span>
+          </div>
+          <Progress value={level === 'Master' ? 100 : (level === 'Expert' ? ((points - 600) / 400) * 100 : level === 'Professional' ? ((points - 300) / 300) * 100 : (points / 300) * 100)} className="h-3 bg-secondary" />
+        </div>
+      </motion.div>
+
+      {/* Stats Grid */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        {/* Points Card */}
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}>
+          <Card className="glass-card-hover bg-gradient-to-br from-amber-500/10 to-orange-500/10 border-amber-500/20">
+            <CardContent className="p-5">
+              <Star className="h-8 w-8 text-amber-400 mb-4" />
+              <div className="text-3xl font-bold text-amber-400 mb-1">{points.toLocaleString()}</div>
+              <div className="text-sm text-muted-foreground">Total Points</div>
+            </CardContent>
+          </Card>
+        </motion.div>
+
+        {/* Streak Card */}
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
+          <Card className="glass-card-hover bg-gradient-to-br from-orange-500/10 to-red-500/10 border-orange-500/20">
+            <CardContent className="p-5">
+              <Flame className="h-8 w-8 text-orange-400 mb-4" />
+              <div className="text-3xl font-bold text-orange-400 mb-1">{streak}</div>
+              <div className="text-sm text-muted-foreground">Day Streak</div>
+              <p className="text-xs text-muted-foreground mt-2">Best: {maxStreak}</p>
+            </CardContent>
+          </Card>
+        </motion.div>
+
+        {/* Referrals Card */}
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}>
+          <Card className="glass-card-hover bg-gradient-to-br from-green-500/10 to-emerald-500/10 border-green-500/20">
+            <CardContent className="p-5">
+              <Users className="h-8 w-8 text-green-400 mb-4" />
+              <div className="text-3xl font-bold text-green-400 mb-1">{user?.totalReferrals || 0}</div>
+              <div className="text-sm text-muted-foreground">Total Referrals</div>
+            </CardContent>
+          </Card>
+        </motion.div>
+
+        {/* Progress Card */}
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }}>
+          <Card className="glass-card-hover bg-gradient-to-br from-purple-500/10 to-pink-500/10 border-purple-500/20">
+            <CardContent className="p-5">
+              <BookOpen className="h-8 w-8 text-purple-400 mb-4" />
+              <div className="text-3xl font-bold text-purple-400 mb-1">{user?.completedModules?.length || 0}</div>
+              <div className="text-sm text-muted-foreground">Modules Done</div>
+            </CardContent>
+          </Card>
+        </motion.div>
+      </div>
+
+      {/* Main Content Grid */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="lg:col-span-2 space-y-6">
+          {/* Streak Milestones */}
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.5 }}>
+            <Card className="glass-card">
+              <CardHeader className="pb-2">
+                <h3 className="text-lg font-bold text-foreground flex items-center gap-2">
+                  <Flame className="h-5 w-5 text-orange-400" />
+                  Streak Milestones
+                </h3>
+              </CardHeader>
+              <CardContent>
+                <div className="flex items-center gap-3 overflow-x-auto pb-2">
+                  {STREAK_MILESTONES.map((milestone, index) => {
+                    const isCompleted = streak >= milestone.days;
+                    const isCurrent = streak < milestone.days && (STREAK_MILESTONES[index - 1]?.days || 0) <= streak;
+                    
+                    return (
+                      <div
+                        key={milestone.days}
+                        className={`flex-shrink-0 w-20 h-24 rounded-xl flex flex-col items-center justify-center relative ${
+                          isCompleted
+                            ? 'bg-gradient-to-br from-orange-500 to-red-500 shadow-lg shadow-orange-500/25'
+                            : isCurrent
+                            ? 'bg-orange-500/20 border-2 border-orange-500/50'
+                            : 'bg-secondary'
+                        }`}
+                      >
+                        {isCompleted && (
+                          <div className="absolute -top-2 -right-2">
+                            <Trophy className="h-5 w-5 text-amber-300" />
+                          </div>
+                        )}
+                        <span className={`text-2xl font-bold ${isCompleted ? 'text-white' : 'text-muted-foreground'}`}>
+                          {milestone.days}
+                        </span>
+                        <span className="text-xs text-slate-300">days</span>
+                        <span className={`text-xs mt-1 ${isCompleted ? 'text-amber-200' : 'text-muted-foreground'}`}>
+                          +{milestone.bonus} pts
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+                <p className="text-muted-foreground text-sm mt-4">
+                  🎯 <span className="text-teal-400">{nextMilestone.days - streak} more days</span> to unlock +{nextBonus} bonus points!
+                </p>
+              </CardContent>
+            </Card>
+          </motion.div>
+
+          {/* Referral Code */}
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.6 }}>
+            <Card className="glass-card bg-gradient-to-r from-teal-500/10 to-cyan-500/10 border-teal-500/20">
+              <CardHeader className="pb-2">
+                <h3 className="text-lg font-bold text-foreground flex items-center gap-2">
+                  <Share2 className="h-5 w-5 text-teal-400" />
+                  Share & Earn
+                </h3>
+              </CardHeader>
+              <CardContent>
+                <div className="flex flex-col sm:flex-row gap-4">
+                  <div className="flex-1">
+                    <p className="text-sm text-muted-foreground mb-2">Your unique referral code</p>
+                    <div className="flex items-center gap-2">
+                      <code className="flex-1 px-4 py-3 bg-secondary rounded-xl text-teal-400 font-mono text-lg">
+                        {referralCode}
+                      </code>
+                      <Button variant="outline" className="border-border" onClick={copyReferralCode}>
+                        {copied ? <Check className="h-4 w-4 text-green-400" /> : <Copy className="h-4 w-4" />}
+                      </Button>
+                    </div>
+                  </div>
+                  <div className="flex flex-col gap-2">
+                    <Button className="btn-primary">
+                      Share on Telegram
+                    </Button>
+                    <Button variant="outline" className="border-border">
+                      Copy Link
+                    </Button>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </motion.div>
+
+          {/* Explore Features */}
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.7 }}>
+            <Card className="glass-card">
+              <CardHeader className="pb-2">
+                <h3 className="text-lg font-bold text-foreground">Explore Features</h3>
+              </CardHeader>
+              <CardContent className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                <Link href="/dashboard/leaderboard">
+                  <div className="p-4 rounded-xl bg-secondary hover:bg-muted transition-colors cursor-pointer text-center">
+                    <Trophy className="h-6 w-6 text-amber-400 mx-auto mb-2" />
+                    <span className="text-sm text-foreground">Leaderboard</span>
+                  </div>
+                </Link>
+                <Link href="/dashboard/companies">
+                  <div className="p-4 rounded-xl bg-secondary hover:bg-muted transition-colors cursor-pointer text-center">
+                    <Building2 className="h-6 w-6 text-teal-400 mx-auto mb-2" />
+                    <span className="text-sm text-foreground">Companies</span>
+                  </div>
+                </Link>
+                <Link href="/dashboard/community">
+                  <div className="p-4 rounded-xl bg-secondary hover:bg-muted transition-colors cursor-pointer text-center">
+                    <Users className="h-6 w-6 text-purple-400 mx-auto mb-2" />
+                    <span className="text-sm text-foreground">Community</span>
+                  </div>
+                </Link>
+                <Link href="/dashboard/jobs">
+                  <div className="p-4 rounded-xl bg-secondary hover:bg-muted transition-colors cursor-pointer text-center">
+                    <Briefcase className="h-6 w-6 text-green-400 mx-auto mb-2" />
+                    <span className="text-sm text-foreground">Jobs</span>
+                  </div>
+                </Link>
+              </CardContent>
+            </Card>
+          </motion.div>
+        </div>
+
+        {/* Right Column */}
+        <div className="space-y-6">
+          {/* Quick Actions */}
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.8 }}>
+            <Card className="glass-card">
+              <CardHeader className="pb-2">
+                <h3 className="text-lg font-bold text-foreground">Quick Actions</h3>
+              </CardHeader>
+              <CardContent className="grid grid-cols-2 gap-3">
+                {quickActions.map((action, index) => (
+                  <Link key={index} href={action.href}>
+                    <Button variant="outline" className="w-full h-auto py-4 flex-col gap-2 border-border hover:border-primary/50 bg-secondary/30">
+                      <div className={`w-10 h-10 rounded-xl bg-gradient-to-r ${action.color} flex items-center justify-center`}>
+                        <action.icon className="h-5 w-5 text-white" />
+                      </div>
+                      <span className="text-xs text-foreground/80">{action.label}</span>
+                    </Button>
+                  </Link>
+                ))}
+              </CardContent>
+            </Card>
+          </motion.div>
+
+          {/* Prize Pool */}
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.9 }}>
+            <Card className="glass-card bg-gradient-to-r from-amber-500/10 to-orange-500/10 border-amber-500/20">
+              <CardContent className="p-5 text-center">
+                <Trophy className="h-8 w-8 text-amber-400 mx-auto mb-2" />
+                <div className="text-2xl font-bold text-amber-400 mb-1">300,000 MMK</div>
+                <div className="text-sm text-muted-foreground">Monthly Prize Pool</div>
+                <Link href="/dashboard/leaderboard">
+                  <Button className="mt-4 btn-primary w-full" size="sm">
+                    View Leaderboard
+                  </Button>
+                </Link>
+              </CardContent>
+            </Card>
+          </motion.div>
+        </div>
+      </div>
+    </div>
+  );
+}
+=== END FILE ===
+
+################################################################################
+# SECTION: AUTH LAYOUT
+################################################################################
+
+=== FILE: src/app/(auth)/layout.tsx ===
+export default function AuthLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="min-h-screen bg-background">
+      {children}
+    </div>
+  );
+}
+=== END FILE ===
+
+=== FILE: src/app/(auth)/login/page.tsx ===
+'use client';
+
+import { useState } from 'react';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { motion } from 'framer-motion';
+import { 
+  Mail, 
+  Lock, 
+  Eye, 
+  EyeOff, 
+  ArrowRight, 
+  User,
+  Heart,
+  ArrowLeft,
+  CheckCircle
+} from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { useAuth } from '@/contexts/AuthContext';
+
+export default function LoginPage() {
+  const router = useRouter();
+  const { login, resetPassword, loading } = useAuth();
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [error, setError] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const [showForgotPassword, setShowForgotPassword] = useState(false);
+  const [resetEmailSent, setResetEmailSent] = useState(false);
+
+  console.log('🔑 Login page rendered, loading:', loading);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    console.log('🚀 handleSubmit called!');
+    console.log('📧 Email:', email);
+    console.log('🔑 Password length:', password.length);
+    
+    setError('');
+    setIsLoading(true);
+
+    try {
+      console.log('📞 Calling login function...');
+      await login(email, password);
+      console.log('✅ Login returned successfully!');
+      router.push('/dashboard');
+    } catch (err: any) {
+      console.error('❌ Login caught error:', err);
+      setError(err?.message || 'Invalid email or password. Please try again.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleGuestLogin = async () => {
+    console.log('👤 Guest login clicked');
+    setIsLoading(true);
+    setError('');
+    try {
+      const user = {
+        uid: 'demo_' + Date.now(),
+        email: 'demo@refertrm.com',
+        displayName: 'Demo User',
+        name: 'Demo User',
+        isGuest: true,
+        points: 50,
+        totalPointsEarned: 50,
+        streak: 1,
+        maxStreak: 1,
+        completedModules: [],
+        level: 'Amateur',
+        avatar: '',
+        avatarType: 'neutral' as const,
+        avatarUrl: null,
+        referralCode: 'REF' + Math.random().toString(36).substring(2, 8).toUpperCase(),
+        totalEarnings: 0,
+        successfulReferrals: 0,
+        totalReferrals: 0,
+        lastLoginAt: new Date().toISOString(),
+        lastBonusClaim: null,
+        purchasedItems: [],
+      };
+      
+      localStorage.setItem('refertrm_user', JSON.stringify(user));
+      router.push('/dashboard');
+    } catch (err: any) {
+      console.error('Guest login error:', err);
+      setError('Failed to login. Please try again.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleForgotPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
+    setIsLoading(true);
+    
+    try {
+      await resetPassword(email);
+      setResetEmailSent(true);
+    } catch (err: any) {
+      setError(err.message || 'Failed to send reset email. Please try again.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  return (
+    <div className="min-h-screen flex">
+      {/* Left Panel - Branding */}
+      <div className="hidden lg:flex lg:w-1/2 relative overflow-hidden bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
+        {/* Background Effects */}
+        <div className="absolute inset-0">
+          <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-teal-500/20 rounded-full blur-3xl" />
+          <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-amber-500/10 rounded-full blur-3xl" />
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] border border-white/5 rounded-full" />
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] h-[400px] border border-white/5 rounded-full" />
+        </div>
+
+        {/* Content */}
+        <div className="relative z-10 flex flex-col justify-center px-12 xl:px-20">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6 }}
+          >
+            {/* Logo */}
+            <div className="flex flex-col gap-1 mb-8">
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 rounded-xl overflow-hidden border-2 border-teal-500/50 shadow-lg shadow-teal-500/20">
+                  <img 
+                    src="/avatars/avatar-default-male.png" 
+                    alt="ReferTRM" 
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+                <div>
+                  <h1 className="text-2xl font-bold">
+                    <span className="text-teal-400">Refer</span>
+                    <span className="text-white">TRM</span>
+                  </h1>
+                </div>
+              </div>
+              <p className="text-[10px] text-teal-400/80 flex items-center gap-1 pl-[60px]">
+                Made with <Heart className="w-3 h-3 text-red-400 inline" fill="currentColor" /> in Myanmar <span className="text-slate-500">(မြန်မာပြည်)</span>
+              </p>
+            </div>
+
+            {/* Headline */}
+            <h2 className="text-4xl xl:text-5xl font-bold text-white mb-6 leading-tight">
+              Turn Your Network Into{' '}
+              <span className="text-gradient-primary">Real Income</span>
+            </h2>
+
+            <p className="text-xl text-slate-300 mb-8">
+              Myanmar's #1 referral hiring platform. Refer friends, earn rewards, and build your career.
+            </p>
+
+            {/* Stats */}
+            <div className="flex gap-8">
+              <div>
+                <div className="text-3xl font-bold text-teal-400">25+</div>
+                <div className="text-slate-400">Active Jobs</div>
+              </div>
+              <div>
+                <div className="text-3xl font-bold text-amber-400">500K+</div>
+                <div className="text-slate-400">MMK Rewards</div>
+              </div>
+              <div>
+                <div className="text-3xl font-bold text-purple-400">150+</div>
+                <div className="text-slate-400">Referrers</div>
+              </div>
+            </div>
+
+            {/* Burmese Text */}
+            <p className="mt-8 text-slate-500 burmese-text">
+              သူငယ်ချင်းများကို ရည်ညွှန်းပါ။ ဆုကြေးရယူပါ။
+            </p>
+          </motion.div>
+        </div>
+      </div>
+
+      {/* Right Panel - Login Form */}
+      <div className="w-full lg:w-1/2 flex items-center justify-center px-6 py-12 bg-background">
+        <motion.div
+          initial={{ opacity: 0, x: 20 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ duration: 0.6, delay: 0.2 }}
+          className="w-full max-w-md"
+        >
+          {/* Mobile Logo */}
+          <div className="lg:hidden flex flex-col items-center gap-1 mb-8">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl overflow-hidden border-2 border-teal-500/50 shadow-lg shadow-teal-500/20">
+                <img 
+                  src="/avatars/avatar-default-male.png" 
+                  alt="ReferTRM" 
+                  className="w-full h-full object-cover"
+                />
+              </div>
+              <h1 className="text-xl font-bold">
+                <span className="text-teal-400">Refer</span>
+                <span className="text-white">TRM</span>
+              </h1>
+            </div>
+            <p className="text-[10px] text-teal-400/80 flex items-center gap-1">
+              Made with <Heart className="w-3 h-3 text-red-400 inline" fill="currentColor" /> in Myanmar <span className="text-slate-500">(မြန်မာပြည်)</span>
+            </p>
+          </div>
+
+          {/* Header */}
+          <div className="text-center mb-8">
+            <h2 className="text-2xl font-bold text-white mb-2">
+              {showForgotPassword ? 'Reset Password' : 'Welcome back'}
+            </h2>
+            <p className="text-slate-400">
+              {showForgotPassword 
+                ? 'Enter your email to receive a password reset link' 
+                : 'Sign in to your account to continue'}
+            </p>
+          </div>
+
+          {/* Error Message */}
+          {error && (
+            <motion.div
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="mb-6 p-4 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-sm"
+            >
+              {error}
+            </motion.div>
+          )}
+
+          {/* Reset Email Sent Success */}
+          {resetEmailSent && (
+            <motion.div
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="mb-6 p-4 rounded-xl bg-green-500/10 border border-green-500/20 text-green-400 text-sm"
+            >
+              <div className="flex items-center gap-2">
+                <CheckCircle className="h-5 w-5" />
+                <span>Password reset email sent! Check your inbox.</span>
+              </div>
+              <p className="mt-2 text-xs text-slate-500">
+                စာတိုက်ပုံးထဲသို့ စာကိုစစ်ပါ။
+              </p>
+            </motion.div>
+          )}
+
+          {/* Forgot Password Form */}
+          {showForgotPassword && !resetEmailSent ? (
+            <form onSubmit={handleForgotPassword} className="space-y-5">
+              {/* Email Field */}
+              <div>
+                <label className="form-label">Email Address</label>
+                <div className="relative">
+                  <Mail className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-500" />
+                  <input
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    className="form-input pl-12"
+                    placeholder="you@example.com"
+                    required
+                  />
+                </div>
+              </div>
+
+              {/* Submit Button */}
+              <Button
+                type="submit"
+                className="w-full btn-primary py-6 text-base"
+                disabled={isLoading}
+              >
+                {isLoading ? (
+                  <span className="flex items-center gap-2">
+                    <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
+                      <circle className="opacity:25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                      <path className="opacity:75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                    </svg>
+                    Sending...
+                  </span>
+                ) : (
+                  <span className="flex items-center gap-2">
+                    Send Reset Link
+                    <ArrowRight className="h-5 w-5" />
+                  </span>
+                )}
+              </Button>
+
+              {/* Back to Login */}
+              <button
+                type="button"
+                onClick={() => {
+                  setShowForgotPassword(false);
+                  setError('');
+                }}
+                className="w-full flex items-center justify-center gap-2 text-slate-400 hover:text-white transition-colors"
+              >
+                <ArrowLeft className="h-4 w-4" />
+                Back to Login
+              </button>
+            </form>
+          ) : resetEmailSent ? (
+            <div className="space-y-4">
+              <Button
+                onClick={() => {
+                  setShowForgotPassword(false);
+                  setResetEmailSent(false);
+                  setError('');
+                }}
+                className="w-full btn-primary py-6 text-base"
+              >
+                Back to Login
+              </Button>
+            </div>
+          ) : (
+            // Login Form
+            <form onSubmit={handleSubmit} className="space-y-5">
+              {/* Email Field */}
+              <div>
+                <label className="form-label">Email Address</label>
+                <div className="relative">
+                  <Mail className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-500" />
+                  <input
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    className="form-input pl-12"
+                    placeholder="you@example.com"
+                    required
+                  />
+                </div>
+              </div>
+
+              {/* Password Field */}
+              <div>
+                <div className="flex justify-between items-center mb-2">
+                  <label className="form-label mb-0">Password</label>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowForgotPassword(true);
+                      setError('');
+                    }}
+                    className="text-sm text-teal-400 hover:text-teal-300 transition-colors"
+                  >
+                    Forgot password?
+                  </button>
+                </div>
+                <div className="relative">
+                  <Lock className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-500" />
+                  <input
+                    type={showPassword ? 'text' : 'password'}
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    className="form-input pl-12 pr-12"
+                    placeholder="••••••••"
+                    required
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300 transition-colors"
+                  >
+                    {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                  </button>
+                </div>
+              </div>
+
+              {/* Remember Me */}
+              <div className="flex items-center">
+                <input
+                  type="checkbox"
+                  id="remember"
+                  className="w-4 h-4 rounded border-slate-600 bg-slate-800 text-teal-500 focus:ring-teal-500"
+                />
+                <label htmlFor="remember" className="ml-2 text-sm text-slate-400">
+                  Remember me for 30 days
+                </label>
+              </div>
+
+              {/* Submit Button */}
+              <Button
+                type="submit"
+                className="w-full btn-primary py-6 text-base"
+                disabled={isLoading}
+              >
+                {isLoading ? (
+                  <span className="flex items-center gap-2">
+                    <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
+                      <circle className="opacity:25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                      <path className="opacity:75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                    </svg>
+                    Signing in...
+                  </span>
+                ) : (
+                  <span className="flex items-center gap-2">
+                    Sign In
+                    <ArrowRight className="h-5 w-5" />
+                  </span>
+                )}
+              </Button>
+            </form>
+          )}
+
+          {/* Divider - Only show on login form */}
+          {!showForgotPassword && !resetEmailSent && (
+            <>
+              <div className="relative my-8">
+                <div className="absolute inset-0 flex items-center">
+                  <div className="w-full border-t border-white/10"></div>
+                </div>
+                <div className="relative flex justify-center text-sm">
+                  <span className="px-4 bg-background text-slate-500">Or continue with</span>
+                </div>
+              </div>
+
+              {/* Social Login */}
+              <div className="space-y-3">
+                <Button
+                  type="button"
+                  className="w-full bg-gradient-to-r from-teal-500 to-cyan-500 hover:from-teal-600 hover:to-cyan-600 text-white font-bold py-6"
+                  onClick={handleGuestLogin}
+                >
+                  <User className="mr-2 h-5 w-5" />
+                  Quick Demo Login (No Account Needed)
+                </Button>
+              </div>
+              <p className="text-center text-slate-500 text-xs mt-2">
+                Demo account stored in your browser only
+              </p>
+            </>
+          )}
+
+          {/* Sign Up Link */}
+          <p className="mt-8 text-center text-slate-400">
+            Don't have an account?{' '}
+            <Link 
+              href="/register" 
+              className="text-teal-400 hover:text-teal-300 font-medium transition-colors"
+            >
+              Sign up for free
+            </Link>
+          </p>
+
+          {/* Burmese */}
+          <p className="mt-4 text-center text-slate-600 text-sm burmese-text">
+            အကောင့်မရှိသေးဘူးလား? အခမဲ့မှတ်ပါ။
+          </p>
+        </motion.div>
+      </div>
+    </div>
+  );
+}
+=== END FILE ===
+
+=== FILE: src/app/(auth)/register/page.tsx ===
+'use client';
+
+import { useState } from 'react';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { motion } from 'framer-motion';
+import { 
+  Mail, 
+  Lock, 
+  Eye, 
+  EyeOff, 
+  ArrowRight, 
+  Phone,
+  User,
+  Check,
+  Sparkles,
+  Heart
+} from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { useAuth } from '@/contexts/AuthContext';
+
+const benefits = [
+  'Earn up to 500,000 MMK per referral',
+  'Free learning courses with certificates',
+  'Daily streak rewards & bonuses',
+  'Exclusive avatar customization',
+];
+
+export default function RegisterPage() {
+  const router = useRouter();
+  const { signup, loading } = useAuth();
+  const [step, setStep] = useState(1);
+  const [formData, setFormData] = useState({
+    name: '',
+    email: '',
+    phone: '',
+    password: '',
+    confirmPassword: '',
+    referralCode: '',
+    zodiac: '',
+  });
+  const [showPassword, setShowPassword] = useState(false);
+  const [error, setError] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const [agreedToTerms, setAgreedToTerms] = useState(false);
+
+  const zodiacSigns = [
+    '♈ Aries', '♉ Taurus', '♊ Gemini', '♋ Cancer',
+    '♌ Leo', '♍ Virgo', '♎ Libra', '♏ Scorpio',
+    '♐ Sagittarius', '♑ Capricorn', '♒ Aquarius', '♓ Pisces'
+  ];
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
+
+    if (step === 1) {
+      if (formData.password !== formData.confirmPassword) {
+        setError('Passwords do not match');
+        return;
+      }
+      if (formData.password.length < 8) {
+        setError('Password must be at least 8 characters');
+        return;
+      }
+      setStep(2);
+      return;
+    }
+
+    if (step === 2) {
+      if (!agreedToTerms) {
+        setError('Please agree to the Terms of Service and Privacy Policy');
+        return;
+      }
+      
+      setIsLoading(true);
+      try {
+        await signup(formData.email, formData.password, formData.name);
+        router.push('/dashboard');
+      } catch (err: unknown) {
+        console.error('Registration error:', err);
+        const errorMessage = err instanceof Error ? err.message : 'Failed to create account. Please try again.';
+        if (errorMessage.includes('email-already-in-use')) {
+          setError('This email is already registered. Please login instead.');
+        } else if (errorMessage.includes('invalid-email')) {
+          setError('Please enter a valid email address.');
+        } else if (errorMessage.includes('weak-password')) {
+          setError('Password is too weak. Please use a stronger password.');
+        } else if (errorMessage.includes('network')) {
+          setError('Network error. Please check your connection.');
+        } else {
+          setError(errorMessage);
+        }
+      } finally {
+        setIsLoading(false);
+      }
+    }
+  };
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+    setFormData({ ...formData, [e.target.name]: e.target.value });
+  };
+
+  return (
+    <div className="min-h-screen flex">
+      {/* Left Panel - Branding */}
+      <div className="hidden lg:flex lg:w-1/2 relative overflow-hidden bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
+        {/* Background Effects */}
+        <div className="absolute inset-0">
+          <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-teal-500/20 rounded-full blur-3xl" />
+          <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-amber-500/10 rounded-full blur-3xl" />
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] border border-white/5 rounded-full" />
+        </div>
+
+        <div className="relative z-10 flex flex-col justify-center px-12 xl:px-20">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6 }}
+          >
+            {/* Logo */}
+            <div className="flex flex-col gap-1 mb-8">
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 rounded-xl overflow-hidden border-2 border-teal-500/50 shadow-lg shadow-teal-500/20">
+                  <img 
+                    src="/avatars/avatar-default-male.png" 
+                    alt="ReferTRM" 
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+                <div>
+                  <h1 className="text-2xl font-bold">
+                    <span className="text-teal-400">Refer</span>
+                    <span className="text-white">TRM</span>
+                  </h1>
+                </div>
+              </div>
+              <p className="text-[10px] text-teal-400/80 flex items-center gap-1 pl-[60px]">
+                Made with <Heart className="w-3 h-3 text-red-400 inline" fill="currentColor" /> in Myanmar <span className="text-slate-500">(မြန်မာပြည်)</span>
+              </p>
+            </div>
+
+            <h2 className="text-4xl xl:text-5xl font-bold text-white mb-6 leading-tight">
+              Start Your Journey{' '}
+              <span className="text-gradient-primary">Today</span>
+            </h2>
+
+            <p className="text-xl text-slate-300 mb-8">
+              Join thousands of Myanmar youth building their careers through referrals and learning.
+            </p>
+
+            {/* Benefits */}
+            <div className="space-y-4">
+              {benefits.map((benefit, index) => (
+                <motion.div
+                  key={index}
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: 0.3 + index * 0.1 }}
+                  className="flex items-center gap-3"
+                >
+                  <div className="w-6 h-6 rounded-full bg-teal-500/20 flex items-center justify-center">
+                    <Check className="w-4 h-4 text-teal-400" />
+                  </div>
+                  <span className="text-slate-300">{benefit}</span>
+                </motion.div>
+              ))}
+            </div>
+
+            {/* Burmese Text */}
+            <p className="mt-8 text-slate-500 burmese-text">
+              ယနေ့ပင် စတင်ပါ။ သင့်အနာဂတ်ကို တည်ဆောက်ပါ။
+            </p>
+          </motion.div>
+        </div>
+      </div>
+
+      {/* Right Panel - Registration Form */}
+      <div className="w-full lg:w-1/2 flex items-center justify-center px-6 py-12 bg-background overflow-y-auto">
+        <motion.div
+          initial={{ opacity: 0, x: 20 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ duration: 0.6, delay: 0.2 }}
+          className="w-full max-w-md"
+        >
+          {/* Mobile Logo */}
+          <div className="lg:hidden flex flex-col items-center gap-1 mb-8">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl overflow-hidden border-2 border-teal-500/50 shadow-lg shadow-teal-500/20">
+                <img 
+                  src="/avatars/avatar-default-male.png" 
+                  alt="ReferTRM" 
+                  className="w-full h-full object-cover"
+                />
+              </div>
+              <h1 className="text-xl font-bold">
+                <span className="text-teal-400">Refer</span>
+                <span className="text-white">TRM</span>
+              </h1>
+            </div>
+            <p className="text-[10px] text-teal-400/80 flex items-center gap-1">
+              Made with <Heart className="w-3 h-3 text-red-400 inline" fill="currentColor" /> in Myanmar <span className="text-slate-500">(မြန်မာပြည်)</span>
+            </p>
+          </div>
+
+          {/* Header */}
+          <div className="text-center mb-8">
+            <h2 className="text-2xl font-bold text-white mb-2">Create your account</h2>
+            <p className="text-slate-400">
+              {step === 1 ? 'Enter your details to get started' : 'Complete your profile'}
+            </p>
+          </div>
+
+          {/* Progress Steps */}
+          <div className="flex items-center justify-center gap-2 mb-8">
+            {[1, 2].map((s) => (
+              <div
+                key={s}
+                className={`w-10 h-10 rounded-full flex items-center justify-center font-medium transition-all ${
+                  s <= step
+                    ? 'bg-teal-500 text-slate-900'
+                    : 'bg-slate-800 text-slate-500'
+                }`}
+              >
+                {s < step ? <Check className="w-5 h-5" /> : s}
+              </div>
+            ))}
+          </div>
+

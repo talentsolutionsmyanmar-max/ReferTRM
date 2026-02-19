@@ -1,0 +1,179 @@
+{
+  "name": "ReferTRM - Myanmar's Trusted Referral Hiring Platform",
+  "short_name": "ReferTRM",
+  "description": "Refer friends and earn rewards. Myanmar's #1 referral hiring platform for youth. သူငယ်ချင်းများကို ရည်ညွှန်းပါ၊ ဆုကြေးရယူပါ။",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0F766E",
+  "theme_color": "#26A69A",
+  "orientation": "portrait-primary",
+  "scope": "/",
+  "id": "com.refertrm.app",
+  "launch_handler": {
+    "client_mode": "navigate-existing"
+  },
+  "handle_links": "preferred",
+  "capture_links": "existing-client-navigate",
+  "edge_side_panel": {
+    "preferred_width": 400
+  },
+  "display_override": [
+    "window-controls-overlay",
+    "standalone",
+    "minimal-ui",
+    "browser"
+  ],
+  "icons": [
+    {
+      "src": "/logo.png",
+      "sizes": "72x72",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/logo.png",
+      "sizes": "96x96",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/logo.png",
+      "sizes": "128x128",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/logo.png",
+      "sizes": "144x144",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/logo.png",
+      "sizes": "152x152",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/logo.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/logo.png",
+      "sizes": "384x384",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/logo.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/logo.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "categories": ["business", "jobs", "social"],
+  "lang": "my",
+  "dir": "ltr",
+  "shortcuts": [
+    {
+      "name": "Browse Jobs",
+      "short_name": "Jobs",
+      "description": "View available job positions - အလုပ်များကိုကြည့်ရှုပါ",
+      "url": "/dashboard/jobs",
+      "icons": [{ "src": "/logo.png", "sizes": "96x96" }]
+    },
+    {
+      "name": "My Applications",
+      "short_name": "Applications",
+      "description": "Track your job applications - လျှောက်လွှာများကို ခ追踪လုပ်ပါ",
+      "url": "/dashboard/applications",
+      "icons": [{ "src": "/logo.png", "sizes": "96x96" }]
+    },
+    {
+      "name": "Messages",
+      "short_name": "Messages",
+      "description": "View your messages - သတင်းစကားများ",
+      "url": "/dashboard/messages",
+      "icons": [{ "src": "/logo.png", "sizes": "96x96" }]
+    },
+    {
+      "name": "Refer & Earn",
+      "short_name": "Refer",
+      "description": "Refer friends and earn rewards - ရည်ညွှန်းပြီး ဆုကြေးရယူပါ",
+      "url": "/dashboard/referrals",
+      "icons": [{ "src": "/logo.png", "sizes": "96x96" }]
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "/logo.png",
+      "sizes": "1280x720",
+      "type": "image/png",
+      "form_factor": "wide",
+      "label": "ReferTRM Homepage"
+    },
+    {
+      "src": "/logo.png",
+      "sizes": "750x1334",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "ReferTRM Mobile View"
+    }
+  ],
+  "related_applications": [],
+  "prefer_related_applications": false,
+  "protocol_handlers": [
+    {
+      "protocol": "web+refertrm",
+      "url": "/dashboard/jobs?id=%s"
+    }
+  ],
+  "share_target": {
+    "action": "/dashboard/share",
+    "method": "POST",
+    "enctype": "multipart/form-data",
+    "params": {
+      "title": "title",
+      "text": "text",
+      "url": "url",
+      "files": [
+        {
+          "name": "resume",
+          "accept": ["application/pdf", ".pdf", "application/msword", ".doc", "application/vnd.openxmlformats-officedocument.wordprocessingml.document", ".docx"]
+        }
+      ]
+    }
+  },
+  "file_handlers": [
+    {
+      "action": "/dashboard/apply",
+      "accept": {
+        "application/pdf": [".pdf"],
+        "application/msword": [".doc"],
+        "application/vnd.openxmlformats-officedocument.wordprocessingml.document": [".docx"]
+      }
+    }
+  ],
+  "widgets": [
+    {
+      "name": "Job Alerts",
+      "short_name": "Jobs",
+      "description": "Latest job opportunities",
+      "tag": "job-alerts-widget",
+      "template": "job-alerts",
+      "ms_ac_template": "job-alerts-template",
+      "data": "/api/jobs/widget"
+    }
+  ],
+  "background_sync": {
+    "enabled": true
+  }
+}
