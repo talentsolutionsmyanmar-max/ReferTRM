@@ -202,7 +202,7 @@ export async function createUserProfile(uid: string, data: Partial<UserProfile> 
   console.log('📋 Profile data:', JSON.stringify(profile, null, 2));
 
   const { error } = await supabase
-    .from('users')
+    .from('User')
     .upsert(profile, { onConflict: 'id' });
 
   if (error) {
@@ -220,7 +220,7 @@ export async function getUserProfile(uid: string): Promise<UserProfile | null> {
 
   try {
     const { data, error } = await supabase
-      .from('users')
+      .from('User')
       .select('*')
       .eq('id', uid)
       .single();
@@ -235,7 +235,7 @@ export async function getUserProfile(uid: string): Promise<UserProfile | null> {
         await createUserProfile(uid, { name: 'User' });
         // Try again
         const { data: newData } = await supabase
-          .from('users')
+          .from('User')
           .select('*')
           .eq('id', uid)
           .single();
@@ -257,7 +257,7 @@ export async function updateUserProfile(uid: string, data: Partial<UserProfile>)
   if (!supabase) return;
 
   const { error } = await supabase
-    .from('users')
+    .from('User')
     .update({ ...data, updated_at: new Date().toISOString() })
     .eq('id', uid);
 
@@ -297,7 +297,7 @@ export async function getLeaderboard(limitCount: number = 10): Promise<UserProfi
   if (!supabase) return [];
 
   const { data, error } = await supabase
-    .from('users')
+    .from('User')
     .select('*')
     .order('total_points_earned', { ascending: false })
     .limit(limitCount);
@@ -346,7 +346,7 @@ export async function createReferral(data: {
   if (!supabase) throw new Error('Supabase not configured');
 
   const { data: result, error } = await supabase
-    .from('referrals')
+    .from('Referral')
     .insert({
       ...data,
       status: 'pending',
@@ -364,7 +364,7 @@ export async function getUserReferrals(userId: string): Promise<Referral[]> {
   if (!supabase) return [];
 
   const { data, error } = await supabase
-    .from('referrals')
+    .from('Referral')
     .select('*')
     .eq('referrer_id', userId)
     .order('created_at', { ascending: false });
@@ -408,7 +408,7 @@ export async function getActiveJobs(): Promise<JobListing[]> {
   if (!supabase) return [];
 
   const { data, error } = await supabase
-    .from('jobs')
+    .from('Job')
     .select('*')
     .eq('status', 'active')
     .order('posted_at', { ascending: false });

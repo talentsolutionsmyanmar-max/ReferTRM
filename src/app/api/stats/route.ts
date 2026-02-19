@@ -25,7 +25,7 @@ export async function GET() {
 
     // Get jobs count
     const { count: jobsCount, error: jobsError } = await supabase
-      .from('jobs')
+      .from('Job')
       .select('*', { count: 'exact', head: true })
       .eq('status', 'active');
 
@@ -44,7 +44,7 @@ export async function GET() {
 
     // Get total rewards available (sum of all job rewards)
     const { data: jobsData, error: rewardsError } = await supabase
-      .from('jobs')
+      .from('Job')
       .select('reward')
       .eq('status', 'active');
 
@@ -59,7 +59,7 @@ export async function GET() {
 
     // Get sample jobs for preview
     const { data: sampleJobs, error: sampleError } = await supabase
-      .from('jobs')
+      .from('Job')
       .select('id, title, company, location, salary, reward, urgent')
       .eq('status', 'active')
       .order('posted_at', { ascending: false })
