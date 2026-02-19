@@ -436,9 +436,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setLoading(true);
     try {
       if (isSupabaseMode) {
-        const authUser = await signUpWithEmail(email, password, displayName);
-        if (authUser) {
-          const profile = await getUserProfile(authUser.id);
+        const result = await signUpWithEmail(email, password, displayName);
+        
+        // Check if email confirmation is required
+        if (result.needsEmailConfirmation) {
+          // Store signup info temporarily for the confirmation page
+          if (typeof window !== 'undefined') {
+            sessionStorage.setItem('pending_signup_email', email);
+            sessionStorage.setItem('pending_signup_name', displayName);
+          }
+          throw new Error('EMAIL_CONFIRMATION_REQUIRED');
+        }
+        
+        // User is immediately signed in (email confirmation disabled)
+        if (result.user && result.session) {
+          const profile = await getUserProfile(result.user.id);
           if (profile) {
             setUser(profileToUser(profile));
           }
@@ -474,6 +486,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       addTransaction(50, 'signup', 'Welcome bonus for creating account!');
     } catch (error: any) {
       console.error('Signup error:', error);
+      if (error.message === 'EMAIL_CONFIRMATION_REQUIRED') {
+        throw error; // Let the UI handle this special case
+      }
       if (error.message?.includes('already registered')) {
         throw new Error('This email is already registered. Please login instead.');
       }

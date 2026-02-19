@@ -80,6 +80,13 @@ export default function RegisterPage() {
       } catch (err: unknown) {
         console.error('Registration error:', err);
         const errorMessage = err instanceof Error ? err.message : 'Failed to create account. Please try again.';
+        
+        if (errorMessage === 'EMAIL_CONFIRMATION_REQUIRED') {
+          // Show success message for email confirmation
+          setStep(3); // New step for email confirmation
+          return;
+        }
+        
         if (errorMessage.includes('email-already-in-use')) {
           setError('This email is already registered. Please login instead.');
         } else if (errorMessage.includes('invalid-email')) {
@@ -213,7 +220,7 @@ export default function RegisterPage() {
 
           {/* Progress Steps */}
           <div className="flex items-center justify-center gap-2 mb-8">
-            {[1, 2].map((s) => (
+            {[1, 2, 3].map((s) => (
               <div
                 key={s}
                 className={`w-10 h-10 rounded-full flex items-center justify-center font-medium transition-all ${
@@ -400,32 +407,74 @@ export default function RegisterPage() {
               </>
             )}
 
-            {/* Submit Button */}
-            <Button
-              type="submit"
-              className="w-full btn-primary py-6 text-base"
-              disabled={isLoading}
-            >
-              {isLoading ? (
-                <span className="flex items-center gap-2">
-                  <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-                  </svg>
-                  Creating account...
-                </span>
-              ) : step === 1 ? (
-                <span className="flex items-center gap-2">
-                  Continue
-                  <ArrowRight className="h-5 w-5" />
-                </span>
-              ) : (
-                <span className="flex items-center gap-2">
-                  Create Account
-                  <Sparkles className="h-5 w-5" />
-                </span>
-              )}
-            </Button>
+            {step === 3 && (
+              <div className="text-center space-y-6">
+                {/* Success Icon */}
+                <div className="w-20 h-20 rounded-full bg-gradient-to-r from-teal-500 to-cyan-500 mx-auto flex items-center justify-center">
+                  <Mail className="w-10 h-10 text-white" />
+                </div>
+
+                {/* Success Message */}
+                <div>
+                  <h3 className="text-xl font-bold text-white mb-2">Check your email!</h3>
+                  <p className="text-slate-400">
+                    We've sent a confirmation link to
+                  </p>
+                  <p className="text-teal-400 font-medium mt-1">{formData.email}</p>
+                </div>
+
+                {/* Instructions */}
+                <div className="p-4 rounded-xl bg-slate-800/50 border border-slate-700">
+                  <p className="text-sm text-slate-300">
+                    Click the link in the email to verify your account and start earning rewards!
+                  </p>
+                  <p className="text-xs text-slate-500 mt-2">
+                    စာတိုက်ပုံးထဲသို့ အတည်ပြုလင့်ခ်ကို ပို့လိုက်ပါပြီ။
+                  </p>
+                </div>
+
+                {/* Actions */}
+                <div className="space-y-3">
+                  <Link href="/login" className="block">
+                    <Button className="w-full btn-primary py-6">
+                      Go to Login
+                    </Button>
+                  </Link>
+                  <p className="text-xs text-slate-500">
+                    Didn't receive the email? Check your spam folder.
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {/* Submit Button - Hide on step 3 */}
+            {step !== 3 && (
+              <Button
+                type="submit"
+                className="w-full btn-primary py-6 text-base"
+                disabled={isLoading}
+              >
+                {isLoading ? (
+                  <span className="flex items-center gap-2">
+                    <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                    </svg>
+                    Creating account...
+                  </span>
+                ) : step === 1 ? (
+                  <span className="flex items-center gap-2">
+                    Continue
+                    <ArrowRight className="h-5 w-5" />
+                  </span>
+                ) : (
+                  <span className="flex items-center gap-2">
+                    Create Account
+                    <Sparkles className="h-5 w-5" />
+                  </span>
+                )}
+              </Button>
+            )}
 
             {step === 2 && (
               <Button

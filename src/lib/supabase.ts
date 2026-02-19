@@ -76,6 +76,8 @@ export async function signUpWithEmail(email: string, password: string, name: str
       data: {
         name,
       },
+      // Disable email confirmation for now - can be re-enabled in production
+      emailRedirectTo: `${typeof window !== 'undefined' ? window.location.origin : ''}/auth/callback`,
     },
   });
 
@@ -85,6 +87,7 @@ export async function signUpWithEmail(email: string, password: string, name: str
   }
 
   console.log('✅ Auth signup successful, user ID:', data.user?.id);
+  console.log('📧 Email confirmation required:', !data.session);
 
   // Create user profile
   if (data.user) {
@@ -97,7 +100,12 @@ export async function signUpWithEmail(email: string, password: string, name: str
     }
   }
 
-  return data.user;
+  // Return both user and session info
+  return {
+    user: data.user,
+    session: data.session,
+    needsEmailConfirmation: !data.session
+  };
 }
 
 // Sign in with email and password
