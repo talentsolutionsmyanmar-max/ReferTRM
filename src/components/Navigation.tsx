@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Menu, X, Send, Home, Briefcase, Building2, Users, GraduationCap, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import ThemeToggle from '@/components/ThemeToggle';
 
 const navItems = [
   { label: 'Home', href: '#', labelMm: 'ပင်မစာမျက်နှာ', icon: Home },
@@ -58,8 +59,9 @@ export default function Navigation() {
             ))}
           </nav>
 
-          {/* CTA Button - Desktop */}
+          {/* CTA Button + Theme Toggle - Desktop */}
           <div className="hidden md:flex items-center gap-3">
+            <ThemeToggle />
             <Button
               className="btn-primary btn-mobile touch-target"
               onClick={() => window.open('https://t.me/ReferTRM', '_blank')}
@@ -69,7 +71,9 @@ export default function Navigation() {
             </Button>
           </div>
 
-          {/* Mobile Menu Button - Minimum 44x44px touch target */}
+          {/* Mobile: Theme Toggle + Menu Button */}
+          <div className="md:hidden flex items-center gap-1">
+            <ThemeToggle />
           <button
             className="md:hidden flex items-center justify-center w-11 h-11 rounded-xl text-slate-400 hover:text-white hover:bg-white/5 transition-colors touch-target no-select"
             onClick={() => setIsOpen(!isOpen)}
@@ -78,6 +82,7 @@ export default function Navigation() {
           >
             {isOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
           </button>
+          </div>
         </div>
 
         {/* Orange Progress Bar */}
