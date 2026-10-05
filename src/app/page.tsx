@@ -4,13 +4,22 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
 import { 
-  Briefcase, Users, FileText, ArrowDown, Send, Star, Flame, Trophy, Sparkles, Menu, X,
+  Briefcase, Users, FileText, ArrowDown, Send, Star, Flame, Trophy, Sparkles,
   Check, Building2, CreditCard, Crown, Zap, Target, Award, BookOpen, TrendingUp,
   Globe, Shield, Heart, Cpu, Languages, Megaphone, DollarSign, BarChart3, Rocket, FileEdit,
   Brain, MessageSquare, Wallet, ArrowUpRight
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import PublicHeader from '@/components/PublicHeader';
+import EmployerPlansGrid from '@/components/pricing/EmployerPlansGrid';
+import SeekerPlanCards from '@/components/pricing/SeekerPlanCards';
+import {
+  employerPlans,
+  getPublicSeekerPlans,
+  homepageSeekerPlans,
+  SEEKER_PAID_PLANS_PUBLIC,
+} from '@/data/pricing';
 
 const defaultStats = [
   { icon: Briefcase, value: 'Loading...', label: 'Open Positions', labelMm: 'အလုပ်နေရာများ' },
@@ -148,102 +157,12 @@ const trustIndicators = [
   { icon: Award, label: 'Replacement Warranty', value: '60-90 Days', sublabel: 'Free replacement' },
 ];
 
-// B2B Pricing Plans - Job Posting Slots (NOT guaranteed hires - that's outcome, not what we sell)
-const b2bPlans = [
-  {
-    name: 'Starter',
-    nameMm: 'စတင်သူ',
-    price: 'Free',
-    period: 'Forever',
-    slots: '3 Job Slots',
-    features: ['3 active job postings', 'Basic job visibility', 'Email support', 'Standard listing', '1 week visibility per post'],
-    popular: false,
-    color: 'from-slate-500 to-slate-600',
-  },
-  {
-    name: 'Bronze',
-    nameMm: 'ကြေးနီ',
-    priceMonthly: '150K',
-    priceAnnual: '99K',
-    period: '/month',
-    periodAnnual: '/month (billed annually)',
-    slots: '5 Job Slots',
-    features: ['5 active job postings', 'Featured job listings', 'Priority support', 'Applicant tracking', 'Company branding', '2 week visibility per post'],
-    popular: false,
-    color: 'from-amber-600 to-orange-600',
-    annualNote: 'Save 34%',
-  },
-  {
-    name: 'Silver',
-    nameMm: 'ငွေ',
-    priceMonthly: '350K',
-    priceAnnual: '299K',
-    period: '/month',
-    periodAnnual: '/month (billed annually)',
-    slots: '15 Job Slots',
-    features: ['15 active job postings', 'Premium job listings', 'Dedicated account manager', 'Advanced analytics & reports', 'Bulk job posting', 'Social media promotion', '30 day visibility per post'],
-    popular: true,
-    color: 'from-gray-400 to-slate-500',
-    annualNote: 'Save 14%',
-  },
-  {
-    name: 'Gold',
-    nameMm: 'ရွှေ',
-    priceMonthly: '950K',
-    priceAnnual: '799K',
-    period: '/month',
-    periodAnnual: '/month (billed annually)',
-    slots: 'Unlimited Slots',
-    features: ['Unlimited job postings', 'Top of search results', '24/7 priority support', 'Full analytics dashboard', 'Custom branding', 'API access', 'Talent pool access', 'Salary market reports', 'Company profile premium'],
-    popular: false,
-    color: 'from-yellow-500 to-amber-500',
-    annualNote: 'Save 16%',
-  },
-  {
-    name: 'Diamond',
-    nameMm: 'စိန်',
-    price: 'Custom',
-    period: 'Enterprise',
-    slots: 'Unlimited+ Priority',
-    features: ['Negotiated pricing', 'Everything in Gold', 'White-label solution', 'Custom integrations', 'SLA guarantee', 'Dedicated success team', 'Training sessions', 'Exclusive salary data'],
-    popular: false,
-    color: 'from-cyan-400 to-teal-500',
-  },
-];
-
 // Monetization breakdown
 const monetizationExample = [
   { reward: '100,000', platform: '20,000', referrer: '80,000' },
   { reward: '200,000', platform: '40,000', referrer: '160,000' },
   { reward: '300,000', platform: '60,000', referrer: '240,000' },
   { reward: '500,000', platform: '100,000', referrer: '400,000' },
-];
-
-// Premium plans for users - Affordable for Myanmar market
-const userPlans = [
-  {
-    name: 'Free',
-    nameMm: 'အခမဲ့',
-    price: '0',
-    features: ['Basic job access', 'Limited academy courses', 'Standard referral code', 'Basic avatar'],
-    popular: false,
-  },
-  {
-    name: 'Premium',
-    nameMm: 'ပရီမီယံ',
-    price: '5,000',
-    period: 'MMK/month',
-    features: ['All job access', 'Full academy access', 'Priority referral matching', 'Premium avatars', 'Double points', 'Early job alerts'],
-    popular: true,
-  },
-  {
-    name: 'Pro',
-    nameMm: 'ပရို',
-    price: '15,000',
-    period: 'MMK/month',
-    features: ['Everything in Premium', 'Exclusive high-reward jobs', 'Personal referral coach', 'VIP badge', 'Triple points', 'First access to new features', 'Diploma discounts'],
-    popular: false,
-  },
 ];
 
 // Job and Lead interfaces
@@ -432,8 +351,8 @@ function LiveJobsSection() {
 }
 
 export default function HomePage() {
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<'referrer' | 'company'>('referrer');
+  const visibleSeekerPlans = getPublicSeekerPlans(homepageSeekerPlans);
   const [stats, setStats] = useState(defaultStats);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -462,55 +381,7 @@ export default function HomePage() {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Navigation */}
-      <nav className="fixed top-0 left-0 right-0 z-50 backdrop-blur-xl bg-slate-900/80 border-b border-white/5">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16">
-            {/* Logo */}
-            <Link href="/" className="flex flex-col items-start gap-0">
-              <div className="flex items-center gap-2">
-                <img src="/logo.png" alt="ReferTRM Logo" className="h-10 w-auto rounded-lg" />
-                <span className="text-lg font-bold">
-                  <span className="text-teal-400">Refer</span>
-                  <span className="text-white">TRM</span>
-                </span>
-              </div>
-              <span className="text-[10px] text-teal-400/80 flex items-center gap-1 ml-12">
-                Made with <Heart className="w-3 h-3 text-red-400 inline" fill="currentColor" /> in Myanmar <span className="text-slate-500">(မြန်မာပြည်)</span>
-              </span>
-            </Link>
-
-            {/* Desktop Nav */}
-            <div className="hidden md:flex items-center gap-6">
-              <Link href="/dashboard" className="text-slate-300 hover:text-white transition-colors">Dashboard</Link>
-              <Link href="/dashboard/jobs" className="text-slate-300 hover:text-white transition-colors">Jobs</Link>
-              <Link href="/dashboard/academy" className="text-slate-300 hover:text-white transition-colors">Academy</Link>
-              <Link href="/company" className="text-slate-300 hover:text-white transition-colors">For Companies</Link>
-              <Link href="/login" className="btn-primary text-sm">
-                Get Started
-              </Link>
-            </div>
-
-            {/* Mobile Menu Button */}
-            <button onClick={() => setMobileMenuOpen(!mobileMenuOpen)} className="md:hidden text-slate-400">
-              {mobileMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
-            </button>
-          </div>
-        </div>
-
-        {/* Mobile Menu */}
-        {mobileMenuOpen && (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="md:hidden bg-slate-900 border-b border-white/5">
-            <div className="px-4 py-4 space-y-3">
-              <Link href="/dashboard" className="block text-slate-300 hover:text-white">Dashboard</Link>
-              <Link href="/dashboard/jobs" className="block text-slate-300 hover:text-white">Jobs</Link>
-              <Link href="/dashboard/academy" className="block text-slate-300 hover:text-white">Academy</Link>
-              <Link href="/company" className="block text-slate-300 hover:text-white">For Companies</Link>
-              <Link href="/login" className="block btn-primary text-center text-sm">Get Started</Link>
-            </div>
-          </motion.div>
-        )}
-      </nav>
+      <PublicHeader />
 
       {/* Hero Section */}
       <section className="relative min-h-screen flex items-center justify-center pt-20 overflow-hidden">
@@ -683,120 +554,42 @@ export default function HomePage() {
             </motion.div>
           ) : (
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
-              {/* Company Pricing */}
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
-                {b2bPlans.map((plan, index) => (
-                  <div
-                    key={index}
-                    className={`glass-card p-6 relative ${plan.popular ? 'ring-2 ring-teal-500 scale-105' : ''}`}
-                  >
-                    {plan.popular && (
-                      <div className="absolute -top-3 left-1/2 -translate-x-1/2">
-                        <Badge className="bg-teal-500 text-white">Most Popular</Badge>
-                      </div>
-                    )}
-                    {plan.annualNote && (
-                      <div className="absolute -top-3 right-2">
-                        <Badge className="bg-teal-500/20 text-teal-400 text-xs">{plan.annualNote}</Badge>
-                      </div>
-                    )}
-                    <div className={`text-xl font-bold bg-gradient-to-r ${plan.color} bg-clip-text text-transparent mb-1`}>
-                      {plan.name}
-                    </div>
-                    <div className="text-slate-500 text-xs burmese-text mb-4">{plan.nameMm}</div>
-                    
-                    {/* Pricing - show annual vs monthly */}
-                    {plan.price ? (
-                      <div>
-                        <div className="text-3xl font-bold text-white mb-1">{plan.price}</div>
-                        <div className="text-slate-500 text-sm mb-4">{plan.period}</div>
-                      </div>
-                    ) : (
-                      <div>
-                        <div className="flex items-baseline gap-2 mb-1">
-                          <span className="text-3xl font-bold text-white">{plan.priceAnnual}</span>
-                          <span className="text-slate-500 text-sm line-through">{plan.priceMonthly}</span>
-                        </div>
-                        <div className="text-teal-400 text-xs mb-2">{plan.periodAnnual}</div>
-                        <div className="text-slate-500 text-sm mb-4">or {plan.priceMonthly}{plan.period}</div>
-                      </div>
-                    )}
-                    
-                    <div className="text-teal-400 text-sm font-medium mb-4">{plan.slots}</div>
-                    <ul className="space-y-2">
-                      {plan.features.map((feature, i) => (
-                        <li key={i} className="flex items-start gap-2 text-sm text-slate-400">
-                          <Check className="h-4 w-4 text-teal-400 shrink-0 mt-0.5" />
-                          {feature}
-                        </li>
-                      ))}
-                    </ul>
-                    <Link href="/company" className="block mt-6">
-                      <Button className={`w-full ${plan.popular ? 'btn-primary' : 'btn-secondary'}`}>
-                        Get Started
-                      </Button>
-                    </Link>
-                  </div>
-                ))}
-              </div>
-              
-              {/* Annual Pricing Note */}
-              <div className="mt-8 text-center">
-                <div className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-teal-500/10 border border-teal-500/20">
-                  <Check className="h-4 w-4 text-teal-400" />
-                  <span className="text-teal-400 text-sm">Save up to 34% with annual billing</span>
-                </div>
-              </div>
+              <EmployerPlansGrid plans={employerPlans} />
             </motion.div>
           )}
         </div>
       </section>
 
-      {/* Premium Subscription Section */}
-      <section className="py-20 px-4">
+      {/* Job-seeker access: paid SKUs gated by SEEKER_PAID_PLANS_PUBLIC */}
+      <section className="py-20 px-4" data-seeker-paid-plans={SEEKER_PAID_PLANS_PUBLIC ? 'visible' : 'hidden'}>
         <div className="max-w-4xl mx-auto">
           <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} className="text-center mb-12">
-            <Crown className="h-12 w-12 text-amber-400 mx-auto mb-4" />
+            <Shield className="h-12 w-12 text-teal-400 mx-auto mb-4" />
             <h2 className="text-3xl md:text-4xl font-bold mb-4">
-              <span className="text-white">Premium </span>
-              <span className="text-gradient-primary">Membership</span>
+              <span className="text-white">Job seekers stay </span>
+              <span className="text-gradient-primary">free</span>
             </h2>
-            <p className="text-slate-400 burmese-text">အဆင့်မြင့်အသင်းဝင် - ပိုမိုအခွင့်အလမ်းများ</p>
+            <p className="text-slate-400">Matching, learning, job seeking, onboarding, and the game — no paid membership required.</p>
+            <p className="text-slate-500 burmese-text mt-2">အလုပ်ရှာသူများအတွက် အခမဲ့ဖြစ်သည်။</p>
           </motion.div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {userPlans.map((plan, index) => (
-              <div
-                key={index}
-                className={`glass-card p-6 ${plan.popular ? 'ring-2 ring-teal-500 relative' : ''}`}
-              >
-                {plan.popular && (
-                  <div className="absolute -top-3 left-1/2 -translate-x-1/2">
-                    <Badge className="bg-teal-500 text-white">Recommended</Badge>
-                  </div>
-                )}
-                <div className="text-xl font-bold text-white mb-1">{plan.name}</div>
-                <div className="text-slate-500 text-xs burmese-text mb-4">{plan.nameMm}</div>
-                <div className="flex items-baseline gap-1 mb-4">
-                  <span className="text-3xl font-bold text-white">{plan.price}</span>
-                  {plan.period && <span className="text-slate-500 text-sm">{plan.period}</span>}
-                </div>
-                <ul className="space-y-2 mb-6">
-                  {plan.features.map((feature, i) => (
-                    <li key={i} className="flex items-start gap-2 text-sm text-slate-400">
-                      <Check className="h-4 w-4 text-teal-400 shrink-0 mt-0.5" />
-                      {feature}
-                    </li>
-                  ))}
-                </ul>
+          {SEEKER_PAID_PLANS_PUBLIC ? (
+            <SeekerPlanCards plans={visibleSeekerPlans} />
+          ) : (
+            <div className="glass-card p-8 text-center">
+              <p className="text-slate-300 mb-6">
+                Create a free account to use the platform. CV / resume builder remains free (generate limit ~2/week).
+              </p>
+              <div className="flex flex-col sm:flex-row gap-3 justify-center">
                 <Link href="/register">
-                  <Button className={`w-full ${plan.popular ? 'btn-primary' : 'btn-secondary'}`}>
-                    {plan.price === '0' ? 'Get Started Free' : 'Subscribe Now'}
-                  </Button>
+                  <Button className="btn-primary">Create free account</Button>
+                </Link>
+                <Link href="/pricing">
+                  <Button className="btn-secondary">View pricing</Button>
                 </Link>
               </div>
-            ))}
-          </div>
+            </div>
+          )}
         </div>
       </section>
 
@@ -1277,7 +1070,11 @@ export default function HomePage() {
             Made with <Heart className="w-4 h-4 text-red-400 inline" fill="currentColor" /> in Myanmar <span className="text-slate-400">(မြန်မာပြည်)</span>
           </p>
           <p className="text-slate-500 text-sm mb-2">© 2025 ReferTRM by Talent Solutions Myanmar</p>
-          <p className="text-slate-600 text-xs burmese-text">Talent Solutions Myanmar မှ ReferTRM</p>
+          <p className="text-slate-600 text-xs burmese-text mb-3">Talent Solutions Myanmar မှ ReferTRM</p>
+          <div className="flex justify-center gap-4 text-sm">
+            <Link href="/pricing" className="text-slate-400 hover:text-teal-400">Pricing</Link>
+            <Link href="/company" className="text-slate-400 hover:text-teal-400">For Companies</Link>
+          </div>
         </div>
       </footer>
     </div>
