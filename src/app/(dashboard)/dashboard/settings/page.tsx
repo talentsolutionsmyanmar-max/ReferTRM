@@ -170,61 +170,6 @@ const categoryInfo = {
   legendary: { label: 'Legendary', labelMm: 'ဒဏ္ဍာရီ', color: 'from-purple-500 to-pink-500', bgColor: 'bg-purple-500/20', borderColor: 'border-purple-500/30', textColor: 'text-purple-400' },
 };
 
-// Premium Plans
-const premiumPlans = [
-  {
-    id: 'free',
-    name: 'Free',
-    nameMm: 'အခမဲ့',
-    price: 0,
-    period: 'Forever',
-    features: [
-      'Basic job access',
-      'Limited academy courses (Basic level only)',
-      'Standard referral code',
-      'Basic avatars',
-      'Standard points earning',
-    ],
-    current: true,
-  },
-  {
-    id: 'premium',
-    name: 'Premium',
-    nameMm: 'ပရီမီယံ',
-    price: 10000,
-    period: 'MMK/month',
-    features: [
-      'All job access with priority',
-      'Full academy access (all levels)',
-      'Priority referral matching',
-      'Premium avatar collection',
-      '2x points on all activities',
-      'Early job alerts (24h before free users)',
-      'Certificate download priority',
-    ],
-    popular: true,
-    current: false,
-  },
-  {
-    id: 'pro',
-    name: 'Pro',
-    nameMm: 'ပရို',
-    price: 25000,
-    period: 'MMK/month',
-    features: [
-      'Everything in Premium',
-      'Exclusive high-reward jobs',
-      'Personal referral coach chat',
-      'VIP badge on profile',
-      '3x points on all activities',
-      'First access to new features',
-      'Diploma program discounts (coming soon)',
-      'Direct company contact',
-    ],
-    current: false,
-  },
-];
-
 type TabType = 'avatar' | 'equipment' | 'profile' | 'preferences';
 
 export default function SettingsPage() {

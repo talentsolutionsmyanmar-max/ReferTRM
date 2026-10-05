@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 const quickLinks = [
   { label: 'Browse Jobs', href: '#jobs', labelMm: 'အလုပ်များ ကြည့်ရှုပါ' },
   { label: 'For Companies', href: '#companies', labelMm: 'ကုမ္ပဏီများအတွက်' },
+  { label: 'Pricing', href: '/pricing', labelMm: 'စျေးနှုန်း' },
   { label: 'Why Refer', href: '#why-refer', labelMm: 'အဘယ်ကြောင့် ရည်ညွှန်းသင့်သနည်း' },
   { label: 'Academy', href: '#academy', labelMm: 'သင်ကြားရေး' },
 ];

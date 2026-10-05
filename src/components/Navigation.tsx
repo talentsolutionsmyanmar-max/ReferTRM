@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Menu, X, Send, Home, Briefcase, Building2, Users, GraduationCap, ChevronRight } from 'lucide-react';
+import { Menu, X, Send, Home, Briefcase, Building2, Users, GraduationCap, ChevronRight, CircleDollarSign } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 
@@ -10,6 +10,7 @@ const navItems = [
   { label: 'Home', href: '#', labelMm: 'ပင်မစာမျက်နှာ', icon: Home },
   { label: 'Jobs', href: '#jobs', labelMm: 'အလုပ်များ', icon: Briefcase },
   { label: 'Companies', href: '#companies', labelMm: 'ကုမ္ပဏီများ', icon: Building2 },
+  { label: 'Pricing', href: '/pricing', labelMm: 'စျေးနှုန်း', icon: CircleDollarSign },
   { label: 'Refer', href: '#why-refer', labelMm: 'ရည်ညွှန်းပါ', icon: Users },
   { label: 'Academy', href: '#academy', labelMm: 'သင်ကြားရေး', icon: GraduationCap },
 ];
